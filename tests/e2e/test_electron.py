@@ -13,6 +13,19 @@ def dismiss_help(pg):
         pg.get_by_role("button", name="閉じる").click()
 
 
+def wait_until(pg, pred, timeout_ms=15000):
+    """Poll a Python-side condition (disk state) instead of sleeping a fixed time: CI runners are slower than a laptop."""
+    for _ in range(max(1, timeout_ms // 250)):
+        if pred():
+            return True
+        pg.wait_for_timeout(250)
+    return pred()
+
+
+def deck_text(ws):
+    return (ws / "deck.md").read_text(encoding="utf8") if (ws / "deck.md").exists() else ""
+
+
 def test_workspace_from_argv_paste_watch_and_pptx_export(electron_app):
     pg, ws = electron_app
     dismiss_help(pg)
@@ -22,21 +35,22 @@ def test_workspace_from_argv_paste_watch_and_pptx_export(electron_app):
 
     pg.locator(".cm-content").click(); pg.keyboard.press("Escape"); pg.keyboard.type("29G")
     pg.evaluate(PASTE_JS, png_b64(600, 900))
-    pg.wait_for_timeout(2500)
-    assert [p.name for p in (ws / "images").iterdir()] == ["2-1-計測基盤の構成.png"]
-    assert "images/2-1-計測基盤の構成.png" in (ws / "deck.md").read_text(encoding="utf8")
-    assert pg.get_by_role("button", name="保存済み").is_visible()
+    # the image is written first, then the reference is autosaved into deck.md (1.5 s debounce)
+    assert wait_until(pg, lambda: (ws / "images").exists() and [p.name for p in (ws / "images").iterdir()] == ["2-1-計測基盤の構成.png"])
+    assert wait_until(pg, lambda: "images/2-1-計測基盤の構成.png" in deck_text(ws))
+    pg.get_by_role("button", name="保存済み").wait_for(timeout=10000)
 
     # chokidar picks up an external rewrite
-    t = (ws / "deck.md").read_text(encoding="utf8")
+    t = deck_text(ws)
     (ws / "deck.md").write_text(t.replace("# 背景と目的", "# 背景と目的（外部更新）"), encoding="utf8")
-    pg.wait_for_timeout(2500)
+    pg.locator(".nav-item .label", has_text="1. 背景と目的（外部更新）").wait_for(timeout=10000)
     assert pg.locator(".nav-item .label", has_text="1. 背景と目的（外部更新）").count() == 1
 
     # switch the pasted image to 3/4 left, then export a pptx through the bundled Python tool
     pg.locator(".nav-item", has_text="2.1.").first.click()
     pg.get_by_role("button", name="3/4").click(); pg.get_by_role("button", name="左").click()
-    pg.wait_for_timeout(2000)
+    assert wait_until(pg, lambda: "{img=3/4 side=left}" in deck_text(ws))
+    pg.get_by_role("button", name="保存済み").wait_for(timeout=10000)
     pg.get_by_role("button", name="書き出す").click()
     pg.get_by_text("out/deck.pptx を生成しました").wait_for(timeout=30000)
     out = ws / "out" / "deck.pptx"
