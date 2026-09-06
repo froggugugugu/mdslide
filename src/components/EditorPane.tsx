@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { EditorView, basicSetup } from "codemirror";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
@@ -20,9 +20,14 @@ const highlight = HighlightStyle.define([
   { tag: t.comment, color: "var(--ink-3)" },
 ]);
 import { vim } from "@replit/codemirror-vim";
+import { settings } from "../settings/settings";
 import { useDeckStore } from "../store/deckStore";
 import { imageDropPaste, registerVimMotions, saveKeymap, snippets } from "./editorExtensions";
 import { guides, setGuides } from "./editorGuides";
+
+/** Vim is a setting (editor.vim); the compartment swaps it in and out without rebuilding the editor. */
+const vimMode = new Compartment();
+const vimExtension = (on: boolean) => (on ? vim() : []);
 
 export function EditorPane() {
   const host = useRef<HTMLDivElement>(null);
@@ -42,7 +47,7 @@ export function EditorPane() {
     const state = EditorState.create({
       doc: useDeckStore.getState().markdown,
       extensions: [
-        vim(),            // must precede basicSetup so Vim owns the keys
+        vimMode.of(vimExtension(settings.get().editor.vim)), // must precede basicSetup so Vim owns the keys
         syntaxHighlighting(highlight),
         basicSetup,
         markdown(),
@@ -61,7 +66,13 @@ export function EditorPane() {
       ],
     });
     view.current = new EditorView({ state, parent: host.current });
-    return () => { view.current?.destroy(); view.current = null; };
+    let vimOn = settings.get().editor.vim;
+    const unsubscribe = settings.subscribe((s) => {
+      if (s.editor.vim === vimOn) return;
+      vimOn = s.editor.vim;
+      view.current?.dispatch({ effects: vimMode.reconfigure(vimExtension(vimOn)) });
+    });
+    return () => { unsubscribe(); view.current?.destroy(); view.current = null; };
   }, [setMarkdown, selectByLine]);
 
   // Guides follow the rendered deck (fit, splits) and the selection.

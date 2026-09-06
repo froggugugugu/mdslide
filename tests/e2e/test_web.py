@@ -96,6 +96,15 @@ def test_snippets_and_heading_motions(web_page):
     assert pg.evaluate("()=>document.querySelector('.cm-activeLine')?.textContent").startswith("## 取り組みの背景")
     pg.keyboard.type("[["); pg.wait_for_timeout(200)
     assert pg.evaluate("()=>document.querySelector('.cm-activeLine')?.textContent").startswith("# 背景と目的")
+    # vertical motion moves exactly one line across slide separators (they are padding, not margin: CodeMirror measures line boxes)
+    ACTIVE = "()=>[...document.querySelectorAll('.cm-line')].findIndex(l=>l.classList.contains('cm-activeLine'))+1"
+    pg.keyboard.type("20G"); pg.wait_for_timeout(100)
+    assert pg.evaluate(ACTIVE) == 20
+    pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(100)
+    assert pg.evaluate(ACTIVE) == 19
+    pg.keyboard.type("i"); pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(100)
+    assert pg.evaluate(ACTIVE) == 18
+    pg.keyboard.press("Escape")
     assert pg.errors == []
 
 

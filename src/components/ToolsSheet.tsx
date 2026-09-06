@@ -10,14 +10,22 @@ export function ToolsSheet({ onClose }: { onClose: () => void }) {
   const { select, add, update, remove, restoreDefaults } = useToolsStore.getState();
   const [draft, setDraft] = useState({ name: "", command: "", args: "" });
   const [filePath, setFilePath] = useState<string | null>(null);
+  const [vim, setVim] = useState(settings.get().editor.vim);
   useEffect(() => { if (window.mdslide) window.mdslide.settingsPath().then(setFilePath); }, []);
+  useEffect(() => settings.subscribe((s) => setVim(s.editor.vim)), []);
 
   const submit = () => { if (add(draft) !== null) setDraft({ name: "", command: "", args: "" }); };
 
   return (
     <div className="scrim" onClick={onClose}>
-      <div className="sheet tools" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="CLI ツール設定">
-        <h2>CLI ツール</h2>
+      <div className="sheet tools" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="設定">
+        <h2>エディタ</h2>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={vim} onChange={(e) => settings.update((v) => { v.editor.vim = e.target.checked; })} aria-label="Vim キーバインド" />
+          <span>Vim キーバインド</span>
+          <span className="preset">オフにすると通常のテキスト編集（矢印キー・Shift 選択・⌘S 保存）</span>
+        </label>
+        <h2 className="mt-5">CLI ツール</h2>
         <p>コンソールで起動するコマンドです。プリセットは PATH が通っている前提。選択したものが「起動時に自動実行」の対象になります。</p>
         <table className="tools-table">
           <thead><tr><th></th><th>名前</th><th>コマンド</th><th>引数</th><th></th></tr></thead>

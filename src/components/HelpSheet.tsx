@@ -14,7 +14,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         <ol>
           <li>「マスター」で、レイアウト名を <code>Cover / Agenda / Section / Body-Text / Body-2col</code> と付けた pptx を保管フォルダに取り込み、この資料で使うものを選ぶ（資料フォルダに <code>master.pptx</code> を置いてもよい）</li>
           <li>起動画面の「{isElectron ? "Markdown を開く" : "フォルダを開く"}」で資料を開く。「新しく作る」は保存先を選ぶと空の枠（表紙・章・スライド 1 枚）で作る。フォルダを開いた場合はその中の <code>deck.md</code>（無ければ見本から作成）を使う</li>
-          <li>右のエディタで書く。左でドラッグして並べ替える。番号は自動</li>
+          <li>右のエディタで書く（既定は Vim キーバインド。コンソールバーの「ツール設定」で通常のテキスト編集に切り替え可）。左でドラッグして並べ替える。番号は自動</li>
           <li>「書き出す」で <code>out/deck.pptx</code></li>
         </ol>
 

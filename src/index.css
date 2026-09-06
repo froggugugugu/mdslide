@@ -135,7 +135,7 @@ body.electron { background: transparent; }
 .cm-editor .cm-content { padding: 14px 0; caret-color: var(--accent); }
 .cm-editor.cm-focused { outline: none; }
 .cm-editor .cm-gutters { background: transparent; border-right: none; color: var(--ink-3); padding-left: 6px; }
-.cm-editor .cm-activeLine { background: var(--control); }
+.cm-editor .cm-activeLine { background-color: var(--control); } /* background-color, not the shorthand: separators paint a background-image on the same line */
 .cm-editor .cm-activeLineGutter { background: transparent; color: var(--ink-2); }
 .cm-editor .cm-cursor { border-left-color: var(--accent); }
 .cm-editor .cm-selectionBackground, .cm-editor.cm-focused .cm-selectionBackground { background: var(--accent-tint) !important; }
@@ -212,9 +212,12 @@ body.electron { background: transparent; }
 .fit.over { color: #ff453a; font-weight: 600; }
 
 /* ---- Editor guides ---- */
-.cm-editor .cm-slide-sep { border-top: 1px dotted var(--ink-3); padding-top: 10px; margin-top: 10px; }
-.cm-editor .cm-slide-sep-section { border-top: 2px dotted var(--ink-2); margin-top: 18px; padding-top: 12px; }
-.cm-editor .cm-slide-sep-selected { border-top-color: var(--accent); }
+/* Slide separators live inside the line box (padding + a dotted line painted as background), never as margin:
+   CodeMirror measures lines with getBoundingClientRect, so a margin makes vertical cursor motion miss lines. */
+.cm-editor .cm-slide-sep { padding-top: 21px; background-image: repeating-linear-gradient(to right, var(--ink-3) 0 1px, transparent 1px 3px); background-size: 100% 1px; background-position: 0 10px; background-repeat: no-repeat; }
+.cm-editor .cm-slide-sep-section { padding-top: 32px; background-image: repeating-linear-gradient(to right, var(--ink-2) 0 2px, transparent 2px 5px); background-size: 100% 2px; background-position: 0 18px; }
+.cm-editor .cm-slide-sep-selected { background-image: repeating-linear-gradient(to right, var(--accent) 0 1px, transparent 1px 3px); }
+.cm-editor .cm-slide-sep-section.cm-slide-sep-selected { background-image: repeating-linear-gradient(to right, var(--accent) 0 2px, transparent 2px 5px); }
 .cm-gauge { display: flex; align-items: center; gap: 10px; padding: 3px 0 4px 4px; font-family: var(--font-ui); font-size: 11px; color: var(--ink-3); }
 .cm-gauge-bar { width: 96px; height: 4px; border-radius: 3px; background: var(--control); overflow: hidden; flex-shrink: 0; }
 .cm-gauge-fill { display: block; height: 100%; background: var(--ink-3); border-radius: 3px; transition: width 120ms ease; }
