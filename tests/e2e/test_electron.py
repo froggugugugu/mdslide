@@ -67,9 +67,12 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     assert "## Risk list" in (ws / "deck.md").read_text(encoding="utf8")
     pg.wait_for_timeout(1500)  # chokidar -> reload
     assert pg.locator(".nav-item .label", has_text="Risk list").count() == 1
-    # back in the shell: cwd is the workspace
-    pg.keyboard.type("pwd"); pg.keyboard.press("Enter")
-    pg.wait_for_function(f"({TERM_TEXT})().includes('{ws}')", timeout=10000)
+    # leave the fake claude (EOF ends its read loop) and check from the shell that cwd is the workspace.
+    # The marker is computed by the shell so a long, wrapped path in the terminal buffer cannot break the check.
+    pg.keyboard.press("Control+d")
+    pg.wait_for_timeout(500)
+    pg.keyboard.type(f'echo CWD-$([ "$PWD" = "{ws}" ] && echo MATCH || echo MISMATCH)'); pg.keyboard.press("Enter")
+    pg.wait_for_function(f"({TERM_TEXT})().includes('CWD-MATCH')", timeout=10000)
     pg.screenshot(path=str(ws.parent / "console.png"))  # kept as a test artifact
     # tool settings: add a custom tool, select it, launch it from the bar
     pg.get_by_role("button", name="ツール設定").click()

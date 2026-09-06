@@ -5,6 +5,8 @@ import io
 import os
 import shutil
 import subprocess
+import sys
+import tempfile
 import time
 import urllib.request
 from pathlib import Path
@@ -46,8 +48,10 @@ def wait_http(url, timeout=60):
 @pytest.fixture(scope="session")
 def web_server():
     subprocess.run(["npx", "vite", "build"], cwd=ROOT, check=True, capture_output=True)
-    proc = subprocess.Popen(["npx", "vite", "preview", "--port", "4173", "--strictPort"], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    assert wait_http("http://127.0.0.1:4173/"), "vite preview did not start"
+    # Bind 127.0.0.1 explicitly: with Node 17+ "localhost" resolves to ::1 first and the tests connect over IPv4.
+    log = tempfile.NamedTemporaryFile("w", prefix="mdslide-preview-", suffix=".log", delete=False)
+    proc = subprocess.Popen(["npx", "vite", "preview", "--host", "127.0.0.1", "--port", "4173", "--strictPort"], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+    assert wait_http("http://127.0.0.1:4173/"), f"vite preview did not start:\n{Path(log.name).read_text()}"
     yield "http://127.0.0.1:4173"
     proc.terminate()
 
@@ -96,7 +100,8 @@ def electron_app(tmp_path, display):
         "  case \"$line\" in\n"
         "    *notes/*) printf -- '---\\ntitle: 整形済み\\n---\\n\\n# 背景\\n\\n## メモから {img=1/2 side=right}\\n\\n' > deck.md; "
         "for f in notes/*.md; do sed 's/^/- /' \"$f\" >> deck.md; done; "
-        "python3 tools/mdslide_draw.py flow images/flow.png 課題 分析 施策 >/dev/null 2>&1 && printf '\\n![流れ](images/flow.png)\\n' >> deck.md ;;\n"
+        # Same interpreter as pytest: a login shell on macOS reorders PATH (path_helper) and `python3` may become the system one without matplotlib.
+        f"{sys.executable} tools/mdslide_draw.py flow images/flow.png 課題 分析 施策 >/dev/null 2>&1 && printf '\\n![流れ](images/flow.png)\\n' >> deck.md ;;\n"
         "    *) printf '\\n## %s\\n\\n- Claude Code added\\n' \"$line\" >> deck.md ;;\n"
         "  esac\ndone\n", encoding="utf8")
     (fake_bin / "claude").chmod(0o755)
@@ -106,7 +111,8 @@ def electron_app(tmp_path, display):
     if display: env["DISPLAY"] = display
     port = 9333
     # Launch the Electron binary directly (not through npx) so terminating the process really ends the app.
-    binary = subprocess.run(["node", "-e", "process.stdout.write(require('electron'))"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+    # require('electron') may print "Downloading Electron binary..." before the path when the binary was not fetched at install time.
+    binary = subprocess.run(["node", "-e", "process.stdout.write(require('electron'))"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip().splitlines()[-1]
     proc = subprocess.Popen([binary, ".", str(ws), "--no-sandbox", f"--remote-debugging-port={port}"], cwd=ROOT, env=env,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     assert wait_http(f"http://127.0.0.1:{port}/json/version"), "electron did not expose CDP"

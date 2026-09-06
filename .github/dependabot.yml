@@ -9,6 +9,10 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # electron-vite 5 declares peer vite ^5 || ^6 || ^7; a vite major bump breaks `npm ci` until electron-vite follows.
+      - dependency-name: vite
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: pip
     directory: /
     schedule:
