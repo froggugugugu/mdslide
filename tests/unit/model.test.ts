@@ -164,3 +164,20 @@ describe("withMeta: frontmatter keys as the store's way to choose a master", () 
     expect(serializeForMeta(withMeta(d, "master", null))).toBe("## A\n\n- a\n");
   });
 });
+
+import { newDeckTemplate } from "../../src/model/template";
+
+describe("newDeckTemplate: the scaffold for a new file is a frame, not the sample", () => {
+  it("names the deck after the file, dates it today, and gives one chapter with one slide", () => {
+    const md = newDeckTemplate("q3-report.md", new Date(2026, 8, 6));
+    expect(md).toBe("---\ntitle: q3-report\ndate: 2026-09-06\nagenda: once\nnumbering: chapter\n---\n\n# 章タイトル\n\n## スライドタイトル\n\n- 要点\n");
+    const deck = parseForMeta(md);
+    expect(deck.meta).toMatchObject({ title: "q3-report", date: "2026-09-06", agenda: "once", numbering: "chapter" });
+    expect(deck.blocks.map((b) => b.kind)).toEqual(["section", "body"]);
+    expect(serializeForMeta(deck)).toBe(md); // round-trips
+    expect(md).not.toContain("開発生産性");
+  });
+  it("falls back to a placeholder title for the default file name", () => {
+    expect(newDeckTemplate("deck.md")).toContain("title: 資料タイトル");
+  });
+});

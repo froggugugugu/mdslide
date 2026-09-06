@@ -8,6 +8,7 @@ import { DEFAULT_MAX_PX, processImage } from "../model/imageProcess";
 import { findLayout, type MasterProfile } from "../master/importMaster";
 import { bodyBoxFor, masterAutofit, masterBodyFontPt } from "../model/boxes";
 import { SAMPLE_MARKDOWN } from "../sample";
+import { newDeckTemplate } from "../model/template";
 import { importMaster } from "../master/importMaster";
 import { masterSource } from "../master/masterSource";
 import { settings } from "../settings/settings";
@@ -54,13 +55,14 @@ interface DeckState {
   openWorkspace: () => Promise<void>;
   /** Desktop: pick a Markdown file; its folder becomes the workspace and the file keeps its name. */
   openMarkdown: () => Promise<void>;
-  /** Desktop: choose where a new Markdown file goes; it is scaffolded from the sample. */
+  /** Desktop: choose where a new Markdown file goes; a missing file is scaffolded as an empty frame (newDeckTemplate). */
   createMarkdown: () => Promise<void>;
   openRecent: (entry: RecentEntry) => Promise<void>;
   /** Show the built-in sample without a workspace; nothing is saved. */
   viewSample: () => void;
   restoreWorkspace: () => Promise<void>;
-  loadFromDisk: () => Promise<void>;
+  /** Read the deck file (and the folder's master.pptx). A missing deck file is written from `scaffold`, else from the current document. */
+  loadFromDisk: (scaffold?: string) => Promise<void>;
   /** force: overwrite even when deck.md changed on disk meanwhile. */
   save: (force?: boolean) => Promise<void>;
   pollDisk: () => Promise<void>;
@@ -246,7 +248,7 @@ export const useDeckStore = create<DeckState>((set, get) => {
   },
   createMarkdown: async () => {
     const ws = await createMarkdownFile();
-    if (ws) await adopt(ws);
+    if (ws) await adopt(ws, newDeckTemplate(ws.deckFile));
   },
   openRecent: async (entry) => {
     const ws = await openRecentWorkspace(entry);
@@ -267,7 +269,7 @@ export const useDeckStore = create<DeckState>((set, get) => {
       set({ workspace: null, notice: `前回のフォルダを開けませんでした: ${e instanceof Error ? e.message : String(e)}` });
     }
   },
-  loadFromDisk: async () => {
+  loadFromDisk: async (scaffold) => {
     const ws = get().workspace;
     if (!ws) return;
     // The folder's own master.pptx is parsed in place (id ws:<folder>) and never copied anywhere.
@@ -291,7 +293,7 @@ export const useDeckStore = create<DeckState>((set, get) => {
       }
     } else if (get().masters.length !== others.length) set({ masters: others });
     const deck = await readText(ws, ws.deckFile);
-    const text = deck ? deck.text : get().markdown;
+    const text = deck ? deck.text : scaffold ?? get().markdown;
     const d = recompute(text);
     // Files an interactive agent needs: CLAUDE.md (once), theme.json (from the deck's master) and the drawing helper.
     await bootstrapWorkspace(ws.backend, get().masters.find((m) => m.id === d.masterId), ws.deckFile).catch(() => undefined);
@@ -299,7 +301,7 @@ export const useDeckStore = create<DeckState>((set, get) => {
       set({ markdown: deck.text, ...d, diskModified: deck.modified, dirty: false, externalChange: false,
         externalEditVersion: get().externalEditVersion + 1, selectedId: "cover", imageUrls: {} });
     } else {
-      // No deck file yet: the current document (the sample when nothing else was open) becomes the scaffold.
+      // No deck file yet: the scaffold (an empty frame for a new file; otherwise the current document, i.e. the sample) is written.
       const modified = await writeText(ws, ws.deckFile, text);
       set({ ...d, diskModified: modified, dirty: false });
     }
@@ -377,10 +379,10 @@ export const useDeckStore = create<DeckState>((set, get) => {
   };
 });
 
-/** Make a workspace the current document: leaves the start screen, then loads (or scaffolds) its deck file. */
-async function adopt(ws: Workspace) {
+/** Make a workspace the current document: leaves the start screen, then loads its deck file (or writes `scaffold` when it is missing). */
+async function adopt(ws: Workspace, scaffold?: string) {
   useDeckStore.setState({ workspace: ws, imageUrls: {}, started: true });
-  await useDeckStore.getState().loadFromDisk();
+  await useDeckStore.getState().loadFromDisk(scaffold);
 }
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null;

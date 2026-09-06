@@ -105,4 +105,20 @@ describe("App in Electron", () => {
     const { settings } = await import("../../src/settings/settings");
     expect(settings.get().workspace.recent[0]).toEqual({ path: "/w/plans", deckFile: "q3.md" });
   });
+
+  it("「新しく作る」 scaffolds an empty frame named after the file, not the sample", async () => {
+    api.files.clear();
+    api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
+    api.initialWorkspace.mockResolvedValueOnce(null);
+    api.saveMarkdown.mockResolvedValueOnce("/w/new/talk.md");
+    useDeckStore.setState({ workspace: null, started: false });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "新しく作る" }, { timeout: 4000 }));
+    await screen.findByRole("button", { name: "new/talk.md" }, { timeout: 4000 });
+    const written = api.files.get("/w/new/talk.md")!;
+    expect(written).toContain("title: talk");
+    expect(written).toContain("# 章タイトル");
+    expect(written).not.toContain("開発生産性");
+    expect(useDeckStore.getState().deck.meta.title).toBe("talk");
+  });
 });
