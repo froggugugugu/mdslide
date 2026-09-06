@@ -9,11 +9,13 @@ const api = vi.hoisted(() => {
   const listeners: ((rel: string) => void)[] = [];
   const api = {
     platform: "darwin", files, listeners,
-    initialWorkspace: async () => "/w/deck",
+    initialWorkspace: vi.fn(async (): Promise<{ root: string; deckFile: string | null } | null> => ({ root: "/w/deck", deckFile: null })),
     settingsPath: async () => "/w/.config/mdslide/settings.json",
     settingsRead: async () => files.get("settings.json") ?? null,
     settingsWrite: async (t: string) => { files.set("settings.json", t); },
     openFolder: async () => "/w/deck",
+    openMarkdown: vi.fn(async (): Promise<string | null> => "/w/plans/q3.md"),
+    saveMarkdown: vi.fn(async (): Promise<string | null> => null),
     readText: async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null,
     readFile: async (p: string) => files.has(p) ? { data: new TextEncoder().encode(files.get(p)!), modified: 1 } : null,
     writeText: async (p: string, t: string) => { files.set(p, t); return Date.now(); },
@@ -45,7 +47,7 @@ describe("App in Electron", () => {
     api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
     render(<App />);
     expect(document.body.classList.contains("electron")).toBe(true);
-    await screen.findByRole("button", { name: "deck" }, { timeout: 4000 });
+    await screen.findByRole("button", { name: "deck/deck.md" }, { timeout: 4000 });
     expect(api.files.get("/w/deck/deck.md")).toContain("title:");
     expect(api.files.get("/w/deck/CLAUDE.md")).toContain("deck.md");   // conventions for interactive Claude Code
     expect(api.ptySpawn).toHaveBeenCalledWith({ cwd: "/w/deck", cols: 80, rows: 24 });
@@ -79,5 +81,26 @@ describe("App in Electron", () => {
     await waitFor(() => expect(useDeckStore.getState().deck.meta.title).toBe("Watched"));
     // the bogus master.pptx is reported, not fatal
     expect(await screen.findByText(/master\.pptx を読み込めませんでした/)).toBeInTheDocument();
+  });
+
+  it("shows the start screen when nothing is restored, and opens a Markdown file as the workspace", async () => {
+    api.files.clear();
+    api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true }, workspace: { lastPath: null, recent: [{ path: "/w/old", deckFile: "old.md" }] } }));
+    api.files.set("/w/plans/q3.md", "---\ntitle: Q3\n---\n\n## Plan\n");
+    api.initialWorkspace.mockResolvedValueOnce(null);
+    useDeckStore.setState({ workspace: null, started: false });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "Markdown を開く" }, { timeout: 4000 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新しく作る" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "サンプルを見る" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "old.md" })).toBeInTheDocument(); // recent list
+    expect(screen.queryByText("1. 背景と目的")).toBeNull(); // no silent sample
+    await userEvent.click(screen.getByRole("button", { name: "Markdown を開く" }));
+    await screen.findByRole("button", { name: "plans/q3.md" }, { timeout: 4000 });
+    expect(useDeckStore.getState().deck.meta.title).toBe("Q3");
+    expect(useDeckStore.getState().workspace).toMatchObject({ path: "/w/plans", deckFile: "q3.md" });
+    expect(api.files.get("/w/plans/CLAUDE.md")).toContain("q3.md");
+    const { settings } = await import("../../src/settings/settings");
+    expect(settings.get().workspace.recent[0]).toEqual({ path: "/w/plans", deckFile: "q3.md" });
   });
 });

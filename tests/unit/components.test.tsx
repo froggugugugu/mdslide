@@ -65,7 +65,7 @@ Para
 `;
 
 afterEach(() => cleanup());
-beforeEach(() => { localStorage.setItem("mdslide:settings", JSON.stringify({ version: 1, help: { seen: true } })); useDeckStore.setState({ workspace: null, masters: [], masterId: null, imageUrls: {}, imageDims: {} }); useDeckStore.getState().setMarkdown(MD); });
+beforeEach(() => { localStorage.setItem("mdslide:settings", JSON.stringify({ version: 1, help: { seen: true } })); useDeckStore.setState({ workspace: null, started: true, masters: [], masterId: null, imageUrls: {}, imageDims: {} }); useDeckStore.getState().setMarkdown(MD); });
 
 describe("SlideCanvas", () => {
   const slides = () => renderDeck(parseMarkdown(MD));
@@ -89,7 +89,7 @@ describe("SlideCanvas", () => {
     const s = slides();
     const { container, rerender } = render(<SlideCanvas slide={s.find((x) => x.title === "Full")!} />);
     expect(container.textContent).toContain("未挿入: Later");
-    useDeckStore.setState({ workspace: { name: "w", backend: {} as never }, imageUrls: { "images/fig.png": null } });
+    useDeckStore.setState({ workspace: { name: "w", deckFile: "deck.md", backend: {} as never }, imageUrls: { "images/fig.png": null } });
     rerender(<SlideCanvas slide={s.find((x) => x.title === "Img")!} />);
     expect(container.textContent).toContain("見つかりません");
     useDeckStore.setState({ imageUrls: { "images/fig.png": "blob:x" } });
@@ -204,7 +204,7 @@ describe("App", () => {
     expect(await screen.findByText(/スライドマスターが未設定/)).toBeInTheDocument();
     await screen.findByRole("button", { name: "フォルダを開く" });
     await userEvent.click(screen.getByRole("button", { name: "フォルダを開く" }));
-    await screen.findByRole("button", { name: "deck" });
+    await screen.findByRole("button", { name: "deck/deck.md" });
     await userEvent.click(screen.getByRole("button", { name: "書き出す" }));
     await waitFor(() => expect(root.text("deck.json")).toContain('"version": 2'));
     expect(await screen.findByText(/deck.json を書き出しました/)).toBeInTheDocument();
@@ -217,7 +217,7 @@ describe("App", () => {
     const root = new FakeDirHandle("deck"); installFakePicker(root);
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "フォルダを開く" }));
-    await screen.findByRole("button", { name: "deck" });
+    await screen.findByRole("button", { name: "deck/deck.md" });
     useDeckStore.getState().setMarkdown("# local\n");
     root.put("deck.md", "# remote\n", Date.now() + 100000);
     await useDeckStore.getState().pollDisk();

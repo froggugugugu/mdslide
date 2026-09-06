@@ -53,7 +53,7 @@ describe("TerminalPane", () => {
   });
   it("spawns the shell in the folder, pipes data both ways, auto-runs claude, handles exit and restart", async () => {
     const b = fakePty();
-    useDeckStore.setState({ workspace: { name: "deck", path: "/w/deck", backend: { pty: b } as never } });
+    useDeckStore.setState({ workspace: { name: "deck", path: "/w/deck", deckFile: "deck.md", backend: { pty: b } as never } });
     render(<TerminalPane />);
     await screen.findByText("/w/deck");
     expect(b.spawn).toHaveBeenCalledWith({ cwd: "/w/deck", cols: 80, rows: 24 });

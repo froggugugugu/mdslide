@@ -34,15 +34,17 @@ app.whenReady().then(() => {
 });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
 
-/** Folder given on the command line (`mdslide ./deck-folder`) or via MDSLIDE_WORKSPACE. */
-async function initialWorkspace(): Promise<string | null> {
+/** Folder or Markdown file given on the command line (`mdslide ./deck-folder`, `mdslide ./talk.md`) or via MDSLIDE_WORKSPACE. */
+async function initialWorkspace(): Promise<{ root: string; deckFile: string | null } | null> {
   const candidates = [process.env.MDSLIDE_WORKSPACE, ...process.argv.slice(1).filter((a) => !a.startsWith("-"))].filter((x): x is string => !!x);
   for (const c of candidates) {
     try {
       const abs = path.resolve(c);
       if (abs === app.getAppPath()) continue; // "electron ." passes the app dir itself
-      if ((await fs.stat(abs)).isDirectory()) return abs;
-    } catch { /* not a folder */ }
+      const st = await fs.stat(abs);
+      if (st.isDirectory()) return { root: abs, deckFile: null };
+      if (st.isFile() && /\.(md|markdown)$/i.test(abs)) return { root: path.dirname(abs), deckFile: path.basename(abs) };
+    } catch { /* neither a folder nor a file */ }
   }
   return null;
 }
@@ -67,6 +69,15 @@ ipcMain.handle("settings:write", async (_e, text: string) => {
 ipcMain.handle("dialog:openFolder", async () => {
   const r = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
   return r.canceled ? null : r.filePaths[0];
+});
+const MARKDOWN_FILTER = [{ name: "Markdown", extensions: ["md", "markdown"] }];
+ipcMain.handle("dialog:openMarkdown", async () => {
+  const r = await dialog.showOpenDialog({ properties: ["openFile"], filters: MARKDOWN_FILTER });
+  return r.canceled ? null : r.filePaths[0];
+});
+ipcMain.handle("dialog:saveMarkdown", async () => {
+  const r = await dialog.showSaveDialog({ defaultPath: "deck.md", filters: MARKDOWN_FILTER, properties: ["createDirectory", "showOverwriteConfirmation"] });
+  return r.canceled || !r.filePath ? null : r.filePath;
 });
 
 ipcMain.handle("fs:readText", async (_e, p: string) => {

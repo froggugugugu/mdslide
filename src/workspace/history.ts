@@ -5,9 +5,9 @@ const stamp = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padSta
 
 type Fs = Pick<Backend, "readText" | "writeText" | "list" | "remove">;
 
-/** Copy deck.md into .mdslide/history/<timestamp>.md. Returns the snapshot path (null when there is no deck.md). */
-export async function snapshotDeck(fs: Fs, now = new Date()): Promise<string | null> {
-  const cur = await fs.readText("deck.md");
+/** Copy the deck file into .mdslide/history/<timestamp>.md. Returns the snapshot path (null when there is no deck file). */
+export async function snapshotDeck(fs: Fs, now = new Date(), deckFile = "deck.md"): Promise<string | null> {
+  const cur = await fs.readText(deckFile);
   if (!cur) return null;
   const name = `${DIR}/${stamp(now)}.md`;
   await fs.writeText(name, cur.text);
@@ -18,13 +18,13 @@ export async function snapshotDeck(fs: Fs, now = new Date()): Promise<string | n
  * Put the newest snapshot back into deck.md. The version being replaced is snapshotted first, so this is
  * also an undo of the undo. Returns the restored snapshot path, or null when there is none.
  */
-export async function restoreLatestSnapshot(fs: Fs, now = new Date()): Promise<string | null> {
+export async function restoreLatestSnapshot(fs: Fs, now = new Date(), deckFile = "deck.md"): Promise<string | null> {
   const names = (await fs.list(DIR)).filter((n) => n.endsWith(".md")).sort();
   if (!names.length) return null;
   const latest = `${DIR}/${names[names.length - 1]}`;
   const snap = await fs.readText(latest);
   if (!snap) return null;
-  const cur = await fs.readText("deck.md");
+  const cur = await fs.readText(deckFile);
   await fs.remove(latest);
   if (cur) {
     // The replaced version must sort after everything that remains, even if the clock is behind the snapshots.
@@ -34,7 +34,7 @@ export async function restoreLatestSnapshot(fs: Fs, now = new Date()): Promise<s
     if (name <= last || name <= names[names.length - 1].replace(/\.md$/, "")) name = bump(names[names.length - 1].replace(/\.md$/, ""));
     await fs.writeText(`${DIR}/${name}.md`, cur.text);
   }
-  await fs.writeText("deck.md", snap.text);
+  await fs.writeText(deckFile, snap.text);
   return latest;
 }
 

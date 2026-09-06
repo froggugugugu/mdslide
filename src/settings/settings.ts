@@ -7,9 +7,12 @@
  */
 import { PRESET_TOOLS, type CliTool } from "../console/presets";
 
+/** A document the person opened: the folder and the Markdown file inside it. */
+export interface RecentWorkspace { path: string; deckFile: string }
+
 export interface SettingsFile {
   version: 1;
-  workspace: { lastPath: string | null };
+  workspace: { lastPath: string | null; lastDeckFile: string | null; recent: RecentWorkspace[] };
   console: { open: boolean; height: number; autoStart: boolean };
   tools: { selectedId: string; items: CliTool[] };
   help: { seen: boolean };
@@ -17,7 +20,7 @@ export interface SettingsFile {
 
 export const DEFAULT_SETTINGS: SettingsFile = {
   version: 1,
-  workspace: { lastPath: null },
+  workspace: { lastPath: null, lastDeckFile: null, recent: [] },
   console: { open: true, height: 260, autoStart: true },
   tools: { selectedId: "claude", items: [] },
   help: { seen: false },
@@ -51,7 +54,7 @@ export function migrateFromLocalStorage(): Partial<SettingsFile> | null {
   const h = localStorage.getItem("console:height"), o = localStorage.getItem("console:open"), a = localStorage.getItem("console:autoStart") ?? localStorage.getItem("console:autoClaude");
   if (h !== null || o !== null || a !== null) out.console = { ...DEFAULT_SETTINGS.console, ...(h !== null && Number(h) ? { height: Number(h) } : {}), ...(o !== null ? { open: o !== "0" } : {}), ...(a !== null ? { autoStart: a !== "0" } : {}) };
   if (localStorage.getItem("help:seen") !== null) out.help = { seen: localStorage.getItem("help:seen") === "1" };
-  if (localStorage.getItem("workspace:path") !== null) out.workspace = { lastPath: localStorage.getItem("workspace:path") };
+  if (localStorage.getItem("workspace:path") !== null) out.workspace = { ...DEFAULT_SETTINGS.workspace, lastPath: localStorage.getItem("workspace:path") };
   const t = localStorage.getItem("console:tools");
   if (t) {
     try {

@@ -13,6 +13,7 @@ export function ThumbnailPane() {
   const selectedId = useDeckStore((s) => s.selectedId);
   const select = useDeckStore((s) => s.select);
   const move = useDeckStore((s) => s.move);
+  const deckFile = useDeckStore((s) => s.workspace?.deckFile ?? "deck.md");
   const master = useCurrentMaster();
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<{ id: string; place: "before" | "after" } | null>(null);
@@ -46,8 +47,8 @@ export function ThumbnailPane() {
             draggable={!!s.blockId && !continuation}
             onDragStart={onDragStart(s)} onDragOver={onDragOver(s)} onDragEnd={() => { setDragging(null); setOver(null); }}
             onClick={() => select(s.id)}
-            onContextMenu={(e) => { e.preventDefault(); select(s.id); void copyText(slideRef(s)); }}
-            title={`右クリックで ${slideRef(s)} をコピー`}>
+            onContextMenu={(e) => { e.preventDefault(); select(s.id); void copyText(slideRef(s, deckFile)); }}
+            title={`右クリックで ${slideRef(s, deckFile)} をコピー`}>
             {indicator === "before" && <div className="drop-line" style={{ top: 0 }} />}
             <div className={`nav-item ${selected ? "selected" : ""} ${isSection ? "section" : ""} ${dragging === s.blockId ? "dragging" : ""}`}
               style={{ paddingLeft: continuation ? 24 : undefined }}>

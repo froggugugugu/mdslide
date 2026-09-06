@@ -1,5 +1,5 @@
 import drawSource from "../../tools/mdslide_draw.py?raw";
-import { DECK_CLAUDE_MD } from "../console/deckClaudeMd";
+import { deckClaudeMd } from "../console/deckClaudeMd";
 import type { MasterProfile } from "../master/importMaster";
 import type { Backend } from "./workspace";
 
@@ -42,9 +42,9 @@ async function writeIfDifferent(fs: Fs, rel: string, text: string): Promise<bool
  *   tools/mdslide_draw.py theme-aware figure helpers (kept in sync with the app)
  *   notes/               inbox for raw material
  */
-export async function bootstrapWorkspace(fs: Fs & { list?: Backend["list"] }, master: MasterProfile | undefined): Promise<{ claudeMd: boolean; theme: boolean; draw: boolean }> {
+export async function bootstrapWorkspace(fs: Fs & { list?: Backend["list"] }, master: MasterProfile | undefined, deckFile = "deck.md"): Promise<{ claudeMd: boolean; theme: boolean; draw: boolean }> {
   const claudeMd = !(await fs.exists("CLAUDE.md"));
-  if (claudeMd) await fs.writeText("CLAUDE.md", DECK_CLAUDE_MD);
+  if (claudeMd) await fs.writeText("CLAUDE.md", deckClaudeMd(deckFile));
   const theme = await writeIfDifferent(fs, "theme.json", themeJson(master));
   const draw = await writeIfDifferent(fs, "tools/mdslide_draw.py", drawSource);
   if (!(await fs.exists("notes/.keep"))) await fs.writeText("notes/.keep", "");

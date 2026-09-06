@@ -16,7 +16,7 @@ def dismiss_help(pg):
 def test_workspace_from_argv_paste_watch_and_pptx_export(electron_app):
     pg, ws = electron_app
     dismiss_help(pg)
-    assert pg.get_by_role("button", name="ws").is_visible()
+    assert pg.get_by_role("button", name="ws/deck.md").is_visible()  # toolbar shows folder/file
     assert (ws / "deck.md").exists()
     assert pg.get_by_role("banner").get_by_role("combobox").input_value() == "ws:ws"
 

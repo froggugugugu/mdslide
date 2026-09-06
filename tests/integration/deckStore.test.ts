@@ -109,6 +109,19 @@ describe("deckStore: markdown as single source", () => {
   });
 });
 
+describe("deckStore: start screen", () => {
+  it("is not started until something is opened; viewSample shows the built-in sample without a workspace", async () => {
+    vi.resetModules(); kv.clear();
+    const { useDeckStore } = await import("../../src/store/deckStore");
+    expect(useDeckStore.getState().started).toBe(false);
+    useDeckStore.getState().viewSample();
+    const st = useDeckStore.getState();
+    expect(st.started).toBe(true);
+    expect(st.workspace).toBeNull();
+    expect(st.deck.meta.title).toBe("開発生産性可視化 進捗報告");
+  });
+});
+
 describe("deckStore: workspace lifecycle (browser backend)", () => {
   let root: FakeDirHandle;
   beforeEach(() => { root = new FakeDirHandle("deck"); installFakePicker(root); vi.useFakeTimers(); });
@@ -117,6 +130,8 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     const { useDeckStore } = await fresh();
     await useDeckStore.getState().openWorkspace();
     expect(useDeckStore.getState().workspace?.name).toBe("deck");
+    expect(useDeckStore.getState().workspace?.deckFile).toBe("deck.md");
+    expect(useDeckStore.getState().started).toBe(true);
     expect(root.text("deck.md")).toBe(MD);
     expect(useDeckStore.getState().dirty).toBe(false);
 
@@ -132,6 +147,30 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     expect(root.text("deck.json")).toBe("{}");
     const r = await useDeckStore.getState().runExport();
     expect(r.ok).toBe(false); // browser backend cannot spawn python
+  });
+
+  it("reads, saves and watches the workspace's own deck file", async () => {
+    const files = new Map<string, string>([["plan.md", "---\ntitle: Plan\n---\n\n## P\n"]]);
+    const backend = {
+      kind: "browser" as const,
+      readText: async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null,
+      readBlob: async () => null, writeText: async (p: string, t: string) => { files.set(p, t); return 5; }, writeBlob: async () => 1,
+      modified: async (p: string): Promise<number | null> => files.has(p) ? 1 : null, exists: async (p: string) => files.has(p), list: async () => [], remove: async () => undefined,
+    };
+    const { useDeckStore } = await fresh();
+    useDeckStore.setState({ workspace: { name: "w", deckFile: "plan.md", backend: backend as never }, started: true });
+    await useDeckStore.getState().loadFromDisk();
+    expect(useDeckStore.getState().deck.meta.title).toBe("Plan");
+    expect(files.get("CLAUDE.md")).toContain("plan.md");
+    useDeckStore.getState().setMarkdown("---\ntitle: Plan2\n---\n\n## P\n");
+    await useDeckStore.getState().save(true);
+    expect(files.get("plan.md")).toContain("Plan2");
+    expect(files.has("deck.md")).toBe(false);
+    files.set("plan.md", "---\ntitle: Outside\n---\n\n## P\n");
+    backend.modified = async () => 99;
+    useDeckStore.getState().onFileChanged("plan.md");
+    await vi.advanceTimersByTimeAsync(10);
+    expect(useDeckStore.getState().deck.meta.title).toBe("Outside");
   });
 
   it("loads an existing deck.md and master.pptx from the folder", async () => {
@@ -207,7 +246,7 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
   it("resolveImage settles as not found when the backend cannot read the file", async () => {
     const { useDeckStore } = await fresh();
     const backend = { readBlob: async () => { throw new Error("EACCES"); } };
-    useDeckStore.setState({ workspace: { name: "w", path: "/w", backend: backend as never } });
+    useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: backend as never } });
     await expect(useDeckStore.getState().resolveImage("images/x.png")).resolves.toBeUndefined();
     expect(useDeckStore.getState().imageUrls["images/x.png"]).toBeNull();
     await expect(useDeckStore.getState().resolveImage("images/x.png")).resolves.toBeUndefined(); // cached: no second read

@@ -65,7 +65,7 @@ describe("settings", () => {
     localStorage.setItem("help:seen", "1"); localStorage.setItem("workspace:path", "/w/deck");
     localStorage.setItem("console:tools", JSON.stringify({ selectedId: "gemini", tools: [{ id: "claude", name: "Claude Code", command: "claude", args: "" }, { id: "tool-1", name: "T", command: "t", args: "" }] }));
     const m = migrateFromLocalStorage();
-    expect(m).toEqual({ console: { height: 333, open: false, autoStart: false }, help: { seen: true }, workspace: { lastPath: "/w/deck" }, tools: { selectedId: "gemini", items: [{ id: "tool-1", name: "T", command: "t", args: "" }] } });
+    expect(m).toEqual({ console: { height: 333, open: false, autoStart: false }, help: { seen: true }, workspace: { lastPath: "/w/deck", lastDeckFile: null, recent: [] }, tools: { selectedId: "gemini", items: [{ id: "tool-1", name: "T", command: "t", args: "" }] } });
     expect(migrateFromLocalStorage()).toBeNull(); // keys were removed
   });
 

@@ -60,9 +60,11 @@ describe("workspace (electron backend)", () => {
     const files = new Map<string, string>();
     const api = {
       platform: "darwin",
-      initialWorkspace: vi.fn(async () => "/Users/me/deck"),
+      initialWorkspace: vi.fn(async () => ({ root: "/Users/me/deck", deckFile: null })),
       settingsPath: async () => "/Users/me/.config/mdslide/settings.json", settingsRead: async () => null, settingsWrite: async () => undefined,
       openFolder: vi.fn(async () => "/Users/me/other"),
+      openMarkdown: vi.fn(async (): Promise<string | null> => "/Users/me/plans/q3.md"),
+      saveMarkdown: vi.fn(async (): Promise<string | null> => "/Users/me/new/slides.md"),
       readText: vi.fn(async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null),
       readFile: vi.fn(async (p: string) => files.has(p) ? { data: new TextEncoder().encode(files.get(p)!), modified: 1 } : null),
       writeText: vi.fn(async (p: string, t: string) => { files.set(p, t); return 2; }),
@@ -80,6 +82,7 @@ describe("workspace (electron backend)", () => {
     const ws = (await m.restoreWorkspace())!;
     expect(ws.path).toBe("/Users/me/deck");
     expect(ws.name).toBe("deck");
+    expect(ws.deckFile).toBe("deck.md");
     await m.writeText(ws, "deck.md", "x");
     expect(api.writeText).toHaveBeenCalledWith("/Users/me/deck/deck.md", "x");
     expect((await m.readText(ws, "deck.md"))!.text).toBe("x");
@@ -96,6 +99,46 @@ describe("workspace (electron backend)", () => {
     expect(picked.path).toBe("/Users/me/other");
     const { settings } = await import("../../src/settings/settings");
     expect(settings.get().workspace.lastPath).toBe("/Users/me/other");
+    // a Markdown file is the entry point: its folder becomes the workspace and the file keeps its name
+    const md = (await m.openMarkdownFile())!;
+    expect(md).toMatchObject({ path: "/Users/me/plans", name: "plans", deckFile: "q3.md" });
+    const created = (await m.createMarkdownFile())!;
+    expect(created).toMatchObject({ path: "/Users/me/new", name: "new", deckFile: "slides.md" });
+    expect(settings.get().workspace.lastPath).toBe("/Users/me/new");
+    expect(settings.get().workspace.lastDeckFile).toBe("slides.md");
+    expect(settings.get().workspace.recent.map((r) => `${r.path}/${r.deckFile}`)).toEqual([
+      "/Users/me/new/slides.md", "/Users/me/plans/q3.md", "/Users/me/other/deck.md", "/Users/me/deck/deck.md",
+    ]);
+    // cancelled dialogs open nothing
+    api.openMarkdown.mockResolvedValueOnce(null); api.saveMarkdown.mockResolvedValueOnce(null);
+    expect(await m.openMarkdownFile()).toBeNull();
+    expect(await m.createMarkdownFile()).toBeNull();
+    delete (window as { mdslide?: unknown }).mdslide;
+  });
+
+  it("restores the last file from settings only while it still exists, and accepts a .md path from argv", async () => {
+    const files = new Map<string, string>([["/Users/me/plans/q3.md", "# q3"]]);
+    const initial = vi.fn(async (): Promise<{ root: string; deckFile: string | null } | null> => null);
+    const api = {
+      platform: "darwin", initialWorkspace: initial,
+      settingsPath: async () => "", settingsRead: async () => JSON.stringify({ version: 1, workspace: { lastPath: "/Users/me/plans", lastDeckFile: "q3.md" } }), settingsWrite: async () => undefined,
+      openFolder: vi.fn(async () => null), openMarkdown: vi.fn(async () => null), saveMarkdown: vi.fn(async () => null),
+      readText: vi.fn(async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null),
+      readFile: vi.fn(async () => null), writeText: vi.fn(async () => 1), writeFile: vi.fn(async () => 1),
+      modified: vi.fn(async () => null), exists: vi.fn(async (p: string) => files.has(p) || p === "/Users/me/plans" || p === "/Users/me/argv"),
+      mkdir: vi.fn(), watch: vi.fn(async () => undefined), unwatch: vi.fn(async () => undefined), onChanged: vi.fn(() => () => undefined),
+      runExport: vi.fn(async () => ({ code: 0, stdout: "", stderr: "" })), showItem: vi.fn(async () => undefined), openPath: vi.fn(async () => ""),
+    };
+    (window as unknown as { mdslide: typeof api }).mdslide = api;
+    const m = await load();
+    const { settings } = await import("../../src/settings/settings");
+    await settings.load();
+    expect(await m.restoreWorkspace()).toMatchObject({ path: "/Users/me/plans", deckFile: "q3.md" });
+    files.delete("/Users/me/plans/q3.md");
+    expect(await m.restoreWorkspace()).toBeNull(); // the file is gone: start screen, never a silent re-scaffold
+    initial.mockResolvedValueOnce({ root: "/Users/me/argv", deckFile: "talk.md" });
+    expect(await m.restoreWorkspace()).toMatchObject({ path: "/Users/me/argv", deckFile: "talk.md" }); // argv wins and may create the file
+    expect(await m.openRecentWorkspace({ path: "/Users/me/plans", deckFile: "q3.md" })).toBeNull(); // missing -> null
     delete (window as { mdslide?: unknown }).mdslide;
   });
 });

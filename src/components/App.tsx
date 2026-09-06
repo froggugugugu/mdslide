@@ -7,6 +7,7 @@ import { TerminalPane } from "./TerminalPane";
 import { InboxDrawer } from "./InboxDrawer";
 import { useInboxStore } from "../console/inboxStore";
 import { HelpSheet } from "./HelpSheet";
+import { StartScreen } from "./StartScreen";
 import { settings } from "../settings/settings";
 import { useTerminalStore } from "../console/terminalStore";
 import { useCurrentMaster, useDeckStore } from "../store/deckStore";
@@ -51,10 +52,12 @@ export function App() {
   const deck = useDeckStore((s) => s.deck);
   const openRef = useRef<HTMLInputElement>(null);
   const workspace = useDeckStore((s) => s.workspace);
+  const started = useDeckStore((s) => s.started);
   const dirty = useDeckStore((s) => s.dirty);
   const saveState = useDeckStore((s) => s.saveState);
   const externalChange = useDeckStore((s) => s.externalChange);
   const openWorkspace = useDeckStore((s) => s.openWorkspace);
+  const openMarkdownFile = useDeckStore((s) => s.openMarkdown);
   const restoreWorkspace = useDeckStore((s) => s.restoreWorkspace);
   const loadFromDisk = useDeckStore((s) => s.loadFromDisk);
   const save = useDeckStore((s) => s.save);
@@ -110,8 +113,9 @@ export function App() {
     const f = await getMasterFile(master.id);
     if (f) download(`${master.name}.pptx`, f);
   };
-  const openMarkdown = (file: File) => file.text().then((t) => {
-    useDeckStore.setState({ externalEditVersion: useDeckStore.getState().externalEditVersion + 1 });
+  // Browsers without the File System Access API: load the text only (no folder, nothing is saved back).
+  const loadMarkdownText = (file: File) => file.text().then((t) => {
+    useDeckStore.setState({ externalEditVersion: useDeckStore.getState().externalEditVersion + 1, started: true });
     useDeckStore.getState().setMarkdown(t);
   });
 
@@ -128,6 +132,26 @@ export function App() {
   };
 
   if (!ready) return <div className="h-full" />;
+  const deckFile = workspace?.deckFile ?? "deck.md";
+  if (!started && !workspace) {
+    return (
+      <div className="h-full flex flex-col">
+        <header className="toolbar" style={{ paddingLeft: mac ? 84 : 14 }}>
+          <span className="title">mdslide</span>
+          <div className="spacer" />
+          <button className="btn quiet" onClick={() => setShowHelp(true)} title="使い方 (⌘/)" aria-label="使い方">?</button>
+        </header>
+        {notice && (
+          <div className="banner warn">
+            <span className="truncate">{notice}</span>
+            <button className="link shrink-0" onClick={() => setNotice(null)}>閉じる</button>
+          </div>
+        )}
+        <StartScreen />
+        {showHelp && <HelpSheet onClose={closeHelp} />}
+      </div>
+    );
+  }
   return (
     <div className="h-full flex flex-col" onDragOver={(e) => { if (!(e.target as HTMLElement).closest(".cm-editor")) e.preventDefault(); }} onDrop={onWindowDrop}>
       <header className="toolbar" style={{ paddingLeft: mac ? 84 : 14 }}>
@@ -136,7 +160,10 @@ export function App() {
         <div className="spacer" />
         {supportsWorkspace ? (
           <>
-            <button className="btn" onClick={() => openWorkspace().catch(() => undefined)}>{workspace ? workspace.name : "フォルダを開く"}</button>
+            <button className="btn" onClick={() => (isElectron ? openMarkdownFile() : openWorkspace()).catch(() => undefined)}
+              title={isElectron ? "Markdown ファイルを開く" : "フォルダを開く"}>
+              {workspace ? `${workspace.name}/${workspace.deckFile}` : isElectron ? "開く" : "フォルダを開く"}
+            </button>
             {workspace && (
               <button className={`btn quiet ${dirty ? "dirty" : ""}`} onClick={() => save(true)}>
                 {saveState === "saving" ? "保存中" : dirty ? "未保存" : "保存済み"}
@@ -145,7 +172,7 @@ export function App() {
           </>
         ) : (
           <>
-            <input ref={openRef} type="file" accept=".md,.markdown,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && openMarkdown(e.target.files[0])} />
+            <input ref={openRef} type="file" accept=".md,.markdown,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && loadMarkdownText(e.target.files[0])} />
             <button className="btn" onClick={() => openRef.current?.click()}>開く</button>
             <button className="btn" onClick={exportMarkdown}>保存</button>
           </>
@@ -166,7 +193,7 @@ export function App() {
       </header>
       {externalChange && (
         <div className="banner warn">
-          <span>deck.md がフォルダ側で変更されました。未保存の編集があります。</span>
+          <span>{deckFile} がフォルダ側で変更されました。未保存の編集があります。</span>
           <button className="link" onClick={() => loadFromDisk()}>フォルダの内容を読み込む</button>
           <button className="link" onClick={() => save(true)}>こちらで上書き</button>
         </div>

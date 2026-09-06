@@ -13,8 +13,15 @@ def open_folder(page):
     page.wait_for_timeout(800)
 
 
+def view_sample(page):
+    """The start screen shows nothing until asked; the built-in sample is one of the ways in."""
+    page.get_by_role("button", name="サンプルを見る").click()
+    page.wait_for_timeout(300)
+
+
 def test_renders_sample_and_reorders_with_renumbering(web_page):
     pg = web_page
+    view_sample(pg)
     thumbs = pg.locator(".nav-item")
     assert thumbs.count() >= 10
     assert pg.locator(".nav-item .label", has_text="1.1. 取り組みの背景").count() == 1
@@ -30,6 +37,7 @@ def test_renders_sample_and_reorders_with_renumbering(web_page):
 
 def test_master_import_drives_preview_and_layout_picker(web_page):
     pg = web_page
+    view_sample(pg)
     pg.get_by_role("button", name="マスター").click()
     pg.set_input_files("input[type=file][accept='.pptx,.potx']", str(ROOT / "examples" / "sample-master.pptx"))
     pg.wait_for_timeout(1200)
@@ -79,6 +87,7 @@ def test_folder_workspace_paste_autosave_viewer_reload_and_export(web_page):
 
 def test_snippets_and_heading_motions(web_page):
     pg = web_page
+    view_sample(pg)
     pg.locator(".cm-content").click(); pg.keyboard.press("Escape")
     pg.keyboard.type("Go"); pg.keyboard.type(":2c"); pg.keyboard.press("Control+Space"); pg.wait_for_timeout(400)
     pg.keyboard.press("Enter"); pg.wait_for_timeout(200)

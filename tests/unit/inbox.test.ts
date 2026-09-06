@@ -36,6 +36,11 @@ describe("prompt templates", () => {
     expect(t).toContain("deck.md:17");
     expect(t.includes("\n")).toBe(false); // one line: the terminal sends it as a single message
   });
+  it("names the workspace's deck file in the instruction", () => {
+    const t = buildPrompt("format", ["notes/a.md"], "plan.md:3", "plan.md");
+    expect(t).toContain("plan.md をスライド資料として整形");
+    expect(t).not.toContain("deck.md");
+  });
 });
 
 describe("inbox store", () => {
@@ -94,5 +99,15 @@ describe("deck history", () => {
     await restoreLatestSnapshot(backend);
     expect(files.get("deck.md")).toBe("v3 (ai)"); // undo of the undo
     expect(await restoreLatestSnapshot({ ...backend, list: async () => [] })).toBeNull();
+  });
+  it("works for a deck file that is not deck.md", async () => {
+    const { backend, files } = memBackend();
+    files.set("plan.md", "p1");
+    const a = await snapshotDeck(backend, new Date(2026, 8, 6, 11, 0, 0), "plan.md");
+    expect(files.get(a!)).toBe("p1");
+    files.set("plan.md", "p2 (ai)");
+    await restoreLatestSnapshot(backend, new Date(2026, 8, 6, 11, 1, 0), "plan.md");
+    expect(files.get("plan.md")).toBe("p1");
+    expect(files.has("deck.md")).toBe(false);
   });
 });

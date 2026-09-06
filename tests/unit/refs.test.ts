@@ -19,6 +19,11 @@ describe("slide references for Claude Code", () => {
     expect(slideRef(slides[0])).toBe("deck.md:1");
     expect(slideRef(slides[1])).toBe("deck.md");
   });
+  it("uses the workspace's own file name when the deck is not deck.md", () => {
+    expect(slideRef(slides.find((s) => s.title === "章")!, "plan.md")).toBe("plan.md:5");
+    expect(slideRef(slides[1], "plan.md")).toBe("plan.md");
+    expect(slideRefs(slides.find((s) => s.title === "章")!, "plan.md")[0].text).toBe("plan.md:5");
+  });
   it("lists everything worth pasting for a slide: ref with title, and image paths", () => {
     const refs = slideRefs(slides.find((s) => s.title === "図")!);
     expect(refs).toEqual([

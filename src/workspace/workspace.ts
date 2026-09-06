@@ -2,8 +2,8 @@ import { get, set } from "idb-keyval";
 import { settings } from "../settings/settings";
 
 /**
- * A workspace is a folder:
- *   deck.md       single source of truth
+ * A workspace is a folder, entered through the Markdown file inside it:
+ *   <deckFile>    single source of truth (default deck.md; any name when opened as a file)
  *   images/       pasted / dropped images
  *   master.pptx   optional; auto-imported as the current master
  *   deck.json     written on export; consumed by tools/export_pptx.py
@@ -44,6 +44,8 @@ export interface Workspace {
   name: string;
   /** Absolute path when known (Electron). */
   path?: string;
+  /** The deck's Markdown file, relative to the folder (default deck.md). */
+  deckFile: string;
   backend: Backend;
 }
 
@@ -130,29 +132,90 @@ function browserBackend(root: FileSystemDirectoryHandle): Backend {
 
 // ---------- Opening ----------
 
+export interface RecentEntry { path: string; deckFile: string }
+
+/** Remember the document for the next start and the start screen's recent list (most recent first, 8 entries). */
+function remember(root: string, deckFile: string) {
+  settings.update((v) => {
+    v.workspace.lastPath = root;
+    v.workspace.lastDeckFile = deckFile;
+    v.workspace.recent = [{ path: root, deckFile }, ...v.workspace.recent.filter((r) => !(r.path === root && r.deckFile === deckFile))].slice(0, 8);
+  });
+}
+
+function electronWorkspace(root: string, deckFile: string): Workspace {
+  return { name: root.split("/").pop() ?? root, path: root, deckFile, backend: electronBackend(root) };
+}
+
+/** "/a/b/c.md" -> folder "/a/b" and file "c.md". */
+function splitFile(file: string): { root: string; deckFile: string } {
+  const i = Math.max(file.lastIndexOf("/"), file.lastIndexOf("\\"));
+  return { root: file.slice(0, i), deckFile: file.slice(i + 1) };
+}
+
+/** Open a folder; the deck is deck.md inside it (scaffolded on first load when missing). */
 export async function pickWorkspace(): Promise<Workspace | null> {
   if (isElectron) {
     const root = await window.mdslide!.openFolder();
     if (!root) return null;
-    settings.update((v) => { v.workspace.lastPath = root; });
-    return { name: root.split("/").pop() ?? root, path: root, backend: electronBackend(root) };
+    remember(root, DECK_FILE);
+    return electronWorkspace(root, DECK_FILE);
   }
   const root = await window.showDirectoryPicker({ mode: "readwrite" });
   await set(HANDLE_KEY, root);
-  return { name: root.name, backend: browserBackend(root) };
+  return { name: root.name, deckFile: DECK_FILE, backend: browserBackend(root) };
 }
 
-/** Re-open the last workspace when possible. */
+/** Desktop: choose a Markdown file. Its folder becomes the workspace and the file keeps its name. */
+export async function openMarkdownFile(): Promise<Workspace | null> {
+  if (!isElectron) return null;
+  const file = await window.mdslide!.openMarkdown();
+  if (!file) return null;
+  const { root, deckFile } = splitFile(file);
+  remember(root, deckFile);
+  return electronWorkspace(root, deckFile);
+}
+
+/** Desktop: choose where a new Markdown file goes. The store scaffolds it on load when it does not exist yet. */
+export async function createMarkdownFile(): Promise<Workspace | null> {
+  if (!isElectron) return null;
+  const file = await window.mdslide!.saveMarkdown();
+  if (!file) return null;
+  const { root, deckFile } = splitFile(file);
+  remember(root, deckFile);
+  return electronWorkspace(root, deckFile);
+}
+
+/** Desktop: an entry of the recent list; null when its file has gone. */
+export async function openRecentWorkspace(entry: RecentEntry): Promise<Workspace | null> {
+  if (!isElectron || !(await window.mdslide!.exists(`${entry.path}/${entry.deckFile}`))) return null;
+  remember(entry.path, entry.deckFile);
+  return electronWorkspace(entry.path, entry.deckFile);
+}
+
+/**
+ * Re-open the last document when possible. A folder or .md file given on the command line wins (and may scaffold the deck);
+ * the remembered document is restored only while its file still exists, otherwise the start screen shows.
+ */
 export async function restoreWorkspace(): Promise<Workspace | null> {
   if (isElectron) {
-    const root = (await window.mdslide!.initialWorkspace()) ?? settings.get().workspace.lastPath;
-    if (!root || !(await window.mdslide!.exists(root))) return null;
-    settings.update((v) => { v.workspace.lastPath = root; });
-    return { name: root.split("/").pop() ?? root, path: root, backend: electronBackend(root) };
+    const api = window.mdslide!;
+    const initial = await api.initialWorkspace();
+    if (initial) {
+      if (!(await api.exists(initial.root))) return null;
+      const deckFile = initial.deckFile ?? DECK_FILE;
+      remember(initial.root, deckFile);
+      return electronWorkspace(initial.root, deckFile);
+    }
+    const { lastPath, lastDeckFile } = settings.get().workspace;
+    if (!lastPath) return null;
+    const deckFile = lastDeckFile ?? DECK_FILE;
+    if (!(await api.exists(`${lastPath}/${deckFile}`))) return null;
+    return electronWorkspace(lastPath, deckFile);
   }
   const root = await get<FileSystemDirectoryHandle>(HANDLE_KEY);
   if (!root) return null;
-  try { return (await ensurePermission(root)) ? { name: root.name, backend: browserBackend(root) } : null; } catch { return null; }
+  try { return (await ensurePermission(root)) ? { name: root.name, deckFile: DECK_FILE, backend: browserBackend(root) } : null; } catch { return null; }
 }
 
 // ---------- Helpers used by the store ----------

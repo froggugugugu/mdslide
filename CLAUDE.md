@@ -13,8 +13,10 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
    `Cover / Agenda / Section / Body-Text / Body-2col`（大文字小文字・ハイフン無視）。判定は `roleFromLayoutName`。
    画像スライドはマスターに専用レイアウトを持たせず、`Body-Text` の上に `src/layouts/geometry.ts` の計算で配置する。
    プレビューと Python 出力は同じ幾何（deck.json の `geometry`、EMU）を共有する。幾何を変えるときは geometry.ts とテストを直す。
-4. **ワークスペース＝フォルダ、本体は Electron**
-   `deck.md` / `images/` / `master.pptx` / `deck.json` / `out/deck.pptx` を 1 フォルダに置く。
+4. **入口は Markdown ファイル、単位はフォルダ、本体は Electron**（ADR-0013）
+   開いた `.md` の親フォルダがワークスペース。ファイル名は `Workspace.deckFile`（既定 `deck.md`、フォルダを開いたときはこの名前）で、`deck.md` をコードに直書きしない。
+   `images/` / `master.pptx` / `deck.json` / `out/deck.pptx` / `notes/` はその隣に置く。
+   起動直後は起動画面（`StartScreen`）。サンプルは「サンプルを見る」でだけ表示し、黙って出さない。
    ファイル I/O は `src/workspace/workspace.ts` の `Backend` インターフェースに閉じ込める。
    Electron では main プロセス（Node fs + chokidar 監視 + Python 起動）、ブラウザ版では File System Access API（Chromium のみ、ポーリング）。
    レンダラから直接 Node API を触らない。IPC の窓口は `electron/preload.ts` のみ。
@@ -37,7 +39,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 src/model/      imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。Python 側 export_pptx.py の display_lines と対で保つ)  boxes.ts (レイアウトごとの本文枠 pt)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  types.ts
 src/master/     importMaster.ts (pptx zip → layouts/placeholders)  masterStore.ts (IndexedDB, 履歴)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
-src/components/ App / ThumbnailPane (DnD) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / MasterDialog
+src/components/ App / StartScreen (起動画面: Markdown を開く・新しく作る・フォルダ・最近・サンプル) / ThumbnailPane (DnD) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / MasterDialog
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)
 src/layouts/    geometry.ts (画像/本文の配置計算)  presets.ts (マスター無し時の既定枠)
 src/settings/   settings.ts (settings.json の読み書き。設定は必ずここを通す。ADR-0010)
@@ -46,7 +48,7 @@ src/console/    prompts.ts (端末に流す定型プロンプト。1 行ずつ) 
 src/components/ToolsSheet.tsx (ツール設定)  InboxDrawer.tsx (素材の受け入れと AI への指示。ADR-0012)  editorGuides.ts (区切り線・ゲージ・分割マーカーの装飾)
 src/components/TerminalPane.tsx (xterm.js 端末)  HelpSheet.tsx (使い方。初回起動で自動表示、⌘/)
 electron/pty.ts (node-pty / ホスト中継)  electron/ptyHost.cjs
-src/workspace/  workspace.ts (フォルダ I/O、画像保存、外部変更検知)  bootstrap.ts (CLAUDE.md / theme.json / tools / notes の生成)  history.ts (.mdslide/history/ スナップショットと undo)
+src/workspace/  workspace.ts (フォルダ I/O、Markdown ファイルの入口と最近一覧、画像保存、外部変更検知)  bootstrap.ts (CLAUDE.md / theme.json / tools / notes の生成)  history.ts (.mdslide/history/ スナップショットと undo)
 src/components/editorExtensions.ts (画像貼り付け/ドロップ、スニペット Ctrl-Space、]] [[ 見出し移動、Mod-s / :w 保存)
 tools/          export_pptx.py (deck.json + master.pptx → out.pptx, python-pptx)  mdslide_draw.py (theme.json 準拠の図生成。ワークスペースに配布)
 docs/           markdown-spec.md, testing.md, adr/, backlog.md

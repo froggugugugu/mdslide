@@ -14,12 +14,15 @@ export const PROMPTS: PromptTemplate[] = [
     text: "notes/ のメモ（参照を付けたファイル）を読んで、報告資料としての章立て（# 章 と ## スライドの見出しだけ）を 3 案提案し、それぞれ狙いを 1 行で添えてください。deck.md はまだ書き換えないでください。私が選んだ案で整形を頼みます。" },
 ];
 
-/** Append note references (Claude Code style @path) and, when given, the slide the person is looking at. */
-export function buildPrompt(id: string, notes: string[], slideRef?: string | null): string {
+/**
+ * Append note references (Claude Code style @path) and, when given, the slide the person is looking at.
+ * Templates are written for deck.md; `deckFile` substitutes the workspace's actual file name.
+ */
+export function buildPrompt(id: string, notes: string[], slideRef?: string | null, deckFile = "deck.md"): string {
   const p = PROMPTS.find((x) => x.id === id);
   if (!p) throw new Error(`unknown prompt ${id}`);
   const refs = notes.map((n) => `@${n}`).join(" ");
-  const parts = [p.text.replace(/\s+/g, " ").trim()];
+  const parts = [p.text.replaceAll("deck.md", deckFile).replace(/\s+/g, " ").trim()];
   if (refs) parts.push(`参照: ${refs}`);
   if (slideRef) parts.push(`今見ているスライド: ${slideRef}`);
   return parts.join(" ");

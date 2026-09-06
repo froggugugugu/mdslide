@@ -31,7 +31,7 @@ describe("InboxDrawer", () => {
     files.set("notes/old.txt", "x");
     const written: string[] = [];
     useTerminalStore.setState({ ptyId: 1, bridge: { write: async (_id: number, d: string) => { written.push(d); } } as never });
-    useDeckStore.setState({ workspace: { name: "w", path: "/w", backend: fs as never }, notice: null });
+    useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: fs as never }, notice: null });
     useDeckStore.getState().setMarkdown("# before\n\n## S\n\n- a\n");
     render(<InboxDrawer />);
     expect(await screen.findByText("old.txt")).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("InboxDrawer", () => {
     const { files, fs } = memFs();
     files.set("deck.md", "v-ai\n");
     files.set(".mdslide/history/2026-09-06-100000.md", "v-before\n");
-    useDeckStore.setState({ workspace: { name: "w", path: "/w", backend: fs as never }, notice: null, masters: [], masterId: null });
+    useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: fs as never }, notice: null, masters: [], masterId: null });
     render(<InboxDrawer />);
     await userEvent.click(screen.getByRole("button", { name: "要約" }));
     expect(useDeckStore.getState().notice).toMatch(/起動してから/);
@@ -63,7 +63,7 @@ describe("InboxDrawer", () => {
   });
   it("accepts dropped files and text", async () => {
     const { files, fs } = memFs();
-    useDeckStore.setState({ workspace: { name: "w", path: "/w", backend: fs as never } });
+    useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: fs as never } });
     render(<InboxDrawer />);
     const drawer = screen.getByTestId("inbox");
     fireEvent.drop(drawer, { dataTransfer: { files: [new File(["m"], "memo.txt")], getData: () => "" } });

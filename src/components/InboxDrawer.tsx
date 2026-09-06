@@ -37,6 +37,7 @@ export function InboxDrawer() {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const fs = workspace?.backend ?? null;
+  const deckFile = workspace?.deckFile ?? "deck.md";
 
   useEffect(() => { attachInboxFs(fs); if (fs) void refresh(fs); }, [fs, refresh]);
   useEffect(() => { setSelected((cur) => new Set([...cur].filter((n) => notes.includes(n)))); }, [notes]);
@@ -56,17 +57,17 @@ export function InboxDrawer() {
     setBusy(id);
     try {
       await flush(fs);
-      await snapshotDeck(fs);
-      const text = buildPrompt(id, chosenNotes(), current ? slideRef(current) : null);
+      await snapshotDeck(fs, undefined, deckFile);
+      const text = buildPrompt(id, chosenNotes(), current ? slideRef(current, deckFile) : null, deckFile);
       await termWrite(text + "\r");
     } finally { setBusy(null); }
   };
   const undo = async () => {
     if (!fs) return;
-    const restored = await restoreLatestSnapshot(fs);
+    const restored = await restoreLatestSnapshot(fs, undefined, deckFile);
     if (!restored) { setNotice("戻せる版がありません。"); return; }
     await loadFromDisk();
-    setNotice(`deck.md を ${restored.split("/").pop()} の内容に戻しました。もう一度押すと取り消せます。`);
+    setNotice(`${deckFile} を ${restored.split("/").pop()} の内容に戻しました。もう一度押すと取り消せます。`);
   };
   const onDrop = async (e: React.DragEvent) => {
     e.preventDefault(); setDragOver(false);
@@ -106,9 +107,9 @@ export function InboxDrawer() {
       <div className="inbox-actions">
         <div className="seg-label" style={{ marginLeft: 0 }}>{tool} に頼む</div>
         {PROMPTS.map((p) => (
-          <button key={p.id} className="btn" title={p.hint} disabled={!fs || busy !== null} onClick={() => send(p.id)}>{busy === p.id ? "送信中" : p.label}</button>
+          <button key={p.id} className="btn" title={p.hint} disabled={!fs || busy !== null} onClick={() => send(p.id)}>{busy === p.id ? "送信中" : p.label.replace("deck.md", deckFile)}</button>
         ))}
-        <button className="btn quiet" onClick={undo} disabled={!fs} title="AI に渡す直前の deck.md に戻す">前の版に戻す</button>
+        <button className="btn quiet" onClick={undo} disabled={!fs} title={`AI に渡す直前の ${deckFile} に戻す`}>前の版に戻す</button>
         {!termRunning && fs && <div className="console-hint">コンソールでツールを起動すると送れます。</div>}
       </div>
     </aside>

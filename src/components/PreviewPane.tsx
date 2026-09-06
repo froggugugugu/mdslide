@@ -14,6 +14,7 @@ export function PreviewPane() {
   const setAttr = useDeckStore((s) => s.setAttr);
   const deck = useDeckStore((s) => s.deck);
   const master = useCurrentMaster();
+  const deckFile = useDeckStore((s) => s.workspace?.deckFile ?? "deck.md");
   const slide = slides.find((s) => s.id === selectedId) ?? slides[0];
   if (!slide) return null;
   const block = deck.blocks.find((b) => b.id === slide.blockId);
@@ -24,7 +25,7 @@ export function PreviewPane() {
   const setImage = (width: ImageWidth, side: Side) => block && setLayout(block.id, { kind: "image", width, side });
   const index = slides.indexOf(slide);
 
-  const refs = slideRefs(slide);
+  const refs = slideRefs(slide, deckFile);
   const [copied, setCopied] = useState<string | null>(null);
   const termWrite = useTerminalStore((s) => s.write);
   const termOpen = useTerminalStore((s) => s.ptyId !== null);

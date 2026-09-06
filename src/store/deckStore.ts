@@ -12,8 +12,8 @@ import { SAMPLE_MARKDOWN } from "../sample";
 import { importMaster } from "../master/importMaster";
 import { saveMaster } from "../master/masterStore";
 import {
-  DECK_FILE, EXPORT_FILE, MASTER_FILE, OUTPUT_FILE, imageUrl, modifiedOf, pickWorkspace, readBlob, readText, restoreWorkspace,
-  saveImage, writeText, type Workspace,
+  EXPORT_FILE, MASTER_FILE, OUTPUT_FILE, createMarkdownFile, imageUrl, modifiedOf, openMarkdownFile, openRecentWorkspace, pickWorkspace,
+  readBlob, readText, restoreWorkspace, saveImage, writeText, type RecentEntry, type Workspace,
 } from "../workspace/workspace";
 
 interface DeckState {
@@ -29,11 +29,13 @@ interface DeckState {
   gotoLine: number | null;
 
   workspace: Workspace | null;
-  /** deck.md has unsaved edits. */
+  /** false until a document is opened or the sample is shown: the start screen is up. */
+  started: boolean;
+  /** The deck file has unsaved edits. */
   dirty: boolean;
-  /** deck.md was changed on disk (e.g. by Claude Code) while there were unsaved edits. */
+  /** The deck file was changed on disk (e.g. by Claude Code) while there were unsaved edits. */
   externalChange: boolean;
-  /** lastModified of deck.md as of the last read/write. */
+  /** lastModified of the deck file as of the last read/write. */
   diskModified: number | null;
   /** Resolved object URLs for images referenced by relative path. */
   imageUrls: Record<string, string | null>;
@@ -42,7 +44,15 @@ interface DeckState {
   notice: string | null;
   setNotice: (n: string | null) => void;
 
+  /** Open a folder; its deck.md is the document (scaffolded when missing). */
   openWorkspace: () => Promise<void>;
+  /** Desktop: pick a Markdown file; its folder becomes the workspace and the file keeps its name. */
+  openMarkdown: () => Promise<void>;
+  /** Desktop: choose where a new Markdown file goes; it is scaffolded from the sample. */
+  createMarkdown: () => Promise<void>;
+  openRecent: (entry: RecentEntry) => Promise<void>;
+  /** Show the built-in sample without a workspace; nothing is saved. */
+  viewSample: () => void;
   restoreWorkspace: () => Promise<void>;
   loadFromDisk: () => Promise<void>;
   /** force: overwrite even when deck.md changed on disk meanwhile. */
@@ -100,6 +110,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   externalEditVersion: 0,
   gotoLine: null,
   workspace: null,
+  started: false,
   dirty: false,
   externalChange: false,
   diskModified: null,
@@ -178,16 +189,31 @@ export const useDeckStore = create<DeckState>((set, get) => ({
 
   openWorkspace: async () => {
     const ws = await pickWorkspace();
-    if (!ws) return;
-    set({ workspace: ws, imageUrls: {} });
-    await get().loadFromDisk();
+    if (ws) await adopt(ws);
+  },
+  openMarkdown: async () => {
+    const ws = await openMarkdownFile();
+    if (ws) await adopt(ws);
+  },
+  createMarkdown: async () => {
+    const ws = await createMarkdownFile();
+    if (ws) await adopt(ws);
+  },
+  openRecent: async (entry) => {
+    const ws = await openRecentWorkspace(entry);
+    if (!ws) { set({ notice: `${entry.path}/${entry.deckFile} が見つかりません。` }); return; }
+    await adopt(ws);
+  },
+  viewSample: () => {
+    const master = get().masters.find((m) => m.id === get().masterId);
+    set({ workspace: null, started: true, markdown: SAMPLE_MARKDOWN, ...derive(SAMPLE_MARKDOWN, master, get().imageDims), selectedId: "cover",
+      dirty: false, externalChange: false, externalEditVersion: get().externalEditVersion + 1 });
   },
   restoreWorkspace: async () => {
     try {
       const ws = await restoreWorkspace();
       if (!ws) return;
-      set({ workspace: ws, imageUrls: {} });
-      await get().loadFromDisk();
+      await adopt(ws);
     } catch (e) {
       // A stale handle (folder moved, permission revoked) must not break startup.
       set({ workspace: null, notice: `前回のフォルダを開けませんでした: ${e instanceof Error ? e.message : String(e)}` });
@@ -217,14 +243,15 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       if (get().masters.some((m) => m.id === id)) get().setMaster(id);
     }
     // Files an interactive agent needs: CLAUDE.md (once), theme.json and the drawing helper (kept in sync).
-    await bootstrapWorkspace(ws.backend, get().masters.find((m) => m.id === get().masterId)).catch(() => undefined);
-    const deck = await readText(ws, DECK_FILE);
+    await bootstrapWorkspace(ws.backend, get().masters.find((m) => m.id === get().masterId), ws.deckFile).catch(() => undefined);
+    const deck = await readText(ws, ws.deckFile);
     const master = get().masters.find((m) => m.id === get().masterId);
     if (deck) {
       set({ markdown: deck.text, ...derive(deck.text, master, get().imageDims), diskModified: deck.modified, dirty: false, externalChange: false,
         externalEditVersion: get().externalEditVersion + 1, selectedId: "cover", imageUrls: {} });
     } else {
-      const modified = await writeText(ws, DECK_FILE, get().markdown);
+      // No deck file yet: the current document (the sample when nothing else was open) becomes the scaffold.
+      const modified = await writeText(ws, ws.deckFile, get().markdown);
       set({ diskModified: modified, dirty: false });
     }
   },
@@ -232,13 +259,13 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     const { workspace, markdown, dirty, externalChange } = get();
     if (!workspace || !dirty || (externalChange && !force)) return;
     set({ saveState: "saving" });
-    const modified = await writeText(workspace, DECK_FILE, markdown);
+    const modified = await writeText(workspace, workspace.deckFile, markdown);
     set({ diskModified: modified, dirty: false, externalChange: false, saveState: "saved" });
   },
   pollDisk: async () => {
     const { workspace, diskModified, dirty } = get();
     if (!workspace || diskModified === null) return;
-    const m = await modifiedOf(workspace, DECK_FILE);
+    const m = await modifiedOf(workspace, workspace.deckFile);
     const masterM = await modifiedOf(workspace, MASTER_FILE);
     const masterStale = masterM !== null && (get().masters.find((x) => x.id === `ws:${workspace.name}`)?.importedAt ?? "") < new Date(masterM).toISOString();
     if ((m === null || m <= diskModified) && !masterStale) return;
@@ -285,7 +312,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     return { ok: true, message: `${OUTPUT_FILE} を生成しました。${warnings}` };
   },
   onFileChanged: (rel) => {
-    if (rel === DECK_FILE || rel === MASTER_FILE) void get().pollDisk();
+    if (rel === get().workspace?.deckFile || rel === MASTER_FILE) void get().pollDisk();
     else if (rel.startsWith("images/")) {
       // Drop the cached URL so the preview picks up a regenerated image.
       const { imageUrls } = get();
@@ -293,6 +320,12 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     }
   },
 }));
+
+/** Make a workspace the current document: leaves the start screen, then loads (or scaffolds) its deck file. */
+async function adopt(ws: Workspace) {
+  useDeckStore.setState({ workspace: ws, imageUrls: {}, started: true });
+  await useDeckStore.getState().loadFromDisk();
+}
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleAutosave() {

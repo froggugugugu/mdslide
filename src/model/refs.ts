@@ -1,18 +1,18 @@
 import type { RenderedSlide } from "./types";
 import { DECK_FILE } from "../workspace/workspace";
 
-/** `deck.md:LINE` — the form Claude Code resolves directly; line is 1-based and points at the heading. */
-export function slideRef(slide: RenderedSlide): string {
-  if (slide.kind === "agenda") return DECK_FILE;
-  return `${DECK_FILE}:${(slide.sourceLine ?? 0) + 1}`;
+/** `deck.md:LINE` — the form Claude Code resolves directly; line is 1-based and points at the heading. `deckFile` is the workspace's file name. */
+export function slideRef(slide: RenderedSlide, deckFile: string = DECK_FILE): string {
+  if (slide.kind === "agenda") return deckFile;
+  return `${deckFile}:${(slide.sourceLine ?? 0) + 1}`;
 }
 
 export interface Ref { label: string; text: string; detail: string }
 
 /** Everything on a slide a person might paste into an instruction: the slide itself, then its images. */
-export function slideRefs(slide: RenderedSlide): Ref[] {
+export function slideRefs(slide: RenderedSlide, deckFile: string = DECK_FILE): Ref[] {
   const hashes = slide.kind === "section" ? "#" : "##";
-  const refs: Ref[] = [{ label: "スライド", text: slideRef(slide), detail: slide.kind === "body" || slide.kind === "section" ? `${hashes} ${slide.displayTitle}` : slide.displayTitle }];
+  const refs: Ref[] = [{ label: "スライド", text: slideRef(slide, deckFile), detail: slide.kind === "body" || slide.kind === "section" ? `${hashes} ${slide.displayTitle}` : slide.displayTitle }];
   for (const img of slide.images) if (img.src) refs.push({ label: "画像", text: img.src, detail: img.alt });
   return refs;
 }
