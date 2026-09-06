@@ -102,6 +102,10 @@ def test_snippets_and_heading_motions(web_page):
     assert pg.evaluate(ACTIVE) == 20
     pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(100)
     assert pg.evaluate(ACTIVE) == 19
+    pg.keyboard.type("k"); pg.wait_for_timeout(100)   # Vim motions go through the same vertical-motion code
+    assert pg.evaluate(ACTIVE) == 18
+    pg.keyboard.type("j"); pg.wait_for_timeout(100)
+    assert pg.evaluate(ACTIVE) == 19
     pg.keyboard.type("i"); pg.keyboard.press("ArrowUp"); pg.wait_for_timeout(100)
     assert pg.evaluate(ACTIVE) == 18
     pg.keyboard.press("Escape")
