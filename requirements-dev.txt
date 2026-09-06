@@ -1,0 +1,6 @@
+# Test dependencies (tests/python and tests/e2e). Pinned; update via Dependabot.
+-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+playwright==1.62.0
+pytest-playwright==0.9.0

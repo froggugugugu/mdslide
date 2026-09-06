@@ -1,0 +1,19 @@
+appId: dev.mdslide.app
+productName: mdslide
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - node_modules/node-pty/**
+extraResources:
+  - from: tools
+    to: tools
+  - from: electron/ptyHost.cjs
+    to: pty/ptyHost.cjs
+mac:
+  category: public.app-category.productivity
+  target: [dmg, zip]
+  # Unsigned build for personal use. Set CSC_IDENTITY_AUTO_DISCOVERY/notarize for distribution.
+  identity: null

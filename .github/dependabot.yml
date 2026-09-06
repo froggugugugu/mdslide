@@ -1,0 +1,19 @@
+# Dependencies are pinned to exact versions (package.json / requirements*.txt / action SHAs).
+# Dependabot proposes updates as PRs; CI must be green before merging.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

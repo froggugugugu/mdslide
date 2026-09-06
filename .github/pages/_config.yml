@@ -1,0 +1,15 @@
+# Jekyll config for the GitHub Pages site. pages.yml assembles the site source from
+# README.md (index), docs/, LICENSE and CLAUDE.md, then builds it with actions/jekyll-build-pages.
+title: mdslide
+description: Markdown を唯一の正として、報告用の PowerPoint 資料を作る macOS アプリ
+lang: ja
+baseurl: /mdslide
+theme: jekyll-theme-primer
+plugins:
+  - jekyll-optional-front-matter   # render .md files that have no front matter
+  - jekyll-readme-index            # README.md becomes index.html
+  - jekyll-relative-links          # links to *.md resolve to the rendered pages
+  - jekyll-titles-from-headings
+defaults:
+  - scope: { path: "" }
+    values: { layout: default }

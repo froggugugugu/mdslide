@@ -1,0 +1,4 @@
+# Runtime dependencies of tools/ (pptx export and figure generation). Pinned; update via Dependabot.
+python-pptx==1.0.2
+matplotlib==3.11.1
+pillow==12.3.0

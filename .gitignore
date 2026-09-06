@@ -1,0 +1,45 @@
+# build / runtime
+node_modules
+dist
+out
+release
+coverage
+.coverage
+.coverage.*
+htmlcov
+.pytest_cache
+__pycache__
+.vscode
+.DS_Store
+.env
+.env.*
+
+# deck workspaces (business decks). examples/ keeps the layout-name sample.
+*.pptx
+!examples/*.pptx
+
+# a scratch workspace opened at the repo root is not part of the project
+/deck.md
+/deck.json
+/images/
+/notes/
+/theme.json
+/.mdslide/
+
+# local AI-assistant workspace (personal tooling, not part of the project)
+.claude/
+CLAUDE.local.md
+project-config.md
+constitution.md
+input/
+output/
+testreport/
+*.template
+.github/CLAUDE_REVIEW_SETUP.md
+docs/project.md
+docs/architecture.md
+docs/data-model.md
+docs/development-patterns.md
+
+# local Python virtualenv
+.venv/
