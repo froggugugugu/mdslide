@@ -43,3 +43,7 @@ docs/development-patterns.md
 
 # local Python virtualenv
 .venv/
+
+# GitHub Pages site assembled locally (see .github/workflows/pages.yml)
+/_pages/
+/_site/

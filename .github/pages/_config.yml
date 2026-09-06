@@ -1,5 +1,6 @@
-# Jekyll config for the GitHub Pages site. pages.yml assembles the site source from
-# README.md (index), docs/, LICENSE and CLAUDE.md, then builds it with actions/jekyll-build-pages.
+# Jekyll config for the GitHub Pages site. pages.yml assembles the site source from index.html (the landing page,
+# copied as-is: no front matter), README.md (→ README.html), docs/, LICENSE and CLAUDE.md, then builds it with
+# actions/jekyll-build-pages. jekyll-readme-index only kicks in when there is no index, so README stays a plain page.
 title: mdslide
 description: Markdown を唯一の正として、報告用の PowerPoint 資料を作る macOS アプリ
 lang: ja

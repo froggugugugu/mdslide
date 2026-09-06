@@ -4,7 +4,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Publishes the usage docs (README.md, docs/, LICENSE, CLAUDE.md) to GitHub Pages with Jekyll.
+# Publishes the site to GitHub Pages with Jekyll: the landing page (.github/pages/index.html, a single static file)
+# at the root, and the usage docs (README.md → README.html, docs/, LICENSE, CLAUDE.md) next to it.
 # Pages must be enabled once in the repository settings (Source: GitHub Actions); GITHUB_TOKEN cannot create the site.
 # Actions are pinned to commit SHAs (version in the comment; Dependabot keeps both in sync).
 permissions:
@@ -26,7 +27,7 @@ jobs:
           mkdir -p _pages
           cp README.md LICENSE CLAUDE.md _pages/
           cp -R docs _pages/docs
-          cp .github/pages/_config.yml _pages/
+          cp .github/pages/_config.yml .github/pages/index.html _pages/
           { echo "# ADR 一覧"; echo; for f in docs/adr/*.md; do echo "- [$(sed -n '1s/^# //p' "$f")]($(basename "$f"))"; done; } > _pages/docs/adr/index.md
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
