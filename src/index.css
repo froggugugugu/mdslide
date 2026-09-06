@@ -114,11 +114,13 @@ body.electron { background: transparent; }
 
 /* ---- Navigator (left) ---- */
 .navigator { background: var(--sidebar); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border-right: 0.5px solid var(--hairline); }
-.nav-item { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; padding: 5px 10px 5px 8px; border-radius: 8px; }
+/* Each slide is one tile: the thumbnail and its title share a card, so the title cannot be read as the next slide's. */
+.nav-item { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; padding: 7px 10px 7px 8px; border-radius: 8px; }
 .nav-item .num { font-size: 11px; color: var(--ink-3); text-align: right; padding-top: 2px; font-variant-numeric: tabular-nums; }
-.nav-item .thumb { border-radius: 4px; overflow: hidden; box-shadow: var(--thumb-shadow); transition: box-shadow 120ms ease, transform 120ms ease; background: #fff; }
-.nav-item.selected .thumb { box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0,0,0,0.12); }
-.nav-item .label { grid-column: 2; font-size: 11px; color: var(--ink-2); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-item .tile { border-radius: 6px; overflow: hidden; background: var(--panel); box-shadow: var(--thumb-shadow); transition: box-shadow 120ms ease; }
+.nav-item .thumb { background: #fff; }
+.nav-item.selected .tile { box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0,0,0,0.12); }
+.nav-item .label { font-size: 11px; line-height: 1.3; color: var(--ink-2); padding: 4px 7px 5px; border-top: 0.5px solid var(--hairline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-item.selected .label { color: var(--ink); }
 .nav-item.section .label { font-weight: 600; color: var(--ink); }
 .nav-item.dragging { opacity: 0.35; }

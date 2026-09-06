@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="400" viewBox="0 0 960 400" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif" font-size="13" fill="#1d1d1f">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8e8e93"/>
+    </marker>
+  </defs>
+  <rect width="960" height="400" fill="#ffffff"/>
+
+  <!-- column 1: write -->
+  <text x="120" y="34" text-anchor="middle" font-size="12" fill="#6e6e73" font-weight="600">書く</text>
+  <rect x="30" y="50" width="180" height="128" rx="12" fill="#f5f5f7" stroke="#d2d2d7"/>
+  <text x="120" y="80" text-anchor="middle" font-size="15" font-weight="600">deck.md</text>
+  <text x="120" y="102" text-anchor="middle" fill="#6e6e73" font-size="12">Markdown が唯一の正</text>
+  <text x="120" y="122" text-anchor="middle" fill="#6e6e73" font-size="12"># 章 / ## スライド</text>
+  <text x="120" y="142" text-anchor="middle" fill="#6e6e73" font-size="12">番号は書かない</text>
+  <text x="120" y="162" text-anchor="middle" fill="#6e6e73" font-size="12">画像は images/ を相対参照</text>
+
+  <rect x="30" y="204" width="180" height="70" rx="12" fill="#f5f5f7" stroke="#d2d2d7"/>
+  <text x="120" y="232" text-anchor="middle" font-size="14" font-weight="600">AI エージェント</text>
+  <text x="120" y="252" text-anchor="middle" fill="#6e6e73" font-size="12">同じフォルダの端末で deck.md を編集</text>
+  <path d="M 120 204 L 120 178" stroke="#8e8e93" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="30" y="300" width="180" height="60" rx="12" fill="#f5f5f7" stroke="#d2d2d7"/>
+  <text x="120" y="326" text-anchor="middle" font-size="14" font-weight="600">notes/</text>
+  <text x="120" y="346" text-anchor="middle" fill="#6e6e73" font-size="12">口語のメモ・元資料を放り込む</text>
+  <path d="M 120 300 L 120 274" stroke="#8e8e93" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- arrow 1 -> 2 -->
+  <path d="M 210 114 L 290 114" stroke="#8e8e93" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="250" y="104" text-anchor="middle" fill="#6e6e73" font-size="11">保存のたびに</text>
+
+  <!-- column 2: mdslide -->
+  <text x="480" y="34" text-anchor="middle" font-size="12" fill="#6e6e73" font-weight="600">整える（mdslide）</text>
+  <rect x="300" y="50" width="360" height="228" rx="14" fill="#ffffff" stroke="#0a84ff" stroke-width="1.5"/>
+  <text x="480" y="80" text-anchor="middle" font-size="15" font-weight="600" fill="#0a84ff">体裁はツールが面倒を見る</text>
+  <g font-size="12.5">
+    <text x="322" y="112">・章番号・スライド番号を導出して表示</text>
+    <text x="322" y="136">・サムネイルの並べ替え = Markdown の書き換え</text>
+    <text x="322" y="160">・本文量のゲージ。溢れたら縮小せず分割</text>
+    <text x="322" y="184">・レイアウトは見出しの属性 {img=3/4 side=left}</text>
+    <text x="322" y="208">・貼り付けた画像は images/ にファイル保存</text>
+    <text x="322" y="232">・外部からの deck.md 変更を自動で再読み込み</text>
+    <text x="322" y="256">・マスターは保管フォルダから frontmatter で選ぶ</text>
+  </g>
+
+  <rect x="300" y="300" width="360" height="60" rx="12" fill="#f5f5f7" stroke="#d2d2d7"/>
+  <text x="480" y="326" text-anchor="middle" font-size="14" font-weight="600">master.pptx（保管フォルダ）</text>
+  <text x="480" y="346" text-anchor="middle" fill="#6e6e73" font-size="12">フォント・配色・ロゴは PowerPoint 側の責務</text>
+  <path d="M 480 300 L 480 282" stroke="#8e8e93" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- arrow 2 -> 3 -->
+  <path d="M 660 114 L 740 114" stroke="#8e8e93" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="700" y="104" text-anchor="middle" fill="#6e6e73" font-size="11">書き出す</text>
+
+  <!-- column 3: output -->
+  <text x="840" y="34" text-anchor="middle" font-size="12" fill="#6e6e73" font-weight="600">出す</text>
+  <rect x="750" y="50" width="180" height="60" rx="12" fill="#f5f5f7" stroke="#d2d2d7"/>
+  <text x="840" y="76" text-anchor="middle" font-size="14" font-weight="600">deck.json</text>
+  <text x="840" y="96" text-anchor="middle" fill="#6e6e73" font-size="12">レイアウト名と幾何を解決済み</text>
+  <path d="M 840 110 L 840 136" stroke="#8e8e93" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="750" y="140" width="180" height="60" rx="12" fill="#f5f5f7" stroke="#d2d2d7"/>
+  <text x="840" y="166" text-anchor="middle" font-size="14" font-weight="600">python-pptx</text>
+  <text x="840" y="186" text-anchor="middle" fill="#6e6e73" font-size="12">マスターのレイアウトに流し込む</text>
+  <path d="M 840 200 L 840 226" stroke="#8e8e93" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="750" y="230" width="180" height="60" rx="12" fill="#0a84ff"/>
+  <text x="840" y="256" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">out/deck.pptx</text>
+  <text x="840" y="276" text-anchor="middle" fill="#ffffff" font-size="12" opacity="0.9">表はネイティブ表、ノートも入る</text>
+
+  <path d="M 660 330 L 750 330 L 750 290" fill="none" stroke="#8e8e93" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="705" y="322" text-anchor="middle" fill="#6e6e73" font-size="11">母体</text>
+</svg>

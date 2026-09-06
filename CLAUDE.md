@@ -53,7 +53,8 @@ electron/pty.ts (node-pty / ホスト中継)  electron/ptyHost.cjs
 src/workspace/  workspace.ts (フォルダ I/O、Markdown ファイルの入口と最近一覧、画像保存、外部変更検知)  bootstrap.ts (CLAUDE.md / theme.json / tools / notes の生成)  history.ts (.mdslide/history/ スナップショットと undo)
 src/components/editorExtensions.ts (画像貼り付け/ドロップ、スニペット Ctrl-Space、]] [[ 見出し移動、Mod-s / :w 保存)
 tools/          export_pptx.py (deck.json + master.pptx → out.pptx, python-pptx)  mdslide_draw.py (theme.json 準拠の図生成。ワークスペースに配布)
-docs/           markdown-spec.md, testing.md, adr/, backlog.md
+docs/           markdown-spec.md, testing.md, adr/, backlog.md, media/ (README のデモ GIF とコンセプト図)
+scripts/        make_demo_gif.py (実アプリを CDP で操作して README のデモ GIF を再生成)
 examples/       sample-master.pptx（レイアウト名規約の見本）
 ```
 

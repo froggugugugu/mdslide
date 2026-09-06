@@ -53,8 +53,10 @@ export function ThumbnailPane() {
             <div className={`nav-item ${selected ? "selected" : ""} ${isSection ? "section" : ""} ${dragging === s.blockId ? "dragging" : ""}`}
               style={{ paddingLeft: continuation ? 24 : undefined }}>
               <div className="num">{i + 1}</div>
-              <div className="thumb"><SlideCanvas slide={s} master={master} className="pointer-events-none" /></div>
-              <div className="label">{s.displayTitle}</div>
+              <div className="tile">
+                <div className="thumb"><SlideCanvas slide={s} master={master} className="pointer-events-none" /></div>
+                <div className="label">{s.displayTitle}</div>
+              </div>
             </div>
             {indicator === "after" && <div className="drop-line" style={{ bottom: 0 }} />}
           </div>

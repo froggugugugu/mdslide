@@ -1,25 +1,50 @@
 # mdslide
 
-Markdown を唯一の正として、報告用の PowerPoint 資料を作る macOS デスクトップアプリ(Electron)。
+Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデスクトップアプリ(Electron)。
 
-並べ替え・章番号・ページ分割といった「資料の体裁」はツールが面倒を見る。フォント・配色・ロゴは手持ちのスライドマスター(pptx)に任せる。人は Markdown を書くことに集中し、隣の端末で動く AI エージェントに下書きの整形や図の生成を頼める。
+![mdslide のデモ: 起動画面から資料を開き、書いて、並べ替えて、レイアウトを選び、pptx を書き出すまで](docs/media/demo.gif)
 
-## 特徴
+- **書くのは Markdown だけ**。章番号・スライド番号・ページ分割は、ツールが毎回計算して付ける
+- **見た目は手持ちの PowerPoint マスターがそのまま**。フォント・配色・ロゴは pptx 側の責務で、ツールは「どのレイアウトに何を流し込むか」だけを決める
+- **AI エージェントと同じフォルダで作業できる**。端末で動く Claude Code などが Markdown を書き換えると、すぐに反映される
 
-- **Markdown が唯一の正**。左ペインでの並べ替えやレイアウト変更も、すべて `deck.md` の書き換えとして実装している。章番号・スライド番号は Markdown に書かず、表示と出力のたびに導出する
-- **書式はマスター任せ**。手持ちの pptx を保管フォルダにまとめ、資料ごとに frontmatter の `master:` で選ぶ。レイアウト名を `Cover / Agenda / Section / Body-Text / Body-2col` と付けるだけで、ツールは「どのレイアウトに何を流し込むか」だけを決める
-- **本文量のガイド**。表示行モデルでスライドごとの本文量を推定し、エディタの見出し直下にゲージを出す。溢れたら縮小ではなく分割する
-- **画像はファイル**。貼り付け・ドロップした画像は `images/` に保存し、相対パスで参照する。長辺の上限で自動縮小する
-- **入口は Markdown ファイル**。開いた `.md` と同じフォルダの `images/`(貼り付けた画像)と `master.pptx`(書式)がひとまとまり。外部のプロセスがその Markdown を書き換えると自動で再読み込みする
-- **AI エージェントと同居**。中央ペイン下の端末で Claude Code / Codex CLI / Gemini CLI などをそのフォルダで起動する。「下書き」に書いたメモを渡して `deck.md` に整形させ、`theme.json`(マスターの配色)に沿った図を生成させる
-- **pptx 出力**。`deck.json` を経由して python-pptx がマスターのレイアウトに流し込む。表はネイティブの表、`> note:` はスピーカーノートになる
+## コンセプト
+
+![コンセプト図: Markdown を書く → mdslide が体裁を整える → deck.json 経由で python-pptx がマスターに流し込み pptx を出す。AI エージェントと notes/ は Markdown 側に、master.pptx は保管フォルダから](docs/media/concept.svg)
+
+報告資料づくりで手間なのは中身ではなく体裁の手直しでした。並べ替えたら番号を振り直す、本文が溢れたらフォントを縮める、図を貼り直す。mdslide はその部分をツール側に引き取り、人は Markdown を書くことに集中します。
+
+1. **Markdown が唯一の正**。左ペインでの並べ替えやレイアウト変更も、すべて Markdown の書き換えとして実装している。GUI とテキストの二重管理をしないので、Git で差分が追えるし、AI が書き換えても壊れない
+2. **書式は PowerPoint に任せる**。レイアウト名を `Cover / Agenda / Section / Body-Text / Body-2col` と付けたマスター pptx を保管フォルダに置き、資料ごとに選ぶ。ツールは書式を持たない
+3. **本文量は縮めずに分ける**。表示行モデルでスライドごとの本文量を推定してゲージに出し、溢れたら自動でページを分割する。読めない資料を作らない
+4. **入口は Markdown ファイル、単位はフォルダ**。開いた `.md` と同じフォルダの `images/`(貼り付けた画像)、`notes/`(下書き・素材)、`out/`(生成物)がひとまとまり。フォルダごと渡せる
+5. **AI は隣で動く**。中央ペイン下の端末で Claude Code / Codex CLI / Gemini CLI などをそのフォルダで起動し、「下書き」に書いたメモを渡して整形させたり、マスターの配色に沿った図を生成させたりする。規約を書いた `CLAUDE.md` がフォルダに自動で置かれる
+
+## はじめの 5 分
+
+1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け、未署名。初回は Finder で右クリック → 「開く」)。pptx を出すには Python 3.12 と `python3 -m pip install -r requirements.txt` も
+2. 起動画面で「新しく作る」を押し、保存先とファイル名を決める。表紙・章・スライド 1 枚だけの空の枠で Markdown ができる(見本を触りたければ「サンプルを見る」)
+3. 「マスター」で、レイアウト名を規約どおりに付けた pptx を取り込み、この資料で使うものを選ぶ。見本の `examples/sample-master.pptx` をそのまま使ってもよい。選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる
+4. 右ペインで書く(既定は Vim キーバインド。「ツール設定」で通常のテキスト編集に切り替えられる)。左ペインでドラッグして並べ替える。番号は自動で振り直される
+5. 「書き出す」で `out/deck.pptx` ができる。PowerPoint で開いて仕上げる
+
+2 回目からは起動画面の「最近開いたもの」から続きができる。
+
+### AI エージェントに任せる
+
+1. 「下書き」(⌘I)に口語でメモを書く。`notes/` に自動保存され、ファイルをドロップしても `notes/` に入る
+2. 端末(⌘J)でエージェントを起動し、「整形して deck.md に」を押す。渡す材料はチェックで選べる
+3. 「図を統一テーマで生成」で、`![TODO 説明]()` の仮置きが `theme.json`(マスターから抽出した配色)の PNG に置き換わる
+4. 気に入らなければ「前の版に戻す」(`.mdslide/history/`)
+
+フォルダには規約を書いた `CLAUDE.md`、`theme.json`、図の生成ヘルパー `tools/mdslide_draw.py` が自動で置かれる。
 
 ## 動作環境
 
 | 項目 | 要件 |
 | --- | --- |
 | OS | macOS(Electron)。Linux / Windows は未検証 |
-| Node.js | 22 以上 |
+| Node.js | 22 以上(ソースから動かす場合) |
 | Python | 3.12(pptx 出力と図生成。`requirements.txt`) |
 | AI エージェント | 任意。PATH 上の `claude` `codex` `gemini` `aider` `copilot` `cursor-agent` `opencode` を検出して起動する |
 
@@ -43,29 +68,11 @@ python3 -m pip install -r requirements.txt   # 開発する場合は requirement
 npm run dev
 ```
 
-配布用のビルドは `npm run dist:mac`(未署名の dmg / zip を `release/` に出す)。
-
-## 使い方
-
-1. 起動画面で「新しく作る」を押し、保存先とファイル名を決める。表紙・章・スライド 1 枚だけの空の枠で Markdown ができる(見本は「サンプルを見る」)。手持ちの資料は「Markdown を開く」、フォルダ単位で扱うなら「フォルダを開く」(その中の `deck.md` を使う)。2 回目からは「最近開いたもの」から選べる
-2. 「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダ(既定 `~/.config/mdslide/masters/`)に取り込み、この資料で使うものを選ぶ(見本: `examples/sample-master.pptx`)。選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。資料フォルダに `master.pptx` を置く方法も使える
-3. 右ペインで Markdown を書く(既定は Vim キーバインド。「ツール設定」で通常のテキスト編集に切り替えられる)。左ペインでドラッグして並べ替える。番号は自動で振り直される
-4. 「書き出す」で `out/deck.pptx` ができる
-
-GUI を使わずに出力だけ行うこともできる。
+配布用のビルドは `npm run dist:mac`(未署名の dmg / zip を `release/` に出す)。GUI を使わずに出力だけ行うこともできる。
 
 ```bash
 python3 tools/export_pptx.py deck.json --master master.pptx -o out.pptx --assets .
 ```
-
-### AI エージェントに任せる
-
-1. 「下書き」(⌘I)に口語でメモを書く。`notes/` に自動保存され、ファイルをドロップしても `notes/` に入る
-2. 端末(⌘J)でエージェントを起動し、「整形して deck.md に」を押す。渡す材料はチェックで選べる
-3. 「図を統一テーマで生成」で、`![TODO 説明]()` の仮置きが `theme.json` の配色の PNG に置き換わる
-4. 気に入らなければ「前の版に戻す」(`.mdslide/history/`)
-
-フォルダには規約を書いた `CLAUDE.md`、`theme.json`、図の生成ヘルパー `tools/mdslide_draw.py` が自動で置かれる。
 
 ## Markdown の書き方
 
@@ -75,6 +82,7 @@ title: 資料タイトル
 subtitle: 副題
 agenda: once            # once | per-section | none
 numbering: chapter      # chapter (1, 1.1) | flat | none
+master: corporate.pptx  # 保管フォルダのマスター。省略時はフォルダの master.pptx
 ---
 
 # 章タイトル                      → 中表紙。アジェンダの項目にもなる
@@ -131,7 +139,7 @@ my-deck/
 
 ## 設定
 
-設定は 1 ファイル `~/.config/mdslide/settings.json`(`XDG_CONFIG_HOME` 準拠、`MDSLIDE_CONFIG` で場所を変更できる)に置く。手で編集した内容はウィンドウにフォーカスが戻ったときに反映される。マスターの保管フォルダ(`masters.dir`)と既定のマスター(`masters.default`)もここにある。
+設定は 1 ファイル `~/.config/mdslide/settings.json`(`XDG_CONFIG_HOME` 準拠、`MDSLIDE_CONFIG` で場所を変更できる)に置く。手で編集した内容はウィンドウにフォーカスが戻ったときに反映される。マスターの保管フォルダ(`masters.dir`)、既定のマスター(`masters.default`)、Vim キーバインド(`editor.vim`)、エディタ幅(`editor.width`)もここにある。
 
 | 環境変数 | 用途 |
 | --- | --- |
