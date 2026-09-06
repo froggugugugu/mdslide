@@ -71,6 +71,22 @@ describe("InboxDrawer", () => {
     fireEvent.drop(drawer, { dataTransfer: { files: [], getData: () => "dropped text" } });
     expect(useInboxStore.getState().draft).toBe("dropped text");
   });
+  it("opens a note in the editor by its name and saves edits back to that file", async () => {
+    const { files, fs } = memFs();
+    files.set("notes/old.md", "古いメモ");
+    files.set("notes/scan.pdf", "<blob>");
+    useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: fs as never } });
+    render(<InboxDrawer />);
+    await userEvent.click(await screen.findByRole("button", { name: "notes/old.md を開く" }));
+    const box = screen.getByRole("textbox", { name: "メモ" });
+    await waitFor(() => expect(box).toHaveValue("古いメモ"));
+    expect(screen.getAllByText("old.md")).toHaveLength(2); // the list entry and the bar, which names the file being edited
+    await userEvent.type(box, "、追記");
+    fireEvent.blur(box);
+    await waitFor(() => expect(files.get("notes/old.md")).toBe("古いメモ、追記"));
+    expect(screen.queryByRole("button", { name: "notes/scan.pdf を開く" })).toBeNull(); // not text: listed, not editable
+    expect(screen.getByText("scan.pdf")).toBeInTheDocument();
+  });
   it("closes with the button and ⌘I", async () => {
     useDeckStore.setState({ workspace: null });
     render(<InboxDrawer />);

@@ -3,6 +3,7 @@ import { copyText, slideRefs } from "../model/refs";
 import { useTerminalStore } from "../console/terminalStore";
 import { useCurrentMaster, useDeckStore } from "../store/deckStore";
 import { SlideCanvas } from "./SlideCanvas";
+import { Icon } from "./Icon";
 import { findLayout } from "../master/importMaster";
 import { layoutLabel, type ImageWidth, type Side } from "../layouts/geometry";
 
@@ -37,8 +38,9 @@ export function PreviewPane() {
     return () => window.removeEventListener("keydown", onKey);
   }, [refs]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const Seg = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
-    <button className={`seg ${on ? "on" : ""}`} onClick={onClick}>{children}</button>
+  // label: an icon-only segment; the label is its accessible name and (unless given) its tooltip.
+  const Seg = ({ on, onClick, children, label, title }: { on: boolean; onClick: () => void; children: React.ReactNode; label?: string; title?: string }) => (
+    <button className={`seg ${label ? "icon" : ""} ${on ? "on" : ""}`} onClick={onClick} aria-label={label} title={title ?? label}>{children}</button>
   );
 
   return (
@@ -53,9 +55,9 @@ export function PreviewPane() {
         {slide.kind === "body" && block && (
           <>
             <div className="segmented">
-              <Seg on={L.kind === "text"} onClick={() => setLayout(block.id, { kind: "text" })}>テキスト</Seg>
-              <Seg on={L.kind === "2col"} onClick={() => setLayout(block.id, { kind: "2col" })}>2カラム</Seg>
-              <Seg on={L.kind === "image"} onClick={() => setImage(img?.width ?? 0.5, img?.side ?? "right")}>画像</Seg>
+              <Seg on={L.kind === "text"} label="テキスト" title="テキスト（本文のみ）" onClick={() => setLayout(block.id, { kind: "text" })}><Icon name="layoutText" /></Seg>
+              <Seg on={L.kind === "2col"} label="2カラム" title="2カラム（最初の空行で左右に分かれる）" onClick={() => setLayout(block.id, { kind: "2col" })}><Icon name="layout2col" /></Seg>
+              <Seg on={L.kind === "image"} label="画像" title="画像（画像と本文）" onClick={() => setImage(img?.width ?? 0.5, img?.side ?? "right")}><Icon name="layoutImage" /></Seg>
             </div>
             {img && (
               <>
@@ -77,7 +79,7 @@ export function PreviewPane() {
             <span className="seg-label">文字</span>
             <div className="segmented" aria-label="本文フォントサイズ">
               <button className="seg" aria-label="小さく" onClick={() => setAttr(block.id, "size", String(Math.max(8, (slide.fontPt ?? 18) - 2)))}>−</button>
-              <span className="seg on" style={{ minWidth: 48, textAlign: "center" }}>{slide.fontPt}pt{block.attrs.size ? "" : " (既定)"}</span>
+              <span className="seg on" style={{ minWidth: 48, textAlign: "center", whiteSpace: "nowrap" }}>{slide.fontPt}pt{block.attrs.size ? "" : " (既定)"}</span>
               <button className="seg" aria-label="大きく" onClick={() => setAttr(block.id, "size", String(Math.min(48, (slide.fontPt ?? 18) + 2)))}>+</button>
             </div>
             {block.attrs.size && <button className="link" onClick={() => setAttr(block.id, "size", null)}>既定の大きさ</button>}

@@ -23,17 +23,22 @@ class GaugeWidget extends WidgetType {
   toDOM() {
     const el = document.createElement("div");
     const ratio = this.capacity ? this.used / this.capacity : 0;
-    el.className = `cm-gauge ${ratio > 1 ? "over" : ratio > 0.9 ? "near" : ""}`;
-    const bar = document.createElement("span"); bar.className = "cm-gauge-bar";
-    const fill = document.createElement("span"); fill.className = "cm-gauge-fill"; fill.style.width = `${Math.min(100, ratio * 100)}%`;
-    bar.appendChild(fill);
+    const state = ratio > 1 ? "over" : ratio > 0.9 ? "near" : "";
+    el.className = `cm-gauge ${state}`;
     const text = document.createElement("span"); text.className = "cm-gauge-text";
     const bits = [`本文 ${Math.ceil(this.used)} / ${this.capacity} 行`, `${this.fontPt}pt${this.explicitSize ? "" : "（既定）"}`];
     if (this.parts > 1) bits.push(`→ ${this.parts} 枚に分割`);
     if (this.images) bits.push(`画像 ${this.images}`);
     if (this.notes) bits.push("ノート");
     text.textContent = bits.join(" · ");
-    el.append(bar, text);
+    el.append(text);
+    // The meter appears only when the slide is nearly full or over: a grey bar under every heading reads as one more separator.
+    if (state) {
+      const bar = document.createElement("span"); bar.className = "cm-gauge-bar";
+      const fill = document.createElement("span"); fill.className = "cm-gauge-fill"; fill.style.width = `${Math.min(100, ratio * 100)}%`;
+      bar.appendChild(fill);
+      el.append(bar);
+    }
     return el;
   }
   ignoreEvent() { return true; }

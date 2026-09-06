@@ -1,48 +1,39 @@
 @import "tailwindcss";
 
-/* Design language: macOS. System font, hairline separators, system blue, vibrancy sidebar, light/dark. */
+/* Design language: macOS. System font, hairline separators, system blue, vibrancy sidebar, light/dark.
+   Every colour token is written once with light-dark(); which side applies comes from color-scheme:
+   the system by default, or the appearance setting stamped on <html data-theme> (src/settings/appearance.ts). */
 :root {
+  color-scheme: light dark;
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
-  --bg: #f5f5f7;
-  --sidebar: rgba(246, 246, 248, 0.85);
-  --panel: #ffffff;
-  --ink: #1d1d1f;
-  --ink-2: #6e6e73;
-  --ink-3: #aeaeb2;
-  --hairline: rgba(0, 0, 0, 0.08);
-  --hairline-strong: rgba(0, 0, 0, 0.14);
-  --control: rgba(0, 0, 0, 0.05);
-  --control-hover: rgba(0, 0, 0, 0.09);
+  --bg: light-dark(#f5f5f7, #1e1e1e);
+  --sidebar: light-dark(rgba(246, 246, 248, 0.85), rgba(36, 36, 38, 0.8));
+  --panel: light-dark(#ffffff, #2a2a2c);
+  --ink: light-dark(#1d1d1f, #f5f5f7);
+  --ink-2: light-dark(#6e6e73, #98989d);
+  --ink-3: light-dark(#aeaeb2, #636366);
+  --hairline: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.10));
+  --hairline-strong: light-dark(rgba(0, 0, 0, 0.14), rgba(255, 255, 255, 0.16));
+  --control: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.08));
+  --control-hover: light-dark(rgba(0, 0, 0, 0.09), rgba(255, 255, 255, 0.14));
   --accent: #0a84ff;
   --accent-ink: #ffffff;
-  --accent-tint: rgba(10, 132, 255, 0.14);
+  --accent-tint: light-dark(rgba(10, 132, 255, 0.14), rgba(10, 132, 255, 0.24));
   --warn: #ff9f0a;
-  --warn-tint: rgba(255, 159, 10, 0.14);
-  --slide-shadow: 0 0 0 0.5px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.10);
-  --thumb-shadow: 0 0 0 0.5px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
+  --warn-tint: light-dark(rgba(255, 159, 10, 0.14), rgba(255, 159, 10, 0.20));
+  --shadow-ring: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
+  --shadow-drop: light-dark(rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0.5));
+  --thumb-ring: light-dark(rgba(0, 0, 0, 0.10), rgba(255, 255, 255, 0.10));
+  --thumb-drop: light-dark(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.4));
+  --slide-shadow: 0 0 0 0.5px var(--shadow-ring), 0 14px 36px var(--shadow-drop);
+  --thumb-shadow: 0 0 0 0.5px var(--thumb-ring), 0 1px 3px var(--thumb-drop);
   --radius: 8px;
   --radius-lg: 12px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1e1e1e;
-    --sidebar: rgba(36, 36, 38, 0.8);
-    --panel: #2a2a2c;
-    --ink: #f5f5f7;
-    --ink-2: #98989d;
-    --ink-3: #636366;
-    --hairline: rgba(255, 255, 255, 0.10);
-    --hairline-strong: rgba(255, 255, 255, 0.16);
-    --control: rgba(255, 255, 255, 0.08);
-    --control-hover: rgba(255, 255, 255, 0.14);
-    --accent-tint: rgba(10, 132, 255, 0.24);
-    --warn-tint: rgba(255, 159, 10, 0.20);
-    --slide-shadow: 0 0 0 0.5px rgba(255,255,255,0.08), 0 16px 40px rgba(0,0,0,0.5);
-    --thumb-shadow: 0 0 0 0.5px rgba(255,255,255,0.10), 0 1px 3px rgba(0,0,0,0.4);
-  }
-}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 html, body, #root { height: 100%; margin: 0; }
 body {
@@ -67,8 +58,8 @@ body.electron { background: transparent; }
 }
 .toolbar > * { -webkit-app-region: no-drag; }
 .toolbar .title { font-weight: 600; font-size: 13px; }
-.toolbar .subtitle { color: var(--ink-2); font-size: 12px; }
 .toolbar .spacer { flex: 1; -webkit-app-region: drag; height: 100%; }
+.toolbar-sep { width: 0.5px; height: 18px; background: var(--hairline-strong); margin: 0 2px; flex-shrink: 0; }
 
 /* ---- Controls ---- */
 .btn {
@@ -84,6 +75,13 @@ body.electron { background: transparent; }
 .btn.quiet { background: transparent; color: var(--ink-2); }
 .btn.quiet:hover { background: var(--control); color: var(--ink); }
 .btn.quiet.dirty { color: var(--warn); }
+/* Icon buttons: a square holding one Icon (src/components/Icon.tsx); `.on` marks a pane that is open. `.with-icon` leads a text button with an icon. */
+.btn.icon { width: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); background: transparent; }
+.btn.icon:hover { background: var(--control); color: var(--ink); }
+.btn.icon.on { background: var(--accent-tint); color: var(--accent); }
+.btn.with-icon { display: inline-flex; align-items: center; gap: 6px; padding-left: 9px; }
+.btn .icon, .seg .icon { display: block; flex-shrink: 0; }
+.seg.icon { width: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 
 .select {
   height: 28px; padding: 0 26px 0 10px; border-radius: 7px; font: inherit; font-size: 12.5px; font-weight: 500;
@@ -125,6 +123,9 @@ body.electron { background: transparent; }
 .nav-item.section .label { font-weight: 600; color: var(--ink); }
 .nav-item.dragging { opacity: 0.35; }
 .drop-line { position: absolute; left: 34px; right: 10px; height: 2px; border-radius: 2px; background: var(--accent); }
+/* The list takes keyboard focus (↑↓ select, ⌥↑↓ move); the ring shows on the selected tile only for keyboard focus. */
+.nav-list { outline: none; }
+.nav-list:focus-visible .nav-item.selected .tile { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-tint), 0 2px 6px rgba(0,0,0,0.12); }
 
 /* ---- Stage (center) ---- */
 .stage { background: var(--bg); }
@@ -146,7 +147,7 @@ body.electron { background: transparent; }
 .cm-editor .cm-tooltip-autocomplete ul li[aria-selected] { background: var(--accent); color: #fff; }
 .cm-editor .cm-vim-panel, .cm-editor .cm-panels { background: var(--sidebar); color: var(--ink); border-top: 0.5px solid var(--hairline); font-family: var(--font-mono); }
 .ͼ1 .cm-heading, .cm-editor .tok-heading { font-weight: 600; color: var(--ink); }
-.cm-editor .tok-link, .cm-editor .tok-url { color: var(--accent); }
+.cm-editor .tok-link, .cm-editor .tok-url { color: var(--ink-2); }
 .cm-editor .tok-meta, .cm-editor .tok-comment { color: var(--ink-2); }
 
 /* ---- Sheet (modal) ---- */
@@ -156,6 +157,22 @@ body.electron { background: transparent; }
 .sheet p { color: var(--ink-2); font-size: 12.5px; line-height: 1.5; margin: 0 0 14px; }
 .card { border-radius: 10px; padding: 12px 14px; border: 0.5px solid var(--hairline-strong); background: var(--bg); }
 .card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+/* ---- Settings sheet: categories on the left, one page on the right (macOS Preferences) ---- */
+.sheet.settings { width: 760px; height: min(580px, 84vh); padding: 0; display: grid; grid-template-columns: 168px minmax(0, 1fr); overflow: hidden; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; padding: 16px 10px; background: var(--bg); border-right: 0.5px solid var(--hairline); }
+.settings-tab { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border: none; border-radius: 7px; background: transparent; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink); cursor: default; text-align: left; }
+.settings-tab .icon { color: var(--ink-2); }
+.settings-tab:hover { background: var(--control); }
+.settings-tab.on, .settings-tab.on .icon { background: var(--accent); color: var(--accent-ink); }
+.settings-body { display: flex; flex-direction: column; min-height: 0; }
+.settings-page { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 24px; }
+.settings-row { display: grid; grid-template-columns: 128px minmax(0, 1fr); column-gap: 14px; row-gap: 4px; align-items: center; padding: 12px 0; border-top: 0.5px solid var(--hairline); }
+.settings-page h2 + .settings-row, .settings-page p + .settings-row { border-top: none; }
+.settings-row > * { justify-self: start; min-width: 0; }
+.settings-label { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+.settings-hint { grid-column: 2; font-size: 11.5px; line-height: 1.5; color: var(--ink-3); }
+.settings-foot { display: flex; align-items: center; gap: 12px; padding: 12px 24px; border-top: 0.5px solid var(--hairline); }
 
 /* ---- Slide canvas (shared by thumbs and stage) ---- */
 .slide-canvas { font-family: var(--font-ui); position: relative; background: #fff; color: #1d1d1f; overflow: hidden; letter-spacing: 0; }
@@ -210,7 +227,7 @@ body.electron { background: transparent; }
 .tools-table input[type=text], .tools-table input:not([type]) { width: 100%; height: 26px; border: none; border-radius: 6px; background: var(--control); padding: 0 8px; font: inherit; font-size: 12.5px; color: var(--ink); }
 .tools-table input.mono { font-family: var(--font-mono); font-size: 11.5px; }
 .tools-table input:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-tint); }
-.tools-table .preset { color: var(--ink-3); font-size: 11px; }
+.tools-table .preset { color: var(--ink-3); font-size: 11px; white-space: nowrap; }
 .tools-table tr.draft td { border-bottom: none; padding-top: 10px; }
 
 .fit { font-size: 11.5px; color: var(--ink-2); }
@@ -237,9 +254,12 @@ body.electron { background: transparent; }
 .inbox-draft::placeholder { color: var(--ink-3); }
 .inbox-row { display: flex; gap: 6px; padding: 4px 10px 8px; border-bottom: 0.5px solid var(--hairline); }
 .inbox-notes { flex: 1 1 30%; min-height: 80px; overflow-y: auto; padding: 8px 14px; font-size: 12px; }
-.inbox-notes .note { display: flex; align-items: center; justify-content: space-between; padding: 3px 0; }
-.inbox-notes .note code { font-family: var(--font-mono); font-size: 11.5px; }
-.inbox-notes .note.on code { color: var(--accent); }
+.inbox-notes .note { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+/* A note's name: a button for text notes (opens it in the editor above), plain for binary ones. `.editing` = the file the editor holds. */
+.inbox-notes .name { background: none; border: none; padding: 0; font-family: var(--font-mono); font-size: 11.5px; color: var(--ink); cursor: default; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-notes button.name:hover { color: var(--accent); }
+.inbox-notes .note.on .name { color: var(--accent); }
+.inbox-notes .note.editing .name { font-weight: 600; }
 .inbox-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px 12px; border-top: 0.5px solid var(--hairline); }
 .inbox-actions .seg-label { width: 100%; margin-bottom: 2px; }
 

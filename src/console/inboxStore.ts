@@ -5,6 +5,9 @@ import { sanitize } from "../workspace/workspace";
 type Fs = Pick<Backend, "list" | "writeText" | "writeBlob" | "exists" | "remove" | "readText">;
 const DIR = "notes";
 
+/** Notes that can be opened in the drawer's editor. Everything else (docx, pdf, images, pptx) is only listed and passed on. */
+export const isTextNote = (rel: string): boolean => /\.(md|markdown|txt|csv|json|ya?ml|log)$/i.test(rel);
+
 export function noteFileName(d: Date, ext: string): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${DIR}/${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.${ext}`;
@@ -22,6 +25,8 @@ interface InboxState {
   setDraft: (text: string) => void;
   flush: (fs: Fs) => Promise<void>;
   newDraft: () => void;
+  /** Load a text note into the editor so it can be checked and edited; the draft in progress is saved first. false: not text, or unreadable. */
+  openNote: (fs: Fs, rel: string) => Promise<boolean>;
   dropFiles: (fs: Fs, files: File[]) => Promise<string[]>;
   remove: (fs: Fs, rel: string) => Promise<void>;
   reset: () => void;
@@ -54,6 +59,15 @@ export const useInboxStore = create<InboxState>((set, get) => ({
     await get().refresh(fs);
   },
   newDraft: () => set({ draft: "", draftFile: null }),
+  openNote: async (fs, rel) => {
+    if (!isTextNote(rel)) return false;
+    await get().flush(fs);
+    const r = await fs.readText(rel);
+    if (!r) return false;
+    if (timer) { clearTimeout(timer); timer = null; }
+    set({ draft: r.text, draftFile: rel });
+    return true;
+  },
   dropFiles: async (fs, files) => {
     const saved: string[] = [];
     for (const f of files) {

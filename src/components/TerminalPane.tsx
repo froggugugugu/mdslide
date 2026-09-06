@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useToolsStore } from "../console/toolsStore";
-import { ToolsSheet } from "./ToolsSheet";
+import { useSettingsSheet } from "./SettingsSheet";
+import { Icon } from "./Icon";
+import { isDark, onAppearanceChange } from "../settings/appearance";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
@@ -10,7 +12,7 @@ import { useDeckStore } from "../store/deckStore";
 const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 function themeFromCss() {
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = isDark();
   return {
     background: "rgba(0,0,0,0)",
     foreground: cssVar("--ink") || (dark ? "#f5f5f7" : "#1d1d1f"),
@@ -34,13 +36,11 @@ export function TerminalPane() {
   const ptyId = useTerminalStore((s) => s.ptyId);
   const exitCode = useTerminalStore((s) => s.exitCode);
   const status = useTerminalStore((s) => s.status);
-  const autoStart = useTerminalStore((s) => s.autoStart);
-  const setAutoStart = useTerminalStore((s) => s.setAutoStart);
   const runTool = useTerminalStore((s) => s.runTool);
   const tools = useToolsStore((s) => s.tools);
   const selectedTool = useToolsStore((s) => s.selectedId);
   const selectTool = useToolsStore((s) => s.select);
-  const [showTools, setShowTools] = useState(false);
+  const openSettings = useSettingsSheet((s) => s.open);
   const start = useTerminalStore((s) => s.start);
   const stop = useTerminalStore((s) => s.stop);
   const bridge = workspace?.backend.pty ?? null;
@@ -59,10 +59,8 @@ export function TerminalPane() {
     const sub = t.onData((d) => { void useTerminalStore.getState().write(d); });
     const ro = new ResizeObserver(() => { f.fit(); void useTerminalStore.getState().resize(t.cols, t.rows); });
     ro.observe(host.current);
-    const mq = matchMedia("(prefers-color-scheme: dark)");
-    const onScheme = () => { t.options.theme = themeFromCss(); };
-    mq.addEventListener("change", onScheme);
-    return () => { mq.removeEventListener("change", onScheme); ro.disconnect(); sub.dispose(); st.setOnData(null); t.dispose(); term.current = null; };
+    const offScheme = onAppearanceChange(() => { t.options.theme = themeFromCss(); });
+    return () => { offScheme(); ro.disconnect(); sub.dispose(); st.setOnData(null); t.dispose(); term.current = null; };
   }, []);
 
   // Spawn a shell the first time a desktop workspace is open. After the shell exits or is stopped, the user restarts it.
@@ -82,17 +80,13 @@ export function TerminalPane() {
         <select className="select small" aria-label="起動するツール" value={selectedTool} onChange={(e) => selectTool(e.target.value)}>
           {tools.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <button className="btn quiet" onClick={() => runTool()} disabled={ptyId === null}>起動</button>
-        <label className="console-meta flex items-center gap-1" style={{ cursor: "default" }} title="シェル起動時に選択中のツールを実行">
-          <input type="checkbox" checked={autoStart} onChange={(e) => setAutoStart(e.target.checked)} /> 自動起動
-        </label>
-        <button className="btn quiet" onClick={() => setShowTools(true)} aria-label="ツール設定">設定</button>
+        <button className="btn icon" onClick={() => runTool()} disabled={ptyId === null} aria-label="起動" title="選択中のツールを起動"><Icon name="play" /></button>
+        <button className="btn icon" onClick={() => openSettings("tools")} aria-label="ツール設定" title="ツール設定（自動起動・コマンド）"><Icon name="gear" /></button>
         {ptyId !== null
-          ? <button className="btn quiet" onClick={() => stop()}>終了</button>
-          : bridge && <button className="btn quiet" onClick={() => term.current && start(bridge, workspace!.path!, term.current.cols, term.current.rows)}>再起動</button>}
+          ? <button className="btn icon" onClick={() => stop()} aria-label="終了" title="シェルを終了"><Icon name="stop" /></button>
+          : bridge && <button className="btn icon" onClick={() => term.current && start(bridge, workspace!.path!, term.current.cols, term.current.rows)} aria-label="再起動" title="シェルを再起動"><Icon name="restart" /></button>}
       </div>
       <div ref={host} className="terminal-host" onClick={() => term.current?.focus()} />
-      {showTools && <ToolsSheet onClose={() => setShowTools(false)} />}
     </div>
   );
 }

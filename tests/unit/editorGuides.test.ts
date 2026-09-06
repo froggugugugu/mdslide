@@ -28,6 +28,8 @@ describe("editor guides", () => {
     expect(gauges[0].textContent).toMatch(/本文 1 \/ \d+ 行 · 24pt · 画像 1 · ノート/);
     expect(gauges[1].textContent).toMatch(/18pt（既定） · → \d+ 枚に分割/);
     expect(gauges[1].className).toContain("over");
+    expect(gauges[0].querySelector(".cm-gauge-bar")).toBeNull();     // room to spare: text only, no bar next to the separators
+    expect(gauges[1].querySelector(".cm-gauge-bar")).not.toBeNull(); // over capacity: the coloured meter appears
     // jsdom has no layout, so CodeMirror only materialises part of the document; read the decorations instead
     const splits: string[] = [];
     for (const src of v.state.facet(EditorView.decorations)) {

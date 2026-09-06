@@ -13,10 +13,14 @@ export interface RecentWorkspace { path: string; deckFile: string }
 export interface SettingsFile {
   version: 1;
   workspace: { lastPath: string | null; lastDeckFile: string | null; recent: RecentWorkspace[] };
+  /** theme: auto follows the system; light / dark force one (CSS light-dark() and Electron's nativeTheme follow). */
+  appearance: { theme: "auto" | "light" | "dark" };
   /** Folder of master pptx files (null: <config dir>/masters) and the file used when a deck names none. */
   masters: { dir: string | null; default: string | null };
   /** vim: Vim keybindings in the Markdown editor (off = plain text editing). width: editor pane width in px (null = 42%). */
   editor: { vim: boolean; width: number | null };
+  /** Thumbnail pane width in px (null = the default 232). Thumbnails scale with it. */
+  navigator: { width: number | null };
   console: { open: boolean; height: number; autoStart: boolean };
   tools: { selectedId: string; items: CliTool[] };
   help: { seen: boolean };
@@ -25,8 +29,10 @@ export interface SettingsFile {
 export const DEFAULT_SETTINGS: SettingsFile = {
   version: 1,
   workspace: { lastPath: null, lastDeckFile: null, recent: [] },
+  appearance: { theme: "auto" },
   masters: { dir: null, default: null },
   editor: { vim: true, width: null },
+  navigator: { width: null },
   console: { open: true, height: 260, autoStart: true },
   tools: { selectedId: "claude", items: [] },
   help: { seen: false },

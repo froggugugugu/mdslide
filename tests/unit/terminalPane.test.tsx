@@ -24,6 +24,7 @@ vi.mock("idb-keyval", () => ({
 }));
 
 import { TerminalPane } from "../../src/components/TerminalPane";
+import { SettingsHost, useSettingsSheet } from "../../src/components/SettingsSheet";
 import { HelpSheet } from "../../src/components/HelpSheet";
 import { App } from "../../src/components/App";
 import { useTerminalStore, type PtyBridge } from "../../src/console/terminalStore";
@@ -42,7 +43,7 @@ function fakePty() {
 }
 
 afterEach(() => cleanup());
-beforeEach(async () => { localStorage.clear(); await (await import("../../src/settings/settings")).settings.load(); useTerminalStore.getState().reset(); useToolsStore.getState().reset(); xterm.instances.length = 0; });
+beforeEach(async () => { localStorage.clear(); await (await import("../../src/settings/settings")).settings.load(); useTerminalStore.getState().reset(); useToolsStore.getState().reset(); useSettingsSheet.getState().close(); xterm.instances.length = 0; });
 
 describe("TerminalPane", () => {
   it("explains itself without a desktop workspace", () => {
@@ -54,7 +55,7 @@ describe("TerminalPane", () => {
   it("spawns the shell in the folder, pipes data both ways, auto-runs claude, handles exit and restart", async () => {
     const b = fakePty();
     useDeckStore.setState({ workspace: { name: "deck", path: "/w/deck", deckFile: "deck.md", backend: { pty: b } as never } });
-    render(<TerminalPane />);
+    render(<><TerminalPane /><SettingsHost /></>); // the bar's gear opens the settings sheet, which App hosts
     await screen.findByText("/w/deck");
     expect(b.spawn).toHaveBeenCalledWith({ cwd: "/w/deck", cols: 80, rows: 24 });
     expect(b.written).toEqual(["claude\r"]);
@@ -76,10 +77,10 @@ describe("TerminalPane", () => {
     await userEvent.click(screen.getByRole("button", { name: "終了" }));
     expect(b.kill).toHaveBeenCalledWith(3);
     expect(await screen.findByText("停止中")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("checkbox"));
-    expect(useTerminalStore.getState().autoStart).toBe(false);
-    // tools sheet: add a custom tool, select it, launch, remove it
+    // settings sheet (tools tab): auto-start off, add a custom tool, select it, launch, remove it
     await userEvent.click(screen.getByRole("button", { name: "ツール設定" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "自動起動" }));
+    expect(useTerminalStore.getState().autoStart).toBe(false);
     await userEvent.type(screen.getByRole("textbox", { name: "新しいツールのコマンド" }), "mytool");
     await userEvent.type(screen.getByRole("textbox", { name: "新しいツールの引数" }), "--yes{Enter}");
     expect(screen.getByRole("textbox", { name: "mytool の名前" })).toBeInTheDocument();
@@ -106,6 +107,12 @@ describe("HelpSheet", () => {
     expect(screen.getByText("mdslide の使い方")).toBeInTheDocument();
     expect(screen.getByText(/img=3\/4 side=left/)).toBeInTheDocument();
     expect(screen.getByText(/:body :section/)).toBeInTheDocument();
+    // frontmatter: every key the parser knows is explained
+    expect(screen.getByText(/表紙情報/)).toBeInTheDocument();
+    for (const key of ["title", "subtitle", "author", "date", "agenda", "numbering", "master", "layout", "fontSize", "imageMaxPx"]) {
+      expect(screen.getByText(new RegExp(`^${key}: `))).toBeInTheDocument();
+    }
+    expect(screen.getByText(/選んだスライドを上 \/ 下へ移動/)).toBeInTheDocument();
     expect(screen.getByText(/本物のターミナル/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
     expect(onClose).toHaveBeenCalled();

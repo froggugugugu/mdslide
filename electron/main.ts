@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell, type MenuItemConstructorOptions } from "electron";
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -28,13 +28,33 @@ function createWindow() {
   win.on("closed", () => { win = null; });
 }
 
+/**
+ * Application menu: the standard roles plus the two sheets the renderer owns (設定… ⌘, and 使い方 ⌘/).
+ * The renderer handles those keys itself and prevents the default, so the accelerators here are for discoverability and the mouse.
+ */
+function buildMenu() {
+  const tell = (channel: string) => () => (BrowserWindow.getFocusedWindow() ?? win)?.webContents.send(channel);
+  const settingsItem: MenuItemConstructorOptions = { label: "設定…", accelerator: "CmdOrCtrl+,", click: tell("app:open-settings") };
+  const mac = process.platform === "darwin";
+  const appMenu: MenuItemConstructorOptions = {
+    label: app.name,
+    submenu: [{ role: "about" }, { type: "separator" }, settingsItem, { type: "separator" }, { role: "services" }, { type: "separator" }, { role: "hide" }, { role: "hideOthers" }, { role: "unhide" }, { type: "separator" }, { role: "quit" }],
+  };
+  const fileMenu: MenuItemConstructorOptions = { label: "ファイル", submenu: [...(mac ? [] : [settingsItem, { type: "separator" } as MenuItemConstructorOptions]), { role: "close" }] };
+  const helpMenu: MenuItemConstructorOptions = { role: "help", submenu: [{ label: "mdslide の使い方", accelerator: "CmdOrCtrl+/", click: tell("app:open-help") }] };
+  Menu.setApplicationMenu(Menu.buildFromTemplate([...(mac ? [appMenu] : []), fileMenu, { role: "editMenu" }, { role: "viewMenu" }, { role: "windowMenu" }, helpMenu]));
+}
+
 app.whenReady().then(() => {
   // The packaged app carries build/icon.icns; in development the Dock would otherwise show Electron's own icon.
   if (process.platform === "darwin" && !app.isPackaged) app.dock?.setIcon(path.join(app.getAppPath(), "build", "icon.png"));
+  buildMenu();
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
+/** The appearance setting (auto / light / dark) drives nativeTheme so the sidebar vibrancy and prefers-color-scheme match the page. */
+ipcMain.handle("theme:set", (_e, theme: "auto" | "light" | "dark") => { nativeTheme.themeSource = theme === "auto" ? "system" : theme; });
 
 /** Folder or Markdown file given on the command line (`mdslide ./deck-folder`, `mdslide ./talk.md`) or via MDSLIDE_WORKSPACE. */
 async function initialWorkspace(): Promise<{ root: string; deckFile: string | null } | null> {

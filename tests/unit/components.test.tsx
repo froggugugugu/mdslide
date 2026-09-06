@@ -5,8 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SlideCanvas, BodyText, parseTableRow } from "../../src/components/SlideCanvas";
 import { ThumbnailPane } from "../../src/components/ThumbnailPane";
 import { PreviewPane } from "../../src/components/PreviewPane";
-import { MasterDialog } from "../../src/components/MasterDialog";
+import { SettingsSheet } from "../../src/components/SettingsSheet";
 import { App } from "../../src/components/App";
+import { settings } from "../../src/settings/settings";
 import { useDeckStore } from "../../src/store/deckStore";
 import { parseMarkdown } from "../../src/model/parser";
 import { renderDeck } from "../../src/model/render";
@@ -145,6 +146,22 @@ describe("ThumbnailPane", () => {
     const ev = fireEvent.dragStart(document.querySelectorAll(".nav-item")[0].parentElement!, { dataTransfer: dt });
     expect(ev).toBe(false);
   });
+  it("moves the selection with ↑↓ / J K and reorders with ⌥↑↓ while the list has focus", () => {
+    render(<ThumbnailPane />);
+    const list = screen.getByRole("listbox", { name: "スライド一覧" });
+    const at = (i: number) => useDeckStore.getState().slides[i].id;
+    fireEvent.click(document.querySelectorAll(".nav-item")[3]); // Text slide
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    expect(useDeckStore.getState().selectedId).toBe(at(4)); // Img
+    fireEvent.keyDown(list, { key: "k" });
+    expect(useDeckStore.getState().selectedId).toBe(at(3));
+    fireEvent.keyDown(list, { key: "ArrowDown", altKey: true }); // move "Text slide" below "Img"
+    const titles = useDeckStore.getState().slides.map((s) => s.title);
+    expect(titles.indexOf("Img")).toBeLessThan(titles.indexOf("Text slide"));
+    expect(document.querySelector("[role=option][aria-selected=true] .label")?.textContent).toContain("Text slide");
+    fireEvent.keyDown(list, { key: "x" }); // unrelated keys are ignored
+    expect(useDeckStore.getState().slides.map((s) => s.title)).toEqual(titles);
+  });
 });
 
 describe("PreviewPane", () => {
@@ -171,27 +188,31 @@ describe("PreviewPane", () => {
   });
 });
 
-describe("MasterDialog", () => {
-  it("imports a pptx, selects it, lists roles, removes it", async () => {
+describe("Settings: master tab", () => {
+  it("imports a pptx into the folder, makes the first one the default, lists roles, removes it", async () => {
     const onClose = vi.fn();
-    render(<MasterDialog onClose={onClose} />);
+    settings.update((v) => { v.masters.default = null; });
+    render(<SettingsSheet tab="master" onTab={() => undefined} onClose={onClose} />);
     expect(screen.getByText(/まだ取り込んだマスターはありません/)).toBeInTheDocument();
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     const file = new File([readFileSync("examples/sample-master.pptx")], "corp.pptx");
     await userEvent.upload(input, file);
     await waitFor(() => expect(screen.getByText("corp.pptx")).toBeInTheDocument());
-    expect(useDeckStore.getState().masterId).toBe("dir:corp.pptx");
-    expect(useDeckStore.getState().markdown).toContain("master: corp.pptx"); // the choice is written into the frontmatter
+    expect(settings.get().masters.default).toBe("corp.pptx");          // the first master becomes the default
+    expect(useDeckStore.getState().masterId).toBe("dir:corp.pptx");     // a deck that names none resolves to it
+    expect(useDeckStore.getState().markdown).not.toContain("master:");  // without its Markdown being touched
+    expect(screen.getByText("既定")).toBeInTheDocument();
     expect(screen.getAllByText(/Body-Text/).length).toBeGreaterThan(0);
     expect(screen.getByText(/未使用/)).toBeInTheDocument();
     await userEvent.click(screen.getByText("削除"));
     await waitFor(() => expect(useDeckStore.getState().masters).toHaveLength(0));
     expect(useDeckStore.getState().masterId).toBeNull();
+    expect(settings.get().masters.default).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
     expect(onClose).toHaveBeenCalled();
   });
   it("reports invalid files", async () => {
-    render(<MasterDialog onClose={() => undefined} />);
+    render(<SettingsSheet tab="master" onTab={() => undefined} onClose={() => undefined} />);
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await userEvent.upload(input, new File(["nope"], "x.pptx"));
     await waitFor(() => expect(screen.getByText(/pptx\/potx|zip|Corrupted|End of data/i)).toBeInTheDocument());
@@ -211,7 +232,14 @@ describe("App", () => {
     expect(await screen.findByText(/deck.json を書き出しました/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
     await userEvent.click(screen.getByRole("button", { name: "マスター" }));
-    expect(screen.getByText("スライドマスター")).toBeInTheDocument();
+    expect(screen.getByText("スライドマスター")).toBeInTheDocument(); // the settings sheet, on its master tab
+    await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    expect(screen.queryByRole("dialog", { name: "設定" })).toBeNull();
+    fireEvent.keyDown(window, { key: ",", metaKey: true });
+    expect(screen.getByRole("heading", { name: "一般" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await userEvent.click(screen.getByRole("button", { name: "設定" }));
+    expect(screen.getByRole("dialog", { name: "設定" })).toBeInTheDocument();
   });
   it("shows the external-change banner and resolves it", async () => {
     kv.clear();
@@ -294,5 +322,22 @@ describe("App: the editor pane width is draggable and remembered", () => {
     fireSplit.mouseMove(window, { clientX: 2000 }); // far right: clamped to the minimum
     fireSplit.mouseUp(window);
     expect(splitSettings.get().editor.width).toBe(320);
+  });
+  it("drags the splitter between navigator and preview, clamps it, and stores the width", async () => {
+    splitSettings.update((v) => { v.navigator.width = null; });
+    splitStore.setState({ started: true, workspace: null });
+    renderSplit(<AppSplit />);
+    const sep = await screenSplit.findByRole("separator", { name: "サムネイルの幅" });
+    const grid = sep.parentElement as HTMLElement;
+    expect(grid.style.gridTemplateColumns.startsWith("232px")).toBe(true); // the default
+    fireSplit.mouseDown(sep, { clientX: 232 });
+    fireSplit.mouseMove(window, { clientX: 332 }); // 100px to the right: the navigator grows
+    fireSplit.mouseUp(window);
+    expect(splitSettings.get().navigator.width).toBe(332);
+    expect(grid.style.gridTemplateColumns.startsWith("332px")).toBe(true);
+    fireSplit.mouseDown(sep, { clientX: 332 });
+    fireSplit.mouseMove(window, { clientX: 0 }); // far left: clamped to the minimum
+    fireSplit.mouseUp(window);
+    expect(splitSettings.get().navigator.width).toBe(140);
   });
 });

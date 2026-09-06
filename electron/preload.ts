@@ -44,6 +44,17 @@ const api = {
   },
   showItem: (p: string): Promise<void> => ipcRenderer.invoke("shell:showItem", p),
   openPath: (p: string): Promise<string> => ipcRenderer.invoke("shell:openPath", p),
+  /** Appearance setting → nativeTheme, so the window chrome and vibrancy follow the page. */
+  setTheme: (theme: "auto" | "light" | "dark"): Promise<void> => ipcRenderer.invoke("theme:set", theme),
+  /** The application menu asks the window to open one of its sheets (設定… ⌘, / 使い方 ⌘/). */
+  onOpenSettings: (cb: () => void): (() => void) => {
+    const h = () => cb();
+    ipcRenderer.on("app:open-settings", h); return () => ipcRenderer.removeListener("app:open-settings", h);
+  },
+  onOpenHelp: (cb: () => void): (() => void) => {
+    const h = () => cb();
+    ipcRenderer.on("app:open-help", h); return () => ipcRenderer.removeListener("app:open-help", h);
+  },
   platform: process.platform,
 };
 contextBridge.exposeInMainWorld("mdslide", api);

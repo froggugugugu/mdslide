@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PROMPTS, buildPrompt } from "../../src/console/prompts";
-import { noteFileName, useInboxStore } from "../../src/console/inboxStore";
+import { isTextNote, noteFileName, useInboxStore } from "../../src/console/inboxStore";
 import { restoreLatestSnapshot, snapshotDeck } from "../../src/workspace/history";
 
 function memBackend() {
@@ -78,6 +78,27 @@ describe("inbox store", () => {
     files.set("notes/memo.txt", "old");
     await useInboxStore.getState().dropFiles(backend, [new File(["a"], "memo.txt")]);
     expect(files.has("notes/memo-2.txt")).toBe(true);
+  });
+  it("opens a text note into the editor after saving the current draft; edits go back to that file; binary notes stay closed", async () => {
+    const { backend, files } = memBackend();
+    files.set("notes/old.md", "古いメモ");
+    files.set("notes/scan.pdf", "<blob>");
+    const s = useInboxStore.getState();
+    expect(isTextNote("notes/old.md")).toBe(true);
+    expect(isTextNote("notes/memo.txt")).toBe(true);
+    expect(isTextNote("notes/scan.pdf")).toBe(false);
+    expect(isTextNote("notes/shot.png")).toBe(false);
+    s.setDraft("途中のメモ");
+    expect(await s.openNote(backend, "notes/old.md")).toBe(true);
+    expect(useInboxStore.getState().draft).toBe("古いメモ");
+    expect(useInboxStore.getState().draftFile).toBe("notes/old.md");
+    expect([...files.values()]).toContain("途中のメモ"); // the draft in progress was saved to its own note first
+    s.setDraft("古いメモ（改）");
+    await s.flush(backend);
+    expect(files.get("notes/old.md")).toBe("古いメモ（改）");
+    expect(await s.openNote(backend, "notes/scan.pdf")).toBe(false);
+    expect(await s.openNote(backend, "notes/missing.md")).toBe(false);
+    expect(useInboxStore.getState().draftFile).toBe("notes/old.md"); // unchanged by the refusals
   });
 });
 

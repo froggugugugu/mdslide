@@ -26,8 +26,8 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け、未署名。初回は Finder で右クリック → 「開く」)。pptx を出すには Python 3.12 と `python3 -m pip install -r requirements.txt` も
 2. 起動画面で「新しく作る」を押し、保存先とファイル名を決める。表紙・章・スライド 1 枚だけの空の枠で Markdown ができる(見本を触りたければ「サンプルを見る」)
-3. 「マスター」で、レイアウト名を規約どおりに付けた pptx を取り込み、この資料で使うものを選ぶ。見本の `examples/sample-master.pptx` をそのまま使ってもよい。選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる
-4. 右ペインで書く(既定は Vim キーバインド。「ツール設定」で通常のテキスト編集に切り替えられる)。左ペインでドラッグして並べ替える。番号は自動で振り直される
+3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本の `examples/sample-master.pptx` をそのまま使ってもよい
+4. 右ペインで書く(既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替えられる)。左ペインでドラッグか ⌥↑↓ で並べ替える。番号は自動で振り直される
 5. 「書き出す」で `out/deck.pptx` ができる。PowerPoint で開いて仕上げる
 
 2 回目からは起動画面の「最近開いたもの」から続きができる。
@@ -197,7 +197,7 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ## ドキュメント
 
-- 使い方ページ: https://froggugugugu.github.io/mdslide/
+- 紹介ページ: https://froggugugugu.github.io/mdslide/ (この README は同サイトの [README.html](https://froggugugugu.github.io/mdslide/README.html))
 - [docs/markdown-spec.md](docs/markdown-spec.md): Markdown 規約
 - [docs/testing.md](docs/testing.md): テスト方針と環境
 - [docs/adr/](docs/adr/): 設計判断の記録

@@ -121,6 +121,20 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     assert pg.get_by_test_id("console").count() == 0
     pg.keyboard.press("Meta+J"); pg.wait_for_timeout(200)
     assert pg.get_by_test_id("console").count() == 1
+    # ⌘, opens the settings sheet; the appearance choice reaches nativeTheme, so prefers-color-scheme follows it (theme:set IPC).
+    # Playwright emulates a light scheme on every page it attaches to; drop that so the query reports what Electron decides.
+    pg.emulate_media(color_scheme="no-override")
+    pg.keyboard.press("Meta+,")
+    pg.get_by_role("dialog", name="設定").wait_for(timeout=5000)
+    pg.get_by_role("button", name="ダーク").click()
+    pg.wait_for_function("()=>matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme==='dark'", timeout=5000)
+    pg.get_by_role("button", name="ライト").click()
+    pg.wait_for_function("()=>!matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme==='light'", timeout=5000)
+    pg.get_by_role("button", name="自動").click()
+    pg.wait_for_function("()=>document.documentElement.dataset.theme===undefined", timeout=5000)
+    wait_until(pg, lambda: json.loads(cfg.read_text(encoding="utf8")).get("appearance", {}).get("theme") == "auto")
+    pg.get_by_role("button", name="閉じる").click()
+    assert pg.get_by_role("dialog", name="設定").count() == 0
     assert pg.errors == []
 
 
@@ -134,7 +148,7 @@ def test_inbox_to_deck_with_figures_and_undo(electron_app):
     box = pg.get_by_role("textbox", name="メモ")
     box.click(); box.fill("今期はデプロイ頻度を上げたい。理由は障害対応が属人化しているから。")
     box.blur()
-    pg.wait_for_function("()=>document.querySelectorAll('.inbox-notes code').length>=1", timeout=5000)
+    pg.wait_for_function("()=>document.querySelectorAll('.inbox-notes .name').length>=1", timeout=5000)
     assert [p.suffix for p in (ws / "notes").iterdir() if p.suffix] == [".md"]
     pg.get_by_role("button", name="整形して deck.md に").click()
     pg.wait_for_function(f"({TERM_TEXT})().includes('claude got:')", timeout=10000)

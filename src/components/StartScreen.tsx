@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { settings } from "../settings/settings";
 import { useDeckStore } from "../store/deckStore";
 import { isElectron, supportsWorkspace, type RecentEntry } from "../workspace/workspace";
+import { Icon } from "./Icon";
 
 /**
  * What the app shows until a document is open: the ways in, and the recent list.
@@ -23,9 +24,9 @@ export function StartScreen() {
         <h1>mdslide</h1>
         <p className="start-lead">Markdown を書くとスライドになります。資料は「Markdown ファイル」と、同じフォルダの <code>images/</code>（貼り付けた画像）、<code>master.pptx</code>（書式）の単位で扱います。</p>
         <div className="start-actions">
-          {isElectron && <button className="btn primary" onClick={() => run(openMarkdown())}>Markdown を開く</button>}
-          {isElectron && <button className="btn" onClick={() => run(createMarkdown())}>新しく作る</button>}
-          {supportsWorkspace && <button className="btn" onClick={() => run(openWorkspace())}>フォルダを開く</button>}
+          {isElectron && <button className="btn primary with-icon" onClick={() => run(openMarkdown())}><Icon name="doc" />Markdown を開く</button>}
+          {isElectron && <button className="btn with-icon" onClick={() => run(createMarkdown())}><Icon name="plus" />新しく作る</button>}
+          {supportsWorkspace && <button className="btn with-icon" onClick={() => run(openWorkspace())}><Icon name="folder" />フォルダを開く</button>}
           <button className="btn quiet" onClick={viewSample}>サンプルを見る</button>
         </div>
         {isElectron && recent.length > 0 && (

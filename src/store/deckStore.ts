@@ -78,6 +78,14 @@ interface DeckState {
   setMarkdown: (md: string) => void;
   select: (id: string | null) => void;
   selectByLine: (line: number) => void;
+  /** Keyboard navigation in the navigator: the previous/next slide, clamped at the ends. Nothing selected: the first slide. */
+  selectAdjacent: (dir: -1 | 1) => void;
+  /**
+   * Keyboard reorder: move the selected slide's block one step up/down. A section steps over the neighbouring section
+   * (with all of its slides); a body steps over the neighbouring block, crossing section boundaries like a drag does.
+   * Returns false when nothing moved (cover, agenda, end of deck, section with no section to step over).
+   */
+  moveSelected: (dir: -1 | 1) => boolean;
   move: (fromId: string, toId: string, place: "before" | "after") => void;
   setLayout: (blockId: string, layout: BodyLayout | null) => void;
   /** Set or clear one heading attribute ({size=16}) on a block. */
@@ -132,6 +140,9 @@ const parsedMasters = new Map<string, { modified: number; profile: MasterProfile
 export const useDeckStore = create<DeckState>((set, get) => {
   const ctx = (): MasterCtx => ({ wsName: get().workspace?.name ?? null, defaultMaster: settings.get().masters.default });
   const recompute = (md: string, imageDims = get().imageDims) => derive(md, get().masters, ctx(), imageDims);
+  // The default master is a setting: when it changes (settings sheet, hand edit), decks that name none follow it.
+  let lastDefault = settings.get().masters.default;
+  settings.subscribe((s) => { if (s.masters.default !== lastDefault) { lastDefault = s.masters.default; set(recompute(get().markdown)); } });
   return {
   markdown: SAMPLE_MARKDOWN,
   ...derive(SAMPLE_MARKDOWN, [], { wsName: null, defaultMaster: null }),
@@ -168,6 +179,26 @@ export const useDeckStore = create<DeckState>((set, get) => {
     const block = [...deck.blocks].reverse().find((b) => b.range[0] <= line);
     const target = block ? slides.find((s) => s.blockId === block.id)?.id ?? null : "cover";
     if (target && target !== selectedId) set({ selectedId: target });
+  },
+  selectAdjacent: (dir) => {
+    const { slides, selectedId } = get();
+    if (!slides.length) return;
+    const i = slides.findIndex((s) => s.id === selectedId);
+    const next = i < 0 ? slides[0] : slides[Math.max(0, Math.min(slides.length - 1, i + dir))];
+    if (next.id !== selectedId) get().select(next.id);
+  },
+  moveSelected: (dir) => {
+    const { slides, selectedId } = get();
+    const cur = slides.find((s) => s.id === selectedId);
+    if (!cur?.blockId) return false;
+    const i = slides.indexOf(cur);
+    const ahead = dir < 0 ? slides.slice(0, i).reverse() : slides.slice(i + 1);
+    // A section steps over sections only; a body steps over the nearest other block (agenda slides have no block).
+    const target = ahead.find((s) => s.blockId && s.blockId !== cur.blockId && (cur.kind !== "section" || s.kind === "section"));
+    if (!target?.blockId) return false;
+    const before = get().deck;
+    get().move(cur.blockId, target.blockId, dir < 0 ? "before" : "after");
+    return get().deck !== before;
   },
   move: (fromId, toId, place) => {
     const { deck, externalEditVersion } = get();

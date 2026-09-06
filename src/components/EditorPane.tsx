@@ -12,8 +12,9 @@ const highlight = HighlightStyle.define([
   { tag: t.contentSeparator, color: "var(--ink-3)" },
   { tag: t.meta, color: "var(--ink-3)" },
   { tag: t.quote, color: "var(--ink-2)", fontStyle: "italic" },
-  { tag: t.link, color: "var(--accent)" },
-  { tag: t.url, color: "var(--accent)", opacity: "0.8" },
+  // Links and image paths are muted, not accent: an accent-colored line of text reads like the selected slide's separator.
+  { tag: t.link, color: "var(--ink-2)" },
+  { tag: t.url, color: "var(--ink-2)", opacity: "0.8" },
   { tag: t.strong, fontWeight: "600" },
   { tag: t.emphasis, fontStyle: "italic" },
   { tag: t.monospace, color: "var(--ink-2)" },
