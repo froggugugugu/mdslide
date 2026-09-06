@@ -204,6 +204,10 @@ git tag v0.1.0 && git push origin v0.1.0
 - [docs/backlog.md](docs/backlog.md): バックログ
 - [CLAUDE.md](CLAUDE.md): 変えてはいけない原則と構成
 
+## クレジット
+
+このプロジェクトは [project-blueprints](https://github.com/froggugugugu/project-blueprints) を利用して開発している。Claude Code のルール・スキル・エージェント・品質ゲートといった開発の枠組みはそこから来ており、このリポジトリには mdslide 固有の規約(`CLAUDE.md`、`.claude/rules/`)だけを含めている。
+
 ## ライセンス
 
 [MIT](LICENSE)
