@@ -29,6 +29,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // The packaged app carries build/icon.icns; in development the Dock would otherwise show Electron's own icon.
+  if (process.platform === "darwin" && !app.isPackaged) app.dock?.setIcon(path.join(app.getAppPath(), "build", "icon.png"));
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });

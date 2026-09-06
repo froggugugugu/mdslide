@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/media/icon.png" width="128" alt="mdslide のアイコン"></p>
+
 # mdslide
 
 Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデスクトップアプリ(Electron)。

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- mdslide app icon. macOS icon grid: 824px rounded square centered on a 1024 canvas, corners left transparent.
+       Motif: two stacked slides, the front one carrying a Markdown heading line ("# ----") and two body lines. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5FB2FF"/>
+      <stop offset="1" stop-color="#0A5BD3"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EEF3FA"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="26" stdDeviation="26" flood-color="#042A66" flood-opacity="0.38"/>
+    </filter>
+    <filter id="backShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#042A66" flood-opacity="0.22"/>
+    </filter>
+    <filter id="inner" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="-6" stdDeviation="8" flood-color="#000000" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+
+  <!-- rounded square -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#gloss)"/>
+
+  <!-- back slide -->
+  <rect x="318" y="300" width="470" height="300" rx="36" fill="#FFFFFF" fill-opacity="0.42" filter="url(#backShadow)"/>
+
+  <!-- front slide -->
+  <rect x="236" y="386" width="470" height="300" rx="36" fill="url(#card)" filter="url(#cardShadow)"/>
+
+  <!-- "# Heading" line: the pound sign, then a title bar -->
+  <g stroke="#0A5BD3" stroke-width="26" stroke-linecap="round" fill="none">
+    <line x1="312" y1="452" x2="300" y2="556"/>
+    <line x1="372" y1="452" x2="360" y2="556"/>
+    <line x1="284" y1="486" x2="398" y2="486"/>
+    <line x1="274" y1="524" x2="388" y2="524"/>
+  </g>
+  <rect x="428" y="486" width="220" height="36" rx="18" fill="#0A5BD3"/>
+
+  <!-- body lines -->
+  <rect x="284" y="592" width="330" height="26" rx="13" fill="#B7C6DE"/>
+  <rect x="284" y="636" width="236" height="26" rx="13" fill="#B7C6DE"/>
+</svg>

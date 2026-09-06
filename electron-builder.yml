@@ -13,6 +13,7 @@ extraResources:
   - from: electron/ptyHost.cjs
     to: pty/ptyHost.cjs
 mac:
+  icon: build/icon.icns   # generated from docs/media/icon.svg by scripts/make_icon.py
   category: public.app-category.productivity
   target: [dmg, zip]
   # Unsigned build for personal use. Set CSC_IDENTITY_AUTO_DISCOVERY/notarize for distribution.
