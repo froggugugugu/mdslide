@@ -91,20 +91,23 @@ describe("deckStore: markdown as single source", () => {
     expect(useDeckStore.getState().imageDims).toBe(ref);
     expect(ref["images/x.png"]).toEqual({ w: 100, h: 50 });
   });
-  it("uses master geometry for line capacity", async () => {
+  it("uses master geometry for line capacity when the frontmatter names a master from the folder", async () => {
     const { useDeckStore } = await fresh();
-    const { importMaster } = await import("../../src/master/importMaster");
-    const { saveMaster } = await import("../../src/master/masterStore");
-    const profile = await importMaster(new Blob([readFileSync("examples/sample-master.pptx")]), "sample");
-    await saveMaster(profile, new Blob([]));
+    const { masterSource } = await import("../../src/master/masterSource");
+    await masterSource.add(new File([readFileSync("examples/sample-master.pptx")], "sample.pptx"));
     await useDeckStore.getState().refreshMasters();
-    expect(useDeckStore.getState().masterId).toBe(profile.id);
-    const long = `## L\n\n${Array.from({ length: 40 }, (_, i) => `- line ${i}`).join("\n")}\n`;
+    expect(useDeckStore.getState().masters.map((m) => m.id)).toEqual(["dir:sample.pptx"]);
+    expect(useDeckStore.getState().masterId).toBeNull(); // nothing chosen yet: no silent default
+    useDeckStore.getState().setMaster("dir:sample.pptx");
+    expect(useDeckStore.getState().markdown).toMatch(/^---\ntitle: T\nmaster: sample\.pptx\n---\n/); // the choice lives in the markdown
+    expect(useDeckStore.getState().masterId).toBe("dir:sample.pptx");
+    const long = `---\nmaster: sample.pptx\n---\n\n## L\n\n${Array.from({ length: 40 }, (_, i) => `- line ${i}`).join("\n")}\n`;
     useDeckStore.getState().setMarkdown(long);
     const parts = useDeckStore.getState().slides.filter((s) => s.title === "L");
     expect(parts.length).toBeGreaterThan(1);
     expect(parts[0].continuation).toEqual({ index: 1, total: parts.length });
     useDeckStore.getState().setMaster(null);
+    expect(useDeckStore.getState().markdown).not.toContain("master:"); // nothing would apply anyway, so the key is simply dropped
     expect(useDeckStore.getState().masterId).toBeNull();
   });
 });
@@ -171,6 +174,37 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     useDeckStore.getState().onFileChanged("plan.md");
     await vi.advanceTimersByTimeAsync(10);
     expect(useDeckStore.getState().deck.meta.title).toBe("Outside");
+  });
+
+  it("resolves the master: frontmatter, then the folder's master.pptx, then the configured default", async () => {
+    vi.useRealTimers(); // JSZip needs real timers
+    root.put("master.pptx", readFileSync("examples/sample-master.pptx"));
+    const { useDeckStore } = await fresh();
+    const { masterSource } = await import("../../src/master/masterSource");
+    const { settings } = await import("../../src/settings/settings");
+    await masterSource.add(new File([readFileSync("examples/sample-master.pptx")], "corp.pptx"));
+    await useDeckStore.getState().refreshMasters();
+    await useDeckStore.getState().openWorkspace();
+    expect(useDeckStore.getState().masterId).toBe("ws:deck"); // the folder's master.pptx when the frontmatter is silent
+    useDeckStore.getState().setMarkdown("---\nmaster: corp.pptx\n---\n\n## X\n");
+    expect(useDeckStore.getState().masterId).toBe("dir:corp.pptx");
+    useDeckStore.getState().setMarkdown("---\nmaster: missing.pptx\n---\n\n## X\n");
+    expect(useDeckStore.getState().masterId).toBeNull();
+    expect(useDeckStore.getState().masterMissing).toBe("missing.pptx");
+    useDeckStore.getState().setMarkdown("---\nmaster: none\n---\n\n## X\n");
+    expect(useDeckStore.getState().masterId).toBeNull();
+    expect(useDeckStore.getState().masterMissing).toBeNull();
+    // no frontmatter and no folder master: the configured default applies
+    useDeckStore.setState({ workspace: null });
+    settings.update((v) => { v.masters.default = "corp.pptx"; });
+    useDeckStore.getState().setMarkdown("## X\n");
+    expect(useDeckStore.getState().masterId).toBe("dir:corp.pptx");
+    // export uses the resolved file: the folder's own master.pptx by relative name, a folder master by absolute path
+    useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: { exists: async () => false, runExport: async (_j: string, m: string) => ({ code: 0, stdout: m, stderr: "" }) } as never } });
+    useDeckStore.getState().setMarkdown("---\nmaster: corp.pptx\n---\n\n## X\n");
+    expect((await useDeckStore.getState().runExport()).ok).toBe(false); // memory source has no folder on disk
+    useDeckStore.getState().setMarkdown("---\nmaster: none\n---\n\n## X\n");
+    expect((await useDeckStore.getState().runExport()).message).toContain("書き出しにはマスターが必要");
   });
 
   it("loads an existing deck.md and master.pptx from the folder", async () => {

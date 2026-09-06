@@ -179,8 +179,9 @@ describe("MasterDialog", () => {
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     const file = new File([readFileSync("examples/sample-master.pptx")], "corp.pptx");
     await userEvent.upload(input, file);
-    await waitFor(() => expect(screen.getByText("corp")).toBeInTheDocument());
-    expect(useDeckStore.getState().masterId).toMatch(/^corp-/);
+    await waitFor(() => expect(screen.getByText("corp.pptx")).toBeInTheDocument());
+    expect(useDeckStore.getState().masterId).toBe("dir:corp.pptx");
+    expect(useDeckStore.getState().markdown).toContain("master: corp.pptx"); // the choice is written into the frontmatter
     expect(screen.getAllByText(/Body-Text/).length).toBeGreaterThan(0);
     expect(screen.getByText(/未使用/)).toBeInTheDocument();
     await userEvent.click(screen.getByText("削除"));

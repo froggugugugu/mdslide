@@ -70,6 +70,21 @@ ipcMain.handle("dialog:openFolder", async () => {
   const r = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
   return r.canceled ? null : r.filePaths[0];
 });
+/** Masters live in one folder (settings masters.dir, default <config dir>/masters) so they can be managed like any other files. */
+async function mastersDir(configured: string | null): Promise<string> {
+  const dir = configured ? path.resolve(configured) : path.join(path.dirname(settingsPath()), "masters");
+  await fs.mkdir(dir, { recursive: true });
+  return dir;
+}
+ipcMain.handle("masters:resolve", (_e, configured: string | null) => mastersDir(configured));
+ipcMain.handle("dialog:importMaster", async (_e, dir: string) => {
+  const r = await dialog.showOpenDialog({ properties: ["openFile"], filters: [{ name: "PowerPoint", extensions: ["pptx", "potx"] }] });
+  if (r.canceled) return null;
+  const name = path.basename(r.filePaths[0]);
+  await fs.copyFile(r.filePaths[0], path.join(dir, name));
+  return name;
+});
+
 const MARKDOWN_FILTER = [{ name: "Markdown", extensions: ["md", "markdown"] }];
 ipcMain.handle("dialog:openMarkdown", async () => {
   const r = await dialog.showOpenDialog({ properties: ["openFile"], filters: MARKDOWN_FILTER });

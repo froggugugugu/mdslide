@@ -7,7 +7,7 @@ Markdown を唯一の正として、報告用の PowerPoint 資料を作る macO
 ## 特徴
 
 - **Markdown が唯一の正**。左ペインでの並べ替えやレイアウト変更も、すべて `deck.md` の書き換えとして実装している。章番号・スライド番号は Markdown に書かず、表示と出力のたびに導出する
-- **書式はマスター任せ**。手持ちの pptx をマスターとして取り込む。レイアウト名を `Cover / Agenda / Section / Body-Text / Body-2col` と付けるだけで、ツールは「どのレイアウトに何を流し込むか」だけを決める
+- **書式はマスター任せ**。手持ちの pptx を保管フォルダにまとめ、資料ごとに frontmatter の `master:` で選ぶ。レイアウト名を `Cover / Agenda / Section / Body-Text / Body-2col` と付けるだけで、ツールは「どのレイアウトに何を流し込むか」だけを決める
 - **本文量のガイド**。表示行モデルでスライドごとの本文量を推定し、エディタの見出し直下にゲージを出す。溢れたら縮小ではなく分割する
 - **画像はファイル**。貼り付け・ドロップした画像は `images/` に保存し、相対パスで参照する。長辺の上限で自動縮小する
 - **入口は Markdown ファイル**。開いた `.md` と同じフォルダの `images/`(貼り付けた画像)と `master.pptx`(書式)がひとまとまり。外部のプロセスがその Markdown を書き換えると自動で再読み込みする
@@ -48,7 +48,7 @@ npm run dev
 ## 使い方
 
 1. 起動画面で「新しく作る」を押し、保存先とファイル名を決める。見本の内容で Markdown ができる。手持ちの資料は「Markdown を開く」、フォルダ単位で扱うなら「フォルダを開く」(その中の `deck.md` を使う)。2 回目からは「最近開いたもの」から選べる
-2. その Markdown と同じフォルダに、レイアウト名を規約どおりに付けた `master.pptx` を置く(見本: `examples/sample-master.pptx`)
+2. 「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダ(既定 `~/.config/mdslide/masters/`)に取り込み、この資料で使うものを選ぶ(見本: `examples/sample-master.pptx`)。選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。資料フォルダに `master.pptx` を置く方法も使える
 3. 右ペインで Markdown を書く(Vim キーバインド)。左ペインでドラッグして並べ替える。番号は自動で振り直される
 4. 「書き出す」で `out/deck.pptx` ができる
 
@@ -119,7 +119,7 @@ numbering: chapter      # chapter (1, 1.1) | flat | none
 my-deck/
 ├── report.md            # 唯一の正(開いた Markdown。名前は自由)
 ├── images/              # 貼り付けた画像(相対パスで参照)
-├── master.pptx          # スライドマスター
+├── master.pptx          # このフォルダ専用のマスター(任意。通常は保管フォルダから frontmatter で選ぶ)
 ├── deck.json            # 書き出しの中間形式(契約 v2)
 ├── out/deck.pptx        # 生成結果
 ├── notes/               # 下書き・素材
@@ -131,7 +131,7 @@ my-deck/
 
 ## 設定
 
-設定は 1 ファイル `~/.config/mdslide/settings.json`(`XDG_CONFIG_HOME` 準拠、`MDSLIDE_CONFIG` で場所を変更できる)に置く。手で編集した内容はウィンドウにフォーカスが戻ったときに反映される。
+設定は 1 ファイル `~/.config/mdslide/settings.json`(`XDG_CONFIG_HOME` 準拠、`MDSLIDE_CONFIG` で場所を変更できる)に置く。手で編集した内容はウィンドウにフォーカスが戻ったときに反映される。マスターの保管フォルダ(`masters.dir`)と既定のマスター(`masters.default`)もここにある。
 
 | 環境変数 | 用途 |
 | --- | --- |

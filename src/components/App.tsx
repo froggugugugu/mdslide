@@ -12,7 +12,6 @@ import { settings } from "../settings/settings";
 import { useTerminalStore } from "../console/terminalStore";
 import { useCurrentMaster, useDeckStore } from "../store/deckStore";
 import { buildExport, download } from "../export/exportJson";
-import { getMasterFile } from "../master/masterStore";
 import { isElectron, OUTPUT_FILE, supportsWorkspace } from "../workspace/workspace";
 
 export function App() {
@@ -67,6 +66,7 @@ export function App() {
   const [exportNote, setExportNote] = useState<string | null>(null);
   const notice = useDeckStore((s) => s.notice);
   const setNotice = useDeckStore((s) => s.setNotice);
+  const masterMissing = useDeckStore((s) => s.masterMissing);
   const [exporting, setExporting] = useState(false);
 
   // Settings first (they hold the last folder and the help flag), then masters, then the folder.
@@ -108,11 +108,6 @@ export function App() {
     }
   };
   const exportMarkdown = () => download(`${deck.meta.title || "deck"}.md`, useDeckStore.getState().markdown, "text/markdown");
-  const exportMasterFile = async () => {
-    if (!master) return;
-    const f = await getMasterFile(master.id);
-    if (f) download(`${master.name}.pptx`, f);
-  };
   // Browsers without the File System Access API: load the text only (no folder, nothing is saved back).
   const loadMarkdownText = (file: File) => file.text().then((t) => {
     useDeckStore.setState({ externalEditVersion: useDeckStore.getState().externalEditVersion + 1, started: true });
@@ -177,15 +172,14 @@ export function App() {
             <button className="btn" onClick={exportMarkdown}>保存</button>
           </>
         )}
-        <select className="select" value={master?.id ?? ""} onChange={(e) => setMaster(e.target.value || null)}>
-          <option value="">マスター未選択</option>
-          {masters.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+        <select className="select" value={master?.id ?? ""} onChange={(e) => setMaster(e.target.value || null)} aria-label="マスター" title="この資料のマスター（frontmatter の master: に書かれる）">
+          <option value="">マスターなし</option>
+          {masters.map((m) => <option key={m.id} value={m.id}>{m.id.startsWith("ws:") ? "このフォルダの master.pptx" : m.name}</option>)}
         </select>
         <button className="btn" onClick={() => setShowMaster(true)}>マスター</button>
         <button className="btn quiet" onClick={toggleInbox} title="下書き (⌘I)" aria-pressed={inboxOpen}>下書き</button>
         <button className="btn quiet" onClick={toggleConsole} title="コンソール (⌘J)" aria-pressed={consoleOpen}>コンソール</button>
         <button className="btn quiet" onClick={() => setShowHelp(true)} title="使い方 (⌘/)" aria-label="使い方">?</button>
-        {master && <button className="btn quiet" onClick={exportMasterFile}>マスターを保存</button>}
         <button className="btn primary" disabled={exporting} onClick={exportJson}
           title={isElectron ? "deck.json を書き出し、master.pptx を母体に out/deck.pptx を生成" : "deck.json を書き出し、tools/export_pptx.py で pptx を生成"}>
           {exporting ? "生成中" : isElectron && workspace ? "書き出す" : "書き出す"}
@@ -210,9 +204,14 @@ export function App() {
           <button className="link shrink-0" onClick={() => setExportNote(null)}>閉じる</button>
         </div>
       )}
-      {!master && (
+      {masterMissing && (
         <div className="banner warn">
-          <span>スライドマスターが未設定です。{workspace ? "フォルダに master.pptx を置くか、" : ""}「マスター」から pptx を取り込んでください。</span>
+          <span>frontmatter の master: {masterMissing} が保管フォルダにありません。「マスター」から取り込むか、選び直してください。</span>
+        </div>
+      )}
+      {!master && !masterMissing && (
+        <div className="banner warn">
+          <span>スライドマスターが未設定です。「マスター」から保管フォルダの pptx を選ぶ{workspace ? "か、フォルダに master.pptx を置いて" : ""}ください。</span>
         </div>
       )}
       {!workspace && supportsWorkspace && (

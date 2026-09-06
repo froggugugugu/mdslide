@@ -9,6 +9,8 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
    スライド番号・章番号は Markdown に書かない。`renderDeck` が毎回導出する。
 2. **書式はパワポ側に任せる**
    フォント・配色・ロゴ・余白はスライドマスター（取り込んだ pptx）の責務。ツールは「どのレイアウトに何を流し込むか」だけを決める。
+   マスターは保管フォルダ（設定 `masters.dir`、既定 `~/.config/mdslide/masters/`）に置き、資料は frontmatter `master: 名前.pptx` で選ぶ。
+   解決順は frontmatter → 資料フォルダの `master.pptx` → 設定の既定（`resolveMasterId`）。黙って先頭を選ばない。IndexedDB は使わない（ADR-0013）。
 3. **役割つきレイアウト名の規約**
    `Cover / Agenda / Section / Body-Text / Body-2col`（大文字小文字・ハイフン無視）。判定は `roleFromLayoutName`。
    画像スライドはマスターに専用レイアウトを持たせず、`Body-Text` の上に `src/layouts/geometry.ts` の計算で配置する。
@@ -37,7 +39,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 
 ```
 src/model/      imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。Python 側 export_pptx.py の display_lines と対で保つ)  boxes.ts (レイアウトごとの本文枠 pt)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  types.ts
-src/master/     importMaster.ts (pptx zip → layouts/placeholders)  masterStore.ts (IndexedDB, 履歴)
+src/master/     importMaster.ts (pptx zip → layouts/placeholders)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
 src/components/ App / StartScreen (起動画面: Markdown を開く・新しく作る・フォルダ・最近・サンプル) / ThumbnailPane (DnD) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / MasterDialog
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)

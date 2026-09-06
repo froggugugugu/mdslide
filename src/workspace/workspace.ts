@@ -26,7 +26,7 @@ export interface Backend {
   remove(rel: string): Promise<void>;
   /** Optional native file watching. Returns an unsubscribe. */
   watch?(cb: (rel: string) => void): Promise<() => void>;
-  /** Optional: run the pptx exporter in place. */
+  /** Optional: run the pptx exporter in place. `master` is folder-relative, or absolute when it comes from the masters folder. */
   runExport?(deckJson: string, master: string, output: string): Promise<{ code: number; stdout: string; stderr: string }>;
   showItem?(rel: string): Promise<void>;
   /** Optional: pseudo-terminal bridge (desktop only). */
@@ -73,7 +73,7 @@ function electronBackend(root: string): Backend {
     list: (rel) => api.list(abs(rel)),
     remove: (rel) => api.remove(abs(rel)),
     watch: async (cb) => { await api.watch(root); const off = api.onChanged(cb); return () => { off(); void api.unwatch(); }; },
-    runExport: (deckJson, master, output) => api.runExport(root, abs(deckJson), abs(master), abs(output)),
+    runExport: (deckJson, master, output) => api.runExport(root, abs(deckJson), master.startsWith("/") ? master : abs(master), abs(output)),
     showItem: (rel) => api.showItem(abs(rel)),
     pty: { spawn: (o) => api.ptySpawn(o), write: (id, d) => api.ptyWrite(id, d), resize: (id, c, r) => api.ptyResize(id, c, r), kill: (id) => api.ptyKill(id), onData: (cb) => api.onPtyData(cb), onExit: (cb) => api.onPtyExit(cb) },
   };

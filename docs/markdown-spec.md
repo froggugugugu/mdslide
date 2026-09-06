@@ -9,6 +9,7 @@ date: 2026-09-02            # 表紙（任意）
 agenda: once                # once | per-section | none（既定 once）
 numbering: chapter          # chapter (1, 1.1) | flat (1, 2, 3) | none（既定 chapter）
 layout: text                # 本文の既定レイアウト（任意）
+master: corporate.pptx      # 保管フォルダ内のマスター名。省略時は資料フォルダの master.pptx → 設定の既定。none で使わない
 fontSize: 18                # 本文の既定フォントサイズ（pt）。省略時はマスターの bodyStyle、無ければ 18
 imageMaxPx: 2000            # 貼り付け画像の長辺上限（px）。0 で無効
 maxLines: 12                # 旧互換。指定すると行数固定で判定する

@@ -43,7 +43,7 @@ def test_master_import_drives_preview_and_layout_picker(web_page):
     pg.wait_for_timeout(1200)
     assert pg.get_by_text("Body-Text").first.is_visible()
     pg.get_by_role("button", name="閉じる").click()
-    assert pg.get_by_role("banner").get_by_role("combobox").input_value().startswith("sample-master")
+    assert "sample-master" in pg.get_by_role("banner").get_by_role("combobox").input_value()  # dir:sample-master.pptx
     pg.locator(".thumb").nth(3).click()
     pg.get_by_role("button", name="画像", exact=True).click()
     pg.get_by_role("button", name="3/4").click()

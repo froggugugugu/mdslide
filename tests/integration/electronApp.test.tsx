@@ -23,6 +23,8 @@ const api = vi.hoisted(() => {
     modified: async (p: string): Promise<number | null> => files.has(p) ? 1 : null,
     exists: async (p: string) => files.has(p) || p === "/w/deck",
     mkdir: async () => undefined, watch: async () => undefined, unwatch: async () => undefined,
+    list: async () => [] as string[], remove: async () => undefined,
+    mastersResolve: async (dir: string | null) => dir ?? "/w/.config/mdslide/masters", importMaster: async () => null as string | null,
     onChanged: (cb: (rel: string) => void) => { listeners.push(cb); return () => undefined; },
     runExport: vi.fn(async () => ({ code: 0, stdout: "wrote", stderr: "warning: one\n" })),
     showItem: vi.fn(async () => undefined), openPath: async () => "",
@@ -59,7 +61,7 @@ describe("App in Electron", () => {
 
     // no master.pptx yet: export writes deck.json but refuses to run python
     await userEvent.click(screen.getByRole("button", { name: "書き出す" }));
-    expect(await screen.findByText(/master\.pptx がありません/)).toBeInTheDocument();
+    expect(await screen.findByText(/書き出しにはマスターが必要/)).toBeInTheDocument();
     expect(api.runExport).not.toHaveBeenCalled();
 
     // with master.pptx: exporter runs, result banner shows warnings, Finder reveal is requested

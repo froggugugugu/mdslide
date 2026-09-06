@@ -13,6 +13,8 @@ export interface RecentWorkspace { path: string; deckFile: string }
 export interface SettingsFile {
   version: 1;
   workspace: { lastPath: string | null; lastDeckFile: string | null; recent: RecentWorkspace[] };
+  /** Folder of master pptx files (null: <config dir>/masters) and the file used when a deck names none. */
+  masters: { dir: string | null; default: string | null };
   console: { open: boolean; height: number; autoStart: boolean };
   tools: { selectedId: string; items: CliTool[] };
   help: { seen: boolean };
@@ -21,6 +23,7 @@ export interface SettingsFile {
 export const DEFAULT_SETTINGS: SettingsFile = {
   version: 1,
   workspace: { lastPath: null, lastDeckFile: null, recent: [] },
+  masters: { dir: null, default: null },
   console: { open: true, height: 260, autoStart: true },
   tools: { selectedId: "claude", items: [] },
   help: { seen: false },

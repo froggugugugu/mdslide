@@ -1,16 +1,16 @@
 import { create } from "zustand";
-import { moveBlock, parseMarkdown, serializeDeck, withAttr } from "../model/parser";
+import { moveBlock, parseMarkdown, serializeDeck, withAttr, withMeta } from "../model/parser";
 import { renderDeck } from "../model/render";
-import type { BodyLayout, Deck, RenderedSlide } from "../model/types";
+import type { BodyLayout, Deck, DeckMeta, RenderedSlide } from "../model/types";
 import { layoutToAttrs } from "../layouts/geometry";
 import { bootstrapWorkspace } from "../workspace/bootstrap";
 import { DEFAULT_MAX_PX, processImage } from "../model/imageProcess";
 import { findLayout, type MasterProfile } from "../master/importMaster";
 import { bodyBoxFor, masterAutofit, masterBodyFontPt } from "../model/boxes";
-import { listMasters } from "../master/masterStore";
 import { SAMPLE_MARKDOWN } from "../sample";
 import { importMaster } from "../master/importMaster";
-import { saveMaster } from "../master/masterStore";
+import { masterSource } from "../master/masterSource";
+import { settings } from "../settings/settings";
 import {
   EXPORT_FILE, MASTER_FILE, OUTPUT_FILE, createMarkdownFile, imageUrl, modifiedOf, openMarkdownFile, openRecentWorkspace, pickWorkspace,
   readBlob, readText, restoreWorkspace, saveImage, writeText, type RecentEntry, type Workspace,
@@ -21,8 +21,14 @@ interface DeckState {
   deck: Deck;
   slides: RenderedSlide[];
   selectedId: string | null;
+  /** The masters folder's files (id "dir:<name>") plus the workspace's own master.pptx (id "ws:<folder>"). */
   masters: MasterProfile[];
+  /** Resolved from the frontmatter, the folder's master.pptx, then the configured default. Derived. */
   masterId: string | null;
+  /** The frontmatter names a master that is not in the folder (null when fine). Derived. */
+  masterMissing: string | null;
+  /** Files in the masters folder that could not be parsed, by name. */
+  masterErrors: Record<string, string>;
   /** Bumped when the store changes markdown itself (reorder, layout change) so the editor replaces its doc. */
   externalEditVersion: number;
   /** Line the editor should scroll to after a thumbnail click. */
@@ -90,23 +96,46 @@ function reselect(selectedId: string | null, slides: RenderedSlide[]): string | 
   return slides.find((s) => s.blockId === blockId)?.id ?? (slides.some((s) => s.id === "cover") ? "cover" : null);
 }
 
-function derive(markdown: string, master: MasterProfile | undefined, imageDims: Record<string, { w: number; h: number }> = {}) {
+interface MasterCtx { wsName: string | null; defaultMaster: string | null }
+
+/**
+ * Which master applies (ADR-0013), in order: the frontmatter (`master: name.pptx` from the masters folder, `none` for no
+ * master), the workspace's own master.pptx, then the default configured in the settings. Nothing is picked beyond that.
+ */
+export function resolveMasterId(meta: DeckMeta, masters: MasterProfile[], ctx: MasterCtx): { id: string | null; missing: string | null } {
+  const has = (id: string) => masters.some((m) => m.id === id);
+  if (meta.master === "none") return { id: null, missing: null };
+  if (meta.master) return has(`dir:${meta.master}`) ? { id: `dir:${meta.master}`, missing: null } : { id: null, missing: meta.master };
+  if (ctx.wsName && has(`ws:${ctx.wsName}`)) return { id: `ws:${ctx.wsName}`, missing: null };
+  if (ctx.defaultMaster && has(`dir:${ctx.defaultMaster}`)) return { id: `dir:${ctx.defaultMaster}`, missing: null };
+  return { id: null, missing: null };
+}
+
+function derive(markdown: string, masters: MasterProfile[], ctx: MasterCtx, imageDims: Record<string, { w: number; h: number }> = {}) {
   const deck = parseMarkdown(markdown);
+  const { id: masterId, missing: masterMissing } = resolveMasterId(deck.meta, masters, ctx);
+  const master = masters.find((m) => m.id === masterId);
   const slides = renderDeck(deck, {
     bodyBox: (layout, aspect) => bodyBoxFor(master, layout, aspect),
     masterFontPt: masterBodyFontPt(master),
     autofit: masterAutofit(master),
     imageAspect: (src) => { const d = imageDims[src]; return d ? d.w / d.h : undefined; },
   });
-  return { deck, slides };
+  return { deck, slides, masterId, masterMissing };
 }
 
-export const useDeckStore = create<DeckState>((set, get) => ({
+/** Parsed masters-folder files, keyed by name, so a refresh only re-reads what changed. */
+const parsedMasters = new Map<string, { modified: number; profile: MasterProfile }>();
+
+export const useDeckStore = create<DeckState>((set, get) => {
+  const ctx = (): MasterCtx => ({ wsName: get().workspace?.name ?? null, defaultMaster: settings.get().masters.default });
+  const recompute = (md: string, imageDims = get().imageDims) => derive(md, get().masters, ctx(), imageDims);
+  return {
   markdown: SAMPLE_MARKDOWN,
-  ...derive(SAMPLE_MARKDOWN, undefined),
+  ...derive(SAMPLE_MARKDOWN, [], { wsName: null, defaultMaster: null }),
   selectedId: "cover",
   masters: [],
-  masterId: null,
+  masterErrors: {},
   externalEditVersion: 0,
   gotoLine: null,
   workspace: null,
@@ -123,13 +152,11 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     const cur = get().imageDims[src];
     if (cur && cur.w === w && cur.h === h) return;
     const imageDims = { ...get().imageDims, [src]: { w, h } };
-    const master = get().masters.find((m) => m.id === get().masterId);
-    set({ imageDims, ...derive(get().markdown, master, imageDims) }); // image aspect changes the text box on image slides
+    set({ imageDims, ...recompute(get().markdown, imageDims) }); // image aspect changes the text box on image slides
   },
 
   setMarkdown: (md) => {
-    const master = get().masters.find((m) => m.id === get().masterId);
-    const d = derive(md, master, get().imageDims);
+    const d = recompute(md);
     set({ markdown: md, ...d, selectedId: reselect(get().selectedId, d.slides), dirty: !!get().workspace, saveState: "idle" });
     scheduleAutosave();
   },
@@ -141,12 +168,11 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     if (target && target !== selectedId) set({ selectedId: target });
   },
   move: (fromId, toId, place) => {
-    const { deck, masters, masterId, externalEditVersion } = get();
+    const { deck, externalEditVersion } = get();
     const next = moveBlock(deck, fromId, toId, place);
     if (next === deck) return;
     const md = serializeDeck(next);
-    const master = masters.find((m) => m.id === masterId);
-    const derived = derive(md, master, get().imageDims);
+    const derived = recompute(md);
     // Keep selection on the moved block (its id may change because ids are ordinal-based).
     const movedTitle = deck.blocks.find((b) => b.id === fromId)?.title;
     const sel = derived.slides.find((s) => s.title === movedTitle && s.kind !== "agenda")?.id ?? null;
@@ -154,36 +180,59 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     scheduleAutosave();
   },
   setLayout: (blockId, layout) => {
-    const { deck, masters, masterId, externalEditVersion, selectedId } = get();
+    const { deck, externalEditVersion, selectedId } = get();
     const attrs = layout ? layoutToAttrs(layout) : { layout: null, img: null, side: null };
     const blocks = deck.blocks.map((b) => {
       if (b.id !== blockId) return b;
       return Object.entries(attrs).reduce((acc, [k, v]) => withAttr(acc, k, v), b);
     });
     const md = serializeDeck({ ...deck, blocks });
-    const master = masters.find((m) => m.id === masterId);
-    const d = derive(md, master, get().imageDims);
+    const d = recompute(md);
     set({ markdown: md, ...d, selectedId: reselect(selectedId, d.slides), externalEditVersion: externalEditVersion + 1, dirty: !!get().workspace });
     scheduleAutosave();
   },
   setAttr: (blockId, key, value) => {
-    const { deck, masters, masterId, externalEditVersion, selectedId } = get();
+    const { deck, externalEditVersion, selectedId } = get();
     const blocks = deck.blocks.map((b) => (b.id === blockId ? withAttr(b, key, value) : b));
     const md = serializeDeck({ ...deck, blocks });
-    const master = masters.find((m) => m.id === masterId);
-    const d = derive(md, master, get().imageDims);
+    const d = recompute(md);
     set({ markdown: md, ...d, selectedId: reselect(selectedId, d.slides), externalEditVersion: externalEditVersion + 1, dirty: !!get().workspace });
     scheduleAutosave();
   },
   refreshMasters: async () => {
-    const masters = await listMasters();
-    const masterId = get().masterId ?? masters[0]?.id ?? null;
-    const master = masters.find((m) => m.id === masterId);
-    set({ masters, masterId, ...derive(get().markdown, master, get().imageDims) });
+    // Re-read the masters folder; files that changed are parsed again, the rest come from the cache.
+    const entries = await masterSource.list();
+    const masterErrors: Record<string, string> = {};
+    const fromDir: MasterProfile[] = [];
+    for (const e of entries) {
+      const cached = parsedMasters.get(e.name);
+      if (cached && cached.modified === e.modified) { fromDir.push(cached.profile); continue; }
+      try {
+        const blob = await masterSource.read(e.name);
+        if (!blob) continue;
+        const profile = await importMaster(blob, e.name);
+        profile.id = `dir:${e.name}`;
+        profile.importedAt = new Date(e.modified).toISOString();
+        parsedMasters.set(e.name, { modified: e.modified, profile });
+        fromDir.push(profile);
+      } catch (err) {
+        parsedMasters.delete(e.name);
+        masterErrors[e.name] = err instanceof Error ? err.message : String(err);
+      }
+    }
+    const masters = [...get().masters.filter((m) => m.id.startsWith("ws:")), ...fromDir];
+    set({ masters, masterErrors, ...derive(get().markdown, masters, ctx(), get().imageDims) });
   },
   setMaster: (id) => {
-    const master = get().masters.find((m) => m.id === id);
-    set({ masterId: id, ...derive(get().markdown, master, get().imageDims) });
+    // The choice lives in the markdown: a folder master by name, "none" to turn masters off,
+    // no key when the folder's own master.pptx (or nothing) is what applies anyway.
+    const { deck, selectedId, externalEditVersion } = get();
+    const silent = resolveMasterId(withMeta(deck, "master", null).meta, get().masters, ctx()).id;
+    const value = id === null ? (silent === null ? null : "none") : id.startsWith("ws:") ? null : id.slice("dir:".length);
+    const md = serializeDeck(withMeta(deck, "master", value));
+    const d = recompute(md);
+    set({ markdown: md, ...d, selectedId: reselect(selectedId, d.slides), externalEditVersion: externalEditVersion + 1, dirty: !!get().workspace });
+    scheduleAutosave();
   },
   clearGoto: () => set({ gotoLine: null }),
 
@@ -205,9 +254,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     await adopt(ws);
   },
   viewSample: () => {
-    const master = get().masters.find((m) => m.id === get().masterId);
-    set({ workspace: null, started: true, markdown: SAMPLE_MARKDOWN, ...derive(SAMPLE_MARKDOWN, master, get().imageDims), selectedId: "cover",
-      dirty: false, externalChange: false, externalEditVersion: get().externalEditVersion + 1 });
+    set({ workspace: null, started: true, markdown: SAMPLE_MARKDOWN, ...derive(SAMPLE_MARKDOWN, get().masters, { wsName: null, defaultMaster: settings.get().masters.default }, get().imageDims),
+      selectedId: "cover", dirty: false, externalChange: false, externalEditVersion: get().externalEditVersion + 1 });
   },
   restoreWorkspace: async () => {
     try {
@@ -222,37 +270,38 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   loadFromDisk: async () => {
     const ws = get().workspace;
     if (!ws) return;
-    // master.pptx in the folder wins over the stored history.
+    // The folder's own master.pptx is parsed in place (id ws:<folder>) and never copied anywhere.
     const masterFile = await readBlob(ws, MASTER_FILE);
     const masterModified = await modifiedOf(ws, MASTER_FILE);
+    const wsId = `ws:${ws.name}`;
+    const others = get().masters.filter((m) => !m.id.startsWith("ws:"));
+    const existing = get().masters.find((m) => m.id === wsId);
     if (masterFile && masterModified !== null) {
-      const id = `ws:${ws.name}`;
-      const existing = get().masters.find((m) => m.id === id);
-      if (!existing || existing.importedAt < new Date(masterModified).toISOString()) {
+      const stamp = new Date(masterModified).toISOString();
+      if (existing && existing.importedAt >= stamp) set({ masters: [existing, ...others] });
+      else {
         try {
           const profile = await importMaster(masterFile, `${ws.name}/${MASTER_FILE}`);
-          profile.id = id;
-          profile.importedAt = new Date(masterModified).toISOString();
-          await saveMaster(profile, masterFile);
-          await get().refreshMasters();
-          set({ notice: null });
+          profile.id = wsId;
+          profile.importedAt = stamp;
+          set({ masters: [profile, ...others], notice: null });
         } catch (e) {
-          set({ notice: `${MASTER_FILE} を読み込めませんでした: ${e instanceof Error ? e.message : String(e)}` });
+          set({ masters: others, notice: `${MASTER_FILE} を読み込めませんでした: ${e instanceof Error ? e.message : String(e)}` });
         }
       }
-      if (get().masters.some((m) => m.id === id)) get().setMaster(id);
-    }
-    // Files an interactive agent needs: CLAUDE.md (once), theme.json and the drawing helper (kept in sync).
-    await bootstrapWorkspace(ws.backend, get().masters.find((m) => m.id === get().masterId), ws.deckFile).catch(() => undefined);
+    } else if (get().masters.length !== others.length) set({ masters: others });
     const deck = await readText(ws, ws.deckFile);
-    const master = get().masters.find((m) => m.id === get().masterId);
+    const text = deck ? deck.text : get().markdown;
+    const d = recompute(text);
+    // Files an interactive agent needs: CLAUDE.md (once), theme.json (from the deck's master) and the drawing helper.
+    await bootstrapWorkspace(ws.backend, get().masters.find((m) => m.id === d.masterId), ws.deckFile).catch(() => undefined);
     if (deck) {
-      set({ markdown: deck.text, ...derive(deck.text, master, get().imageDims), diskModified: deck.modified, dirty: false, externalChange: false,
+      set({ markdown: deck.text, ...d, diskModified: deck.modified, dirty: false, externalChange: false,
         externalEditVersion: get().externalEditVersion + 1, selectedId: "cover", imageUrls: {} });
     } else {
       // No deck file yet: the current document (the sample when nothing else was open) becomes the scaffold.
-      const modified = await writeText(ws, ws.deckFile, get().markdown);
-      set({ diskModified: modified, dirty: false });
+      const modified = await writeText(ws, ws.deckFile, text);
+      set({ ...d, diskModified: modified, dirty: false });
     }
   },
   save: async (force = false) => {
@@ -305,8 +354,14 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   runExport: async () => {
     const ws = get().workspace;
     if (!ws?.backend.runExport) return { ok: false, message: "この環境では pptx 生成を直接実行できません。deck.json を書き出して tools/export_pptx.py を実行してください。" };
-    if (!(await ws.backend.exists(MASTER_FILE))) return { ok: false, message: `フォルダに ${MASTER_FILE} がありません。マスターの pptx をこの名前で置いてください。` };
-    const r = await ws.backend.runExport(EXPORT_FILE, MASTER_FILE, OUTPUT_FILE);
+    // The resolved master: a masters-folder file by absolute path, or the folder's own master.pptx (even when the app
+    // could not parse it, so Python gets its say).
+    const { masterId } = get();
+    let masterPath: string | null = null;
+    if (masterId?.startsWith("dir:")) { const dir = await masterSource.dir(); masterPath = dir ? `${dir}/${masterId.slice("dir:".length)}` : null; }
+    else if (masterId?.startsWith("ws:") || (await ws.backend.exists(MASTER_FILE))) masterPath = MASTER_FILE;
+    if (!masterPath) return { ok: false, message: "書き出しにはマスターが必要です。「マスター」から保管フォルダの pptx を選ぶか、フォルダに master.pptx を置いてください。" };
+    const r = await ws.backend.runExport(EXPORT_FILE, masterPath, OUTPUT_FILE);
     if (r.code !== 0) return { ok: false, message: `生成に失敗しました (${r.code})。${r.stderr.trim().split("\n").slice(-3).join(" / ")}` };
     const warnings = r.stderr.trim() ? ` 警告: ${r.stderr.trim().split("\n").length}件（${r.stderr.trim().split("\n")[0]}）` : "";
     return { ok: true, message: `${OUTPUT_FILE} を生成しました。${warnings}` };
@@ -319,7 +374,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       if (rel in imageUrls) { const next = { ...imageUrls }; delete next[rel]; set({ imageUrls: next }); }
     }
   },
-}));
+  };
+});
 
 /** Make a workspace the current document: leaves the start screen, then loads (or scaffolds) its deck file. */
 async function adopt(ws: Workspace) {

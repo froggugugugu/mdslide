@@ -141,3 +141,26 @@ describe("image geometry", () => {
     expect(layoutFromAttrs({}, false)).toEqual({ kind: "text" });
   });
 });
+
+import { parseMarkdown as parseForMeta, serializeDeck as serializeForMeta, withMeta } from "../../src/model/parser";
+
+describe("withMeta: frontmatter keys as the store's way to choose a master", () => {
+  it("sets, replaces and removes a key without touching the rest", () => {
+    const md = "---\ntitle: T\nagenda: none\n---\n\n## A\n\n- a\n";
+    let d = withMeta(parseForMeta(md), "master", "corp.pptx");
+    expect(serializeForMeta(d)).toBe("---\ntitle: T\nagenda: none\nmaster: corp.pptx\n---\n\n## A\n\n- a\n");
+    expect(d.meta.master).toBe("corp.pptx");
+    d = withMeta(d, "master", "other.pptx");
+    expect(serializeForMeta(d)).toContain("master: other.pptx\n");
+    expect(serializeForMeta(d).match(/master:/g)).toHaveLength(1);
+    d = withMeta(d, "master", null);
+    expect(serializeForMeta(d)).toBe(md);
+    expect(d.meta.master).toBeUndefined();
+  });
+  it("creates the frontmatter when there is none, and removing the last key drops it again", () => {
+    const d = withMeta(parseForMeta("## A\n\n- a\n"), "master", "corp.pptx");
+    expect(serializeForMeta(d)).toBe("---\nmaster: corp.pptx\n---\n\n## A\n\n- a\n");
+    expect(parseForMeta(serializeForMeta(d)).meta.master).toBe("corp.pptx");
+    expect(serializeForMeta(withMeta(d, "master", null))).toBe("## A\n\n- a\n");
+  });
+});

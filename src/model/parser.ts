@@ -123,6 +123,21 @@ function trimTrailingBlank(lines: string[]): string[] {
   return lines.slice(0, e);
 }
 
+/**
+ * Return a copy of the deck whose frontmatter has `key` set to `value` (a string) or removed (null).
+ * Other frontmatter lines are kept verbatim; the frontmatter is created or dropped as needed.
+ */
+export function withMeta(deck: Deck, key: string, value: string | null): Deck {
+  const inner = deck.frontmatterRaw.length ? deck.frontmatterRaw.slice(1, -1) : [];
+  const isKey = (l: string) => new RegExp(`^${key}\\s*:`).test(l);
+  const at = inner.findIndex(isKey);
+  const lines = inner.filter((l) => !isKey(l));
+  if (value !== null) lines.splice(at >= 0 ? at : lines.length, 0, `${key}: ${value}`);
+  const meta = { ...deck.meta } as unknown as Record<string, unknown>;
+  if (value === null) delete meta[key]; else meta[key] = value;
+  return { ...deck, meta: meta as unknown as DeckMeta, frontmatterRaw: lines.length ? ["---", ...lines, "---"] : [] };
+}
+
 /** Return a copy of the block whose heading line carries the given attribute (set or removed). */
 export function withAttr(block: Block, key: string, value: string | null): Block {
   const attrs = { ...block.attrs };
