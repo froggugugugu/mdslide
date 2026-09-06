@@ -25,7 +25,9 @@ jobs:
       - name: Assemble the site source
         run: |
           mkdir -p _pages
-          cp README.md LICENSE CLAUDE.md _pages/
+          cp LICENSE CLAUDE.md _pages/
+          # jekyll-optional-front-matter leaves README.md unrendered by default; with front matter it becomes README.html.
+          { printf -- '---\ntitle: mdslide の使い方\n---\n\n'; cat README.md; } > _pages/README.md
           cp -R docs _pages/docs
           cp .github/pages/_config.yml .github/pages/index.html _pages/
           { echo "# ADR 一覧"; echo; for f in docs/adr/*.md; do echo "- [$(sed -n '1s/^# //p' "$f")]($(basename "$f"))"; done; } > _pages/docs/adr/index.md
