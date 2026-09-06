@@ -271,3 +271,28 @@ describe("font size stepper", () => {
     expect(useDeckStore.getState().markdown).toContain("## Text slide\n");
   });
 });
+
+import { cleanup as cleanupSplit, fireEvent as fireSplit, render as renderSplit, screen as screenSplit } from "@testing-library/react";
+import { App as AppSplit } from "../../src/components/App";
+import { settings as splitSettings } from "../../src/settings/settings";
+import { useDeckStore as splitStore } from "../../src/store/deckStore";
+
+describe("App: the editor pane width is draggable and remembered", () => {
+  afterEach(() => cleanupSplit());
+  it("drags the splitter between preview and editor and stores the width in settings", async () => {
+    splitSettings.update((v) => { v.editor.width = null; });
+    splitStore.setState({ started: true, workspace: null });
+    renderSplit(<AppSplit />);
+    const sep = await screenSplit.findByRole("separator", { name: "エディタの幅" });
+    fireSplit.mouseDown(sep, { clientX: 1000 });
+    fireSplit.mouseMove(window, { clientX: 900 }); // 100px to the left: the editor grows
+    fireSplit.mouseUp(window);
+    expect(splitSettings.get().editor.width).toBe(580); // 480px default when nothing is stored, +100
+    const grid = sep.parentElement as HTMLElement;
+    expect(grid.style.gridTemplateColumns).toContain("580px");
+    fireSplit.mouseDown(sep, { clientX: 500 });
+    fireSplit.mouseMove(window, { clientX: 2000 }); // far right: clamped to the minimum
+    fireSplit.mouseUp(window);
+    expect(splitSettings.get().editor.width).toBe(320);
+  });
+});

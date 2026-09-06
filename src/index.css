@@ -167,6 +167,10 @@ body.electron { background: transparent; }
 /* ---- Console (bottom of stage) ---- */
 .splitter { height: 5px; cursor: row-resize; flex-shrink: 0; background: transparent; border-top: 0.5px solid var(--hairline); }
 .splitter:hover { background: var(--accent-tint); }
+/* Vertical splitter between the preview and the editor (a grid column); the editor width is a setting. */
+.vsplitter { cursor: col-resize; background: transparent; position: relative; }
+.vsplitter::after { content: ""; position: absolute; top: 0; bottom: 0; left: 2px; width: 2px; border-radius: 1px; }
+.vsplitter:hover::after, .vsplitter:active::after { background: var(--accent); }
 .console { background: var(--panel); font-size: 12.5px; }
 .console-bar { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px 0 14px; border-bottom: 0.5px solid var(--hairline); }
 .console-title { font-weight: 600; font-size: 12px; white-space: nowrap; }
@@ -214,10 +218,8 @@ body.electron { background: transparent; }
 /* ---- Editor guides ---- */
 /* Slide separators live inside the line box (padding + a dotted line painted as background), never as margin:
    CodeMirror measures lines with getBoundingClientRect, so a margin makes vertical cursor motion miss lines. */
-.cm-editor .cm-slide-sep { padding-top: 21px; background-image: repeating-linear-gradient(to right, var(--ink-3) 0 1px, transparent 1px 3px); background-size: 100% 1px; background-position: 0 10px; background-repeat: no-repeat; }
-.cm-editor .cm-slide-sep-section { padding-top: 32px; background-image: repeating-linear-gradient(to right, var(--ink-2) 0 2px, transparent 2px 5px); background-size: 100% 2px; background-position: 0 18px; }
-.cm-editor .cm-slide-sep-selected { background-image: repeating-linear-gradient(to right, var(--accent) 0 1px, transparent 1px 3px); }
-.cm-editor .cm-slide-sep-section.cm-slide-sep-selected { background-image: repeating-linear-gradient(to right, var(--accent) 0 2px, transparent 2px 5px); }
+.cm-editor .cm-slide-sep { padding-top: 26px; background-image: linear-gradient(var(--ink-3), var(--ink-3)); background-size: 100% 2px; background-position: 0 12px; background-repeat: no-repeat; }
+.cm-editor .cm-slide-sep-selected { background-image: linear-gradient(var(--accent), var(--accent)); }
 .cm-gauge { display: flex; align-items: center; gap: 10px; padding: 3px 0 4px 4px; font-family: var(--font-ui); font-size: 11px; color: var(--ink-3); }
 .cm-gauge-bar { width: 96px; height: 4px; border-radius: 3px; background: var(--control); overflow: hidden; flex-shrink: 0; }
 .cm-gauge-fill { display: block; height: 100%; background: var(--ink-3); border-radius: 3px; transition: width 120ms ease; }

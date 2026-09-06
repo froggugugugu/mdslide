@@ -15,8 +15,8 @@ export interface SettingsFile {
   workspace: { lastPath: string | null; lastDeckFile: string | null; recent: RecentWorkspace[] };
   /** Folder of master pptx files (null: <config dir>/masters) and the file used when a deck names none. */
   masters: { dir: string | null; default: string | null };
-  /** vim: Vim keybindings in the Markdown editor (off = plain text editing). */
-  editor: { vim: boolean };
+  /** vim: Vim keybindings in the Markdown editor (off = plain text editing). width: editor pane width in px (null = 42%). */
+  editor: { vim: boolean; width: number | null };
   console: { open: boolean; height: number; autoStart: boolean };
   tools: { selectedId: string; items: CliTool[] };
   help: { seen: boolean };
@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: SettingsFile = {
   version: 1,
   workspace: { lastPath: null, lastDeckFile: null, recent: [] },
   masters: { dir: null, default: null },
-  editor: { vim: true },
+  editor: { vim: true, width: null },
   console: { open: true, height: 260, autoStart: true },
   tools: { selectedId: "claude", items: [] },
   help: { seen: false },

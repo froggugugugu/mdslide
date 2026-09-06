@@ -21,7 +21,7 @@ describe("editor guides", () => {
     v.dispatch({ effects: setGuides.of({ slides, selectedId: slides.find((s) => s.title === "短い")!.id }) });
     const seps = v.dom.querySelectorAll(".cm-slide-sep");
     expect(seps.length).toBe(3);                                  // 章, 短い, 長い
-    expect(v.dom.querySelectorAll(".cm-slide-sep-section")).toHaveLength(1);
+    expect(v.dom.querySelectorAll(".cm-slide-sep-section")).toHaveLength(0); // one kind of separator: chapters and bodies look the same
     expect(v.dom.querySelectorAll(".cm-slide-sep-selected")).toHaveLength(1);
     const gauges = [...v.dom.querySelectorAll(".cm-gauge")];
     expect(gauges).toHaveLength(2);                               // body slides only

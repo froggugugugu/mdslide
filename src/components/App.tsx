@@ -44,6 +44,23 @@ export function App() {
     const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
     window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
   };
+  // Editor pane width: dragged on the vertical splitter, kept in settings (null = the default 42%).
+  const [editorWidth, setEditorWidth] = useState<number | null>(() => settings.get().editor.width);
+  useEffect(() => settings.subscribe((s) => setEditorWidth(s.editor.width)), []);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const startEditorResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = editorWidth ?? (gridRef.current?.querySelector<HTMLElement>(".editor")?.getBoundingClientRect().width || 480);
+    const gridW = gridRef.current?.getBoundingClientRect().width ?? 0;
+    const maxW = gridW ? gridW - 232 - 6 - (inboxOpen ? 300 : 0) - 360 : Infinity; // keep the preview at least 360px
+    const clamp = (w: number) => Math.max(320, Math.min(maxW, w));
+    let last = startW;
+    const move = (ev: MouseEvent) => { last = clamp(startW + (startX - ev.clientX)); setEditorWidth(last); };
+    const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); settings.update((v) => { v.editor.width = last; }); };
+    window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+  };
+  const editorCol = editorWidth ? `${editorWidth}px` : inboxOpen ? "minmax(340px,38%)" : "minmax(360px,42%)";
   const refresh = useDeckStore((s) => s.refreshMasters);
   const master = useCurrentMaster();
   const masters = useDeckStore((s) => s.masters);
@@ -219,7 +236,7 @@ export function App() {
           <span>フォルダを開くと、画像の貼り付けと自動保存が有効になります。</span>
         </div>
       )}
-      <div className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: inboxOpen ? "220px minmax(0,1fr) minmax(340px,38%) 300px" : "232px minmax(0,1fr) minmax(360px,42%)" }}>
+      <div ref={gridRef} className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: inboxOpen ? `220px minmax(0,1fr) 6px ${editorCol} 300px` : `232px minmax(0,1fr) 6px ${editorCol}` }}>
         <aside className="navigator min-h-0"><ThumbnailPane /></aside>
         <main className="stage min-h-0 flex flex-col">
           <div className="flex-1 min-h-0"><PreviewPane /></div>
@@ -230,6 +247,7 @@ export function App() {
             </>
           )}
         </main>
+        <div className="vsplitter min-h-0" onMouseDown={startEditorResize} role="separator" aria-orientation="vertical" aria-label="エディタの幅" title="ドラッグでエディタの幅を変更" />
         <section className="editor min-h-0"><EditorPane /></section>
         {inboxOpen && <InboxDrawer />}
       </div>

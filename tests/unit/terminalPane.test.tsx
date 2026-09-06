@@ -129,7 +129,7 @@ describe("App: first-run help, console toggle, shortcuts, splitter", () => {
     expect(screen.getByText("mdslide の使い方")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "/", ctrlKey: true });
     expect(screen.queryByText("mdslide の使い方")).not.toBeInTheDocument();
-    const sep = screen.getByRole("separator");
+    const sep = screen.getByRole("separator", { name: "コンソールの高さ" });
     fireEvent.mouseDown(sep, { clientY: 500 });
     fireEvent.mouseMove(window, { clientY: 400 });
     fireEvent.mouseUp(window);

@@ -4,7 +4,7 @@ import type { RenderedSlide } from "../model/types";
 
 /**
  * Visual guides derived from the rendered deck:
- *  - a dotted separator above every slide heading (thicker for chapters, accent for the selected slide)
+ *  - a separator line above every slide heading (accent for the selected slide)
  *  - a gauge line under every body heading: estimated lines used / capacity, font size, split count
  *  - a marker line where auto-split cuts a body
  * The data comes from the store; the editor only draws.
@@ -51,10 +51,9 @@ class SplitWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-const sectionSep = Decoration.line({ class: "cm-slide-sep cm-slide-sep-section" });
-const bodySep = Decoration.line({ class: "cm-slide-sep" });
-const selectedSectionSep = Decoration.line({ class: "cm-slide-sep cm-slide-sep-section cm-slide-sep-selected" });
-const selectedBodySep = Decoration.line({ class: "cm-slide-sep cm-slide-sep-selected" });
+// One kind of separator above every slide heading (chapters and bodies alike); the selected slide's is accent-colored.
+const sep = Decoration.line({ class: "cm-slide-sep" });
+const selectedSep = Decoration.line({ class: "cm-slide-sep cm-slide-sep-selected" });
 
 /** Find where each continuation chunk starts in the document: the first line of chunk i after the heading. */
 export function splitLines(doc: { lines: number; line(n: number): { text: string } }, headingLine0: number, chunks: string[][]): number[] {
@@ -81,8 +80,7 @@ export function buildGuides(view: EditorView, data: GuideData): DecorationSet {
     const line0 = first.sourceLine ?? 0;
     if (line0 + 1 > doc.lines) continue;
     const selected = parts.some((p) => p.id === data.selectedId);
-    const isSection = first.kind === "section";
-    items.push({ line: line0 + 1, deco: isSection ? (selected ? selectedSectionSep : sectionSep) : (selected ? selectedBodySep : bodySep), kind: 0 });
+    items.push({ line: line0 + 1, deco: selected ? selectedSep : sep, kind: 0 });
     if (first.kind === "body" && first.fit) {
       const used = parts.reduce((n, p) => n + (p.fit?.used ?? 0), 0);
       const explicit = /\{[^}]*\bsize=/.test(doc.line(line0 + 1).text);
