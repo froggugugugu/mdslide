@@ -29,6 +29,7 @@ jobs:
           # jekyll-optional-front-matter leaves README.md unrendered by default; with front matter it becomes README.html.
           { printf -- '---\ntitle: mdslide の使い方\n---\n\n'; cat README.md; } > _pages/README.md
           cp -R docs _pages/docs
+          mkdir -p _pages/examples && cp examples/sample-master.pptx _pages/examples/   # downloadable from the landing page
           cp .github/pages/_config.yml .github/pages/index.html _pages/
           { echo "# ADR 一覧"; echo; for f in docs/adr/*.md; do echo "- [$(sed -n '1s/^# //p' "$f")]($(basename "$f"))"; done; } > _pages/docs/adr/index.md
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

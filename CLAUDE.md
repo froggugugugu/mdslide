@@ -57,7 +57,7 @@ electron/pty.ts (node-pty / ホスト中継)  electron/ptyHost.cjs
 src/workspace/  workspace.ts (フォルダ I/O、Markdown ファイルの入口と最近一覧、画像保存、外部変更検知)  bootstrap.ts (CLAUDE.md / theme.json / tools / notes の生成)  history.ts (.mdslide/history/ スナップショットと undo)
 src/components/editorExtensions.ts (画像貼り付け/ドロップ、スニペット Ctrl-Space、]] [[ 見出し移動、Mod-s / :w 保存)
 tools/          export_pptx.py (deck.json + master.pptx → out.pptx, python-pptx)  mdslide_draw.py (theme.json 準拠の図生成。ワークスペースに配布)
-docs/           markdown-spec.md, testing.md, adr/, backlog.md, media/ (README のデモ GIF とコンセプト図)
+docs/           markdown-spec.md, master-guide.md (マスター pptx の作り方と AI 用プロンプト。紹介ページの同節と内容を揃える), testing.md, adr/, backlog.md, media/ (README のデモ GIF とコンセプト図)
 .github/pages/  index.html (GitHub Pages の紹介ページ。Tailwind / Lucide を CDN で読む単一ファイル。サイトのトップに置かれ、README は README.html になる)  _config.yml (Jekyll)
 scripts/        make_demo_gif.py (実アプリを CDP で操作して README のデモ GIF を再生成)  make_icon.py (docs/media/icon.svg から build/icon.png・icon.icns を生成)
 build/          icon.png / icon.icns (アプリアイコン。electron-builder と開発時の Dock が使う。元は docs/media/icon.svg)
