@@ -146,6 +146,23 @@ describe("ThumbnailPane", () => {
     const ev = fireEvent.dragStart(document.querySelectorAll(".nav-item")[0].parentElement!, { dataTransfer: dt });
     expect(ev).toBe(false);
   });
+  it("every part of an auto-split slide is a drag handle, and dragging one moves the whole block", () => {
+    const long = `# One\n\n## Long\n\n${Array.from({ length: 30 }, (_, i) => `- line ${i}`).join("\n")}\n\n---\n\n- tail\n\n## Next\n\n- n\n`;
+    useDeckStore.getState().setMarkdown(long);
+    render(<ThumbnailPane />);
+    const tiles = [...document.querySelectorAll("[role=option]")] as HTMLElement[];
+    const byLabel = (t: string) => tiles.find((el) => el.querySelector(".label")?.textContent?.includes(t))!;
+    const part2 = byLabel("(2/");
+    expect(part2.getAttribute("draggable")).toBe("true"); // not only "(1/N)"
+    const dt = { effectAllowed: "" };
+    fireEvent.dragStart(part2, { dataTransfer: dt });
+    expect(document.querySelectorAll(".nav-item.dragging").length).toBeGreaterThan(1); // the whole block is shown as moving
+    const next = byLabel("Next");
+    vi.spyOn(next, "getBoundingClientRect").mockReturnValue({ top: 0, height: 100 } as DOMRect);
+    fireEvent.dragOver(next, { clientY: 80, dataTransfer: dt }); // below "Next"
+    fireEvent.drop(next, { dataTransfer: dt });
+    expect(useDeckStore.getState().deck.blocks.map((b) => b.title)).toEqual(["One", "Next", "Long"]);
+  });
   it("moves the selection with ↑↓ / J K and reorders with ⌥↑↓ while the list has focus", () => {
     render(<ThumbnailPane />);
     const list = screen.getByRole("listbox", { name: "スライド一覧" });

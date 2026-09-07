@@ -5,8 +5,8 @@ import type { RenderedSlide } from "../model/types";
 import { copyText, slideRef } from "../model/refs";
 
 /**
- * Drag unit is the source block, not the rendered slide: dragging "2.1 (1/2)" moves the whole block,
- * and dragging a section header moves the section with all of its body slides.
+ * Drag unit is the source block, not the rendered slide: every part of an auto-split slide is a handle for the whole
+ * block ("2.1 (1/2)" and "(2/2)" alike), and dragging a section header moves the section with all of its body slides.
  * With the list focused, ↑↓ (or K/J) change the selection and ⌥↑ / ⌥↓ move the selected slide the same way a drag would.
  */
 export function ThumbnailPane() {
@@ -64,7 +64,7 @@ export function ThumbnailPane() {
         return (
           <div key={s.id} className={`relative ${isSection && i > 0 ? "mt-3" : ""}`} data-slide-id={s.id}
             role="option" aria-selected={selected}
-            draggable={!!s.blockId && !continuation}
+            draggable={!!s.blockId}
             onDragStart={onDragStart(s)} onDragOver={onDragOver(s)} onDragEnd={() => { setDragging(null); setOver(null); }}
             onClick={() => select(s.id)}
             onContextMenu={(e) => { e.preventDefault(); select(s.id); void copyText(slideRef(s, deckFile)); }}
