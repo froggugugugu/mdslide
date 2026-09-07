@@ -16,6 +16,8 @@ export interface MasterSource {
   read(name: string): Promise<Blob | null>;
   /** Desktop: pick a pptx and copy it into the folder. Memory: add the given file. Returns the stored name. */
   add(file?: File): Promise<string | null>;
+  /** Store bytes under a name (the bundled sample). Overwrites; callers check for an existing name first. */
+  addBlob(name: string, blob: Blob): Promise<string>;
   remove(name: string): Promise<void>;
   /** Desktop only: pick another folder and remember it in the settings. */
   chooseDir?(): Promise<string | null>;
@@ -40,6 +42,7 @@ export function electronMasterSource(): MasterSource {
     },
     read: async (name) => { const r = await api.readFile(`${await resolve()}/${name}`); return r ? new Blob([r.data as BlobPart]) : null; },
     add: async () => api.importMaster(await resolve()),
+    addBlob: async (name, blob) => { await api.writeFile(`${await resolve()}/${name}`, new Uint8Array(await blob.arrayBuffer())); return name; },
     remove: async (name) => api.remove(`${await resolve()}/${name}`),
     chooseDir: async () => {
       const dir = await api.openFolder();
@@ -58,6 +61,7 @@ export function memoryMasterSource(): MasterSource {
     list: async () => [...files.keys()].sort().map((name) => ({ name, modified: 0 })),
     read: async (name) => files.get(name) ?? null,
     add: async (file) => { if (!file) return null; files.set(file.name, file); return file.name; },
+    addBlob: async (name, blob) => { files.set(name, blob); return name; },
     remove: async (name) => { files.delete(name); },
   };
 }

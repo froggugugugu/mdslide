@@ -15,6 +15,8 @@ describe("master source (memory: browser build and tests)", () => {
     expect((await masterSource.list()).map((e) => e.name)).toEqual(["b.pptx"]);
     expect(await masterSource.read("a.pptx")).toBeNull();
     expect(await masterSource.add()).toBeNull(); // nothing to add without a file
+    expect(await masterSource.addBlob("sample-master.pptx", new Blob(["sss"]))).toBe("sample-master.pptx"); // the bundled sample
+    expect((await masterSource.read("sample-master.pptx"))!.size).toBe(3);
   });
 });
 
@@ -29,6 +31,7 @@ describe("master source (electron: a folder of pptx files)", () => {
       list: vi.fn(async (p: string) => [...files.keys()].filter((k) => k.startsWith(p + "/")).map((k) => k.slice(p.length + 1))),
       modified: vi.fn(async (p: string) => files.has(p) ? 7 : null),
       readFile: vi.fn(async (p: string) => files.has(p) ? { data: new TextEncoder().encode(files.get(p)!), modified: 7 } : null),
+      writeFile: vi.fn(async (p: string, d: Uint8Array) => { files.set(p, new TextDecoder().decode(d)); return 8; }),
       remove: vi.fn(async (p: string) => { files.delete(p); }),
       openFolder: vi.fn(async () => "/other/masters"),
       showItem: vi.fn(async () => undefined),
@@ -43,6 +46,9 @@ describe("master source (electron: a folder of pptx files)", () => {
     expect((await masterSource.read("corp.pptx"))!.size).toBe(2);
     expect(await masterSource.add()).toBe("new.pptx");
     expect(api.importMaster).toHaveBeenCalledWith("/cfg/masters");
+    expect(await masterSource.addBlob("sample-master.pptx", new Blob(["SAMPLE"]))).toBe("sample-master.pptx"); // bytes go straight into the folder
+    expect(api.writeFile).toHaveBeenCalledWith("/cfg/masters/sample-master.pptx", expect.any(Uint8Array));
+    expect(files.get("/cfg/masters/sample-master.pptx")).toBe("SAMPLE");
     await masterSource.remove("corp.pptx");
     expect(api.remove).toHaveBeenCalledWith("/cfg/masters/corp.pptx");
     expect(await masterSource.chooseDir!()).toBe("/other/masters");

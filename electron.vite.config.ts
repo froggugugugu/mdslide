@@ -9,6 +9,7 @@ export default defineConfig({
   renderer: {
     root: ".",
     plugins: [react(), tailwindcss()],
+    assetsInclude: ["**/*.pptx"], // the bundled sample master (src/master/sampleMaster.ts imports it ?inline)
     build: { rollupOptions: { input: resolve(__dirname, "index.html") } },
   },
 });

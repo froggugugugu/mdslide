@@ -211,6 +211,20 @@ describe("Settings: master tab", () => {
     await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
     expect(onClose).toHaveBeenCalled();
   });
+  it("drops the bundled sample master into the folder as a starting point, once", async () => {
+    settings.update((v) => { v.masters.default = null; });
+    render(<SettingsSheet tab="master" onTab={() => undefined} onClose={() => undefined} />);
+    await userEvent.click(screen.getByRole("button", { name: "見本を取り込む" }));
+    await waitFor(() => expect(screen.getByText("sample-master.pptx")).toBeInTheDocument());
+    const m = useDeckStore.getState().masters.find((x) => x.name === "sample-master.pptx")!;
+    expect(m.missing).toEqual([]);                                             // Cover / Agenda / Section / Body-Text all present
+    expect(m.layouts.filter((l) => l.role).map((l) => l.name).sort()).toEqual(["Agenda", "Body-2col", "Body-Text", "Cover", "Section"]);
+    expect(settings.get().masters.default).toBe("sample-master.pptx");
+    await userEvent.click(screen.getByRole("button", { name: "見本を取り込む" }));
+    expect(await screen.findByText(/すでに保管フォルダにあります/)).toBeInTheDocument(); // never overwrites an edited copy
+    await userEvent.click(screen.getByText("削除"));
+    await waitFor(() => expect(useDeckStore.getState().masters).toHaveLength(0));
+  });
   it("reports invalid files", async () => {
     render(<SettingsSheet tab="master" onTab={() => undefined} onClose={() => undefined} />);
     const input = document.querySelector("input[type=file]") as HTMLInputElement;

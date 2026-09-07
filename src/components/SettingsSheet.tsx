@@ -4,6 +4,7 @@ import { Icon, type IconName } from "./Icon";
 import { settings, type SettingsFile } from "../settings/settings";
 import { THEMES } from "../settings/appearance";
 import { masterSource } from "../master/masterSource";
+import { SAMPLE_MASTER_NAME, sampleMasterBlob } from "../master/sampleMaster";
 import { useDeckStore } from "../store/deckStore";
 import { isPreset, useToolsStore } from "../console/toolsStore";
 import { useTerminalStore } from "../console/terminalStore";
@@ -146,6 +147,20 @@ function MasterTab() {
       setError(e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
   };
+  /** The bundled sample goes into the folder as a starting point: open it in PowerPoint, adjust, save over. */
+  const addSample = async () => {
+    setBusy(true); setError(null);
+    try {
+      if (masters.some((m) => m.name === SAMPLE_MASTER_NAME) || SAMPLE_MASTER_NAME in masterErrors) {
+        throw new Error(`${SAMPLE_MASTER_NAME} はすでに保管フォルダにあります。PowerPoint で開いて編集するか、削除してから取り込み直してください。`);
+      }
+      const name = await masterSource.addBlob(SAMPLE_MASTER_NAME, await sampleMasterBlob());
+      await refresh();
+      if (!settings.get().masters.default) settings.update((v) => { v.masters.default = name; });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally { setBusy(false); }
+  };
   const remove = async (name: string) => {
     await masterSource.remove(name);
     if (defaultName === name) settings.update((v) => { v.masters.default = null; });
@@ -178,7 +193,11 @@ function MasterTab() {
         </div>
       )}
       <input ref={fileRef} type="file" accept=".pptx,.potx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void add(f); e.target.value = ""; }} />
-      <button className="btn primary with-icon" onClick={() => { if (isElectron) void add(); else fileRef.current?.click(); }} disabled={busy}><Icon name="plus" />{busy ? "取り込み中" : "pptx を取り込む"}</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button className="btn primary with-icon" onClick={() => { if (isElectron) void add(); else fileRef.current?.click(); }} disabled={busy}><Icon name="plus" />{busy ? "取り込み中" : "pptx を取り込む"}</button>
+        <button className="btn with-icon" onClick={() => void addSample()} disabled={busy} title={`${SAMPLE_MASTER_NAME} を保管フォルダに置く`}><Icon name="master" />見本を取り込む</button>
+      </div>
+      <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>見本（{SAMPLE_MASTER_NAME}）は Office 標準テーマのレイアウトに規約どおりの名前を付けたものです。取り込んだら「Finder で表示」から PowerPoint で開き、配色やロゴを直して上書き保存すれば、そのまま自分のマスターになります。</p>
       {error && <p className="mt-3" style={{ color: "var(--warn)" }}>{error}</p>}
 
       <div className="mt-4 flex flex-col gap-2">
