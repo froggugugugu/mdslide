@@ -46,7 +46,7 @@ describe("prompt templates", () => {
 describe("inbox store", () => {
   beforeEach(() => useInboxStore.getState().reset());
   it("names notes by timestamp and refreshes the list from notes/", async () => {
-    expect(noteFileName(new Date(2026, 8, 6, 14, 5), "md")).toBe("notes/2026-09-06-1405.md");
+    expect(noteFileName(new Date(2026, 8, 6, 14, 5, 9), "md")).toBe("notes/2026-09-06-140509.md");
     const { backend, files } = memBackend();
     files.set("notes/old.md", "x");
     await useInboxStore.getState().refresh(backend);
@@ -60,7 +60,7 @@ describe("inbox store", () => {
     s.setDraft("こんにちは、これは");
     await s.flush(backend);
     const name = useInboxStore.getState().draftFile!;
-    expect(name).toMatch(/^notes\/\d{4}-\d{2}-\d{2}-\d{4}\.md$/);
+    expect(name).toMatch(/^notes\/\d{4}-\d{2}-\d{2}-\d{6}\.md$/);
     expect(files.get(name)).toBe("こんにちは、これは");
     s.setDraft("こんにちは、これは続き");
     await vi.advanceTimersByTimeAsync(1600);

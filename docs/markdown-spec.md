@@ -112,7 +112,7 @@ Cover: title(ctrTitle), subTitle。Agenda: title, body。Section: title, body（
 
 ## メモから資料へ（下書き）
 
-1. 「下書き」（⌘I）に口語で書く。`notes/日付-時刻.md` に自動保存。ファイルはウィンドウのどこにドロップしても `notes/` に入る
+1. 「下書き」（⌘I）に口語で書く。`notes/日付-時分秒.md`（例 `notes/2026-09-07-140509.md`）に自動保存。ファイルはウィンドウのどこにドロップしても `notes/` に入る
 2. コンソールでツールを起動し、「整形して deck.md に」。渡す材料はチェックで選べる（未選択なら全部）
 3. 「図を統一テーマで生成」で `![TODO ...]()` が `theme.json` の配色の PNG になる。`tools/mdslide_draw.py` のフロー・ベン図・柱・サイクル・マトリクス・年表が使われる
 4. 「前の版に戻す」で AI に渡す直前の `deck.md` に戻る（`.mdslide/history/`）

@@ -8,9 +8,10 @@ const DIR = "notes";
 /** Notes that can be opened in the drawer's editor. Everything else (docx, pdf, images, pptx) is only listed and passed on. */
 export const isTextNote = (rel: string): boolean => /\.(md|markdown|txt|csv|json|ya?ml|log)$/i.test(rel);
 
+/** notes/YYYY-MM-DD-HHMMSS.ext: down to the second, so notes started within the same minute never collide. */
 export function noteFileName(d: Date, ext: string): string {
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${DIR}/${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.${ext}`;
+  return `${DIR}/${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${ext}`;
 }
 
 interface InboxState {

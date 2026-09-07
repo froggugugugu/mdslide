@@ -38,7 +38,7 @@ describe("InboxDrawer", () => {
     const box = screen.getByRole("textbox", { name: "メモ" });
     await userEvent.type(box, "口語でつらつら");
     fireEvent.blur(box);
-    await waitFor(() => expect([...files.keys()].some((k) => /^notes\/\d{4}-\d{2}-\d{2}-\d{4}\.md$/.test(k))).toBe(true));
+    await waitFor(() => expect([...files.keys()].some((k) => /^notes\/\d{4}-\d{2}-\d{2}-\d{6}\.md$/.test(k))).toBe(true));
     await userEvent.click(screen.getByRole("checkbox", { name: "notes/old.txt を渡す" }));
     await userEvent.click(screen.getByRole("button", { name: "整形して deck.md に" }));
     await waitFor(() => expect(written).toHaveLength(1));
