@@ -22,6 +22,24 @@ describe("EditorPane", () => {
   });
 });
 
+describe("EditorPane: selection follows the thumbnails through auto-split parts", () => {
+  it("↓ from (1/N) lands on (2/N) and stays there, even though the cursor moves to the shared heading", async () => {
+    const long = `# One\n\n## Long\n\n${Array.from({ length: 30 }, (_, i) => `- line ${i}`).join("\n")}\n\n---\n\n- tail\n\n## Next\n\n- n\n`;
+    useDeckStore.getState().setMarkdown(long);
+    render(<EditorPane />);
+    const parts = useDeckStore.getState().slides.filter((s) => s.title === "Long");
+    expect(parts.length).toBeGreaterThan(1);
+    useDeckStore.getState().select(parts[0].id);
+    await new Promise((r) => setTimeout(r, 0));
+    useDeckStore.getState().selectAdjacent(1);            // ↓ in the thumbnail list
+    await new Promise((r) => setTimeout(r, 0));            // the editor moves its cursor to the heading and reports back
+    expect(useDeckStore.getState().selectedId).toBe(parts[1].id);
+    useDeckStore.getState().select(parts[parts.length - 1].id); // a click on the last part
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useDeckStore.getState().selectedId).toBe(parts[parts.length - 1].id);
+  });
+});
+
 import { EditorView } from "@codemirror/view";
 import { getCM } from "@replit/codemirror-vim";
 import { settings } from "../../src/settings/settings";

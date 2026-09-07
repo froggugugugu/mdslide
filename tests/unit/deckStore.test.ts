@@ -100,6 +100,26 @@ describe("moveSelected (⌥↑ / ⌥↓ in the navigator)", () => {
     expect(store().moveSelected(1)).toBe(false);
     expect(store().markdown).toBe(before);
   });
+  it("selectByLine keeps an auto-split part selected while the cursor is inside its block", () => {
+    const long = `# One\n\n## Long\n\n${Array.from({ length: 30 }, (_, i) => `- line ${i}`).join("\n")}\n\n---\n\n- tail\n\n## Next\n\n- n\n`;
+    store().setMarkdown(long);
+    const parts = store().slides.filter((s) => s.title === "Long");
+    expect(parts.length).toBeGreaterThan(1);
+    const heading = parts[0].sourceLine!;
+    // Selecting "(2/N)" from the thumbnails moves the editor cursor to the block's heading; that must not bounce back to (1/N).
+    store().select(parts[1].id);
+    store().selectByLine(heading);
+    expect(store().selectedId).toBe(parts[1].id);
+    store().selectByLine(heading + 3); // still inside the block
+    expect(store().selectedId).toBe(parts[1].id);
+    // Entering the block from elsewhere lands on its first part, as before.
+    selectTitle("Next");
+    store().selectByLine(heading);
+    expect(store().selectedId).toBe(parts[0].id);
+    // And ↓ walks through the parts one by one even with the cursor following along.
+    store().selectAdjacent(1); store().selectByLine(heading);
+    expect(store().selectedId).toBe(parts[1].id);
+  });
   it("moves the whole block when a continuation slide is selected", () => {
     const long = `# One\n\n## Long\n\n${Array.from({ length: 30 }, (_, i) => `- line ${i}`).join("\n")}\n\n---\n\n- tail\n\n## Next\n\n- n\n`;
     store().setMarkdown(long);

@@ -177,8 +177,12 @@ export const useDeckStore = create<DeckState>((set, get) => {
   selectByLine: (line) => {
     const { deck, slides, selectedId } = get();
     const block = [...deck.blocks].reverse().find((b) => b.range[0] <= line);
-    const target = block ? slides.find((s) => s.blockId === block.id)?.id ?? null : "cover";
-    if (target && target !== selectedId) set({ selectedId: target });
+    if (!block) { if (selectedId !== "cover") set({ selectedId: "cover" }); return; }
+    // Already inside this block (any of its auto-split parts): keep the part. Selecting "(2/N)" from the thumbnails moves
+    // the cursor to the block's shared heading, and that must not bounce the selection back to "(1/N)".
+    if (slides.find((s) => s.id === selectedId)?.blockId === block.id) return;
+    const target = slides.find((s) => s.blockId === block.id)?.id;
+    if (target) set({ selectedId: target });
   },
   selectAdjacent: (dir) => {
     const { slides, selectedId } = get();
