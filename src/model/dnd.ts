@@ -58,3 +58,15 @@ export function dropTarget(deck: Deck, slides: RenderedSlide[], draggingId: stri
   if (oi === si - 1) return null; // already right after it
   return withLine(owner.id, "after", lastBlockOf(owner).id);
 }
+
+/**
+ * The slides that travel with a grabbed block, in list order: a body's auto-split parts; a chapter's header plus every
+ * slide under it (until the next chapter). The list shows all of them as "moving" while dragging.
+ */
+export function movingSlides(deck: Deck, slides: RenderedSlide[], draggingId: string): string[] {
+  const i = deck.blocks.findIndex((b) => b.id === draggingId);
+  if (i < 0) return [];
+  const span = deck.blocks[i].kind === "section" ? sectionSpan(deck.blocks, i) : 1;
+  const ids = new Set(deck.blocks.slice(i, i + span).map((b) => b.id));
+  return slides.filter((s) => s.blockId && ids.has(s.blockId)).map((s) => s.id);
+}

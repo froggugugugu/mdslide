@@ -146,6 +146,26 @@ describe("ThumbnailPane", () => {
     const ev = fireEvent.dragStart(document.querySelectorAll(".nav-item")[0].parentElement!, { dataTransfer: dt });
     expect(ev).toBe(false);
   });
+  it("grabbing a chapter dims its whole span and the drag image says how many slides travel", () => {
+    useDeckStore.getState().setMarkdown("# A\n\n## a1\n\n- x\n\n## a2\n\n- y\n\n# B\n\n## b1\n\n- z\n");
+    render(<ThumbnailPane />);
+    const tiles = [...document.querySelectorAll("[role=option]")] as HTMLElement[];
+    const byLabel = (t: string) => tiles.find((el) => el.querySelector(".label")?.textContent?.endsWith(t))!;
+    const dt = { effectAllowed: "", setDragImage: vi.fn() };
+    fireEvent.dragStart(byLabel("A"), { dataTransfer: dt });
+    expect([...document.querySelectorAll(".nav-item.dragging .label")].map((l) => l.textContent)).toEqual(["1. A", "1.1. a1", "1.2. a2"]);
+    expect(byLabel("B").querySelector(".nav-item.dragging")).toBeNull();
+    const ghost = document.querySelector(".drag-ghost")!;
+    expect(ghost.textContent).toBe("1. A ほか 2 枚");
+    expect(dt.setDragImage).toHaveBeenCalledWith(ghost, 16, 16);
+    fireEvent.dragEnd(byLabel("A"));
+    expect(document.querySelector(".drag-ghost")).toBeNull(); // cleaned up
+    expect(document.querySelectorAll(".nav-item.dragging")).toHaveLength(0);
+    // a lone body: nothing else travels, so no count
+    fireEvent.dragStart(byLabel("b1"), { dataTransfer: dt });
+    expect(document.querySelector(".drag-ghost")!.textContent).toBe("2.1. b1");
+    fireEvent.dragEnd(byLabel("b1"));
+  });
   it("a chapter dropped inside another chapter lands after it, so that chapter keeps its own slides", () => {
     useDeckStore.getState().setMarkdown("# A\n\n## a1\n\n- x\n\n## a2\n\n- y\n\n# B\n\n## b1\n\n- z\n\n# C\n\n## c1\n\n- w\n");
     render(<ThumbnailPane />);

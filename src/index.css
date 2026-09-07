@@ -121,8 +121,10 @@ body.electron { background: transparent; }
 .nav-item .label { font-size: 11px; line-height: 1.3; color: var(--ink-2); padding: 4px 7px 5px; border-top: 0.5px solid var(--hairline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-item.selected .label { color: var(--ink); }
 .nav-item.section .label { font-weight: 600; color: var(--ink); }
-.nav-item.dragging { opacity: 0.35; }
+.nav-item.dragging { opacity: 0.35; } /* every slide that travels with the grabbed block, not only the tile under the pointer */
 .drop-line { position: absolute; left: 34px; right: 10px; height: 2px; border-radius: 2px; background: var(--accent); }
+/* The drag image: a label ("2. 現状 ほか 2 枚") rendered off-screen, picked up by setDragImage at drag start. */
+.drag-ghost { position: fixed; top: -1000px; left: -1000px; padding: 6px 12px; border-radius: 8px; background: var(--panel); color: var(--ink); font: 500 12.5px var(--font-ui); white-space: nowrap; box-shadow: 0 0 0 0.5px var(--hairline-strong), 0 6px 18px rgba(0,0,0,0.18); }
 /* The list takes keyboard focus (↑↓ select, ⌥↑↓ move); the ring shows on the selected tile only for keyboard focus. */
 .nav-list { outline: none; }
 .nav-list:focus-visible .nav-item.selected .tile { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-tint), 0 2px 6px rgba(0,0,0,0.12); }

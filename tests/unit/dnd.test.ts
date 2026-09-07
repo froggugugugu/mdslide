@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dropTarget } from "../../src/model/dnd";
+import { dropTarget, movingSlides } from "../../src/model/dnd";
 import { moveBlock, parseMarkdown, serializeDeck } from "../../src/model/parser";
 import { renderDeck } from "../../src/model/render";
 
@@ -85,5 +85,21 @@ describe("dropTarget: where a dragged block lands", () => {
     expect(dropTarget(deck, slides, block("Two").id, slide("Three"), true)).toBeNull();   // before Three: already there
     expect(dropTarget(deck, slides, block("One").id, slides[0], true)).toBeNull();        // before the first chapter: it is the first
     expect(dropTarget(deck, slides, block("Three").id, slide("b1"), true)).toBeNull();    // after Two: already there
+  });
+});
+
+describe("movingSlides: what travels with the grabbed tile", () => {
+  it("a chapter takes its header and every slide under it, including all auto-split parts", () => {
+    const ids = movingSlides(deck, slides, block("One").id);
+    const parts = slides.filter((s) => s.title === "a2");
+    expect(ids).toEqual([slide("One").id, slide("a1").id, ...parts.map((p) => p.id)]);
+    expect(ids).not.toContain(slide("Two").id);
+    expect(ids).not.toContain(slide("Intro").id);
+  });
+  it("a body takes only its own parts; unknown blocks take nothing", () => {
+    const parts = slides.filter((s) => s.title === "a2");
+    expect(movingSlides(deck, slides, block("a2").id)).toEqual(parts.map((p) => p.id));
+    expect(movingSlides(deck, slides, block("c1").id)).toEqual([slide("c1").id]);
+    expect(movingSlides(deck, slides, "nope")).toEqual([]);
   });
 });
