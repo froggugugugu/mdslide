@@ -100,6 +100,27 @@ describe("TerminalPane", () => {
   });
 });
 
+describe("TerminalPane: xterm colours", () => {
+  it("passes concrete colours to xterm even though the CSS tokens are written with light-dark()", async () => {
+    // xterm cannot parse CSS functions: handing it the raw token value leaves the text white on a light background.
+    document.documentElement.style.setProperty("--ink", "light-dark(#1d1d1f, #f5f5f7)");
+    document.documentElement.style.setProperty("--accent", "light-dark(#0a84ff, #0a84ff)");
+    useDeckStore.setState({ workspace: null });
+    render(<TerminalPane />);
+    const theme = xterm.instances[0].opts.theme as Record<string, string>;
+    expect(theme.foreground).not.toContain("light-dark");
+    expect(theme.foreground).toBe("#1d1d1f"); // light: the system scheme in the test environment
+    expect(theme.cursor).toBe("#0a84ff");
+    const { settings } = await import("../../src/settings/settings");
+    const { applyTheme } = await import("../../src/settings/appearance");
+    applyTheme("dark"); settings.update((v) => { v.appearance.theme = "dark"; });
+    expect((xterm.instances[0].options.theme as Record<string, string>).foreground).toBe("#f5f5f7");
+    applyTheme("auto"); settings.update((v) => { v.appearance.theme = "auto"; });
+    document.documentElement.style.removeProperty("--ink");
+    document.documentElement.style.removeProperty("--accent");
+  });
+});
+
 describe("HelpSheet", () => {
   it("lists workflow, syntax, shortcuts and the terminal, and closes", async () => {
     const onClose = vi.fn();
@@ -121,6 +142,7 @@ describe("HelpSheet", () => {
 
 describe("App: first-run help, console toggle, shortcuts, splitter", () => {
   it("works end to end", async () => {
+    useDeckStore.setState({ started: true }); // past the start screen, regardless of what earlier tests left behind
     render(<App />);
     expect(await screen.findByText("mdslide の使い方")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "閉じる" }));

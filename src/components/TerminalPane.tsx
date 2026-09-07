@@ -11,12 +11,25 @@ import { useDeckStore } from "../store/deckStore";
 
 const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+/**
+ * A colour token as an actual colour. The tokens are written with light-dark(), which xterm cannot parse (it would fall
+ * back to white text), so the value is resolved through an element's computed `color`, which follows the current scheme.
+ */
+function tokenColor(name: string, fallback: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${name})`;
+  document.body.appendChild(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return /^(#|rgba?\()/.test(color) ? color : fallback;
+}
+
 function themeFromCss() {
   const dark = isDark();
   return {
     background: "rgba(0,0,0,0)",
-    foreground: cssVar("--ink") || (dark ? "#f5f5f7" : "#1d1d1f"),
-    cursor: cssVar("--accent") || "#0a84ff",
+    foreground: tokenColor("--ink", dark ? "#f5f5f7" : "#1d1d1f"),
+    cursor: tokenColor("--accent", "#0a84ff"),
     selectionBackground: dark ? "rgba(10,132,255,0.35)" : "rgba(10,132,255,0.22)",
     black: dark ? "#1e1e1e" : "#1d1d1f", brightBlack: "#6e6e73",
     red: "#ff453a", green: "#30d158", yellow: "#ffd60a", blue: "#0a84ff", magenta: "#bf5af2", cyan: "#64d2ff",
