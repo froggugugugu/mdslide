@@ -175,7 +175,7 @@ describe("newDeckTemplate: the scaffold for a new file is a frame, not the sampl
     expect(deck.meta).toMatchObject({ title: "q3-report", date: "2026-09-06", agenda: "once", numbering: "chapter" });
     expect(deck.blocks.map((b) => b.kind)).toEqual(["section", "body"]);
     expect(serializeForMeta(deck)).toBe(md); // round-trips
-    expect(md).not.toContain("開発生産性");
+    expect(md).not.toContain("パイプライン改善"); // not the built-in sample
   });
   it("titles the default deck.md after its folder, else a placeholder", () => {
     expect(newDeckTemplate("deck.md", new Date(), "q3-report")).toContain("title: q3-report"); // 新しく作る: a folder is chosen

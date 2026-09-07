@@ -119,7 +119,7 @@ describe("App in Electron", () => {
     const written = api.files.get("/w/talk/deck.md")!;
     expect(written).toContain("title: talk");
     expect(written).toContain("# 章タイトル");
-    expect(written).not.toContain("開発生産性");
+    expect(written).not.toContain("パイプライン改善"); // not the built-in sample
     expect(useDeckStore.getState().deck.meta.title).toBe("talk");
     expect(useDeckStore.getState().markdown).toBe(written); // the editor shows the new deck, not what was open before
     expect(api.files.get("/w/talk/AGENTS.md")).toContain("deck.md");

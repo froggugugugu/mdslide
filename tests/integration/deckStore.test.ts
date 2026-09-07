@@ -121,7 +121,7 @@ describe("deckStore: start screen", () => {
     const st = useDeckStore.getState();
     expect(st.started).toBe(true);
     expect(st.workspace).toBeNull();
-    expect(st.deck.meta.title).toBe("開発生産性可視化 進捗報告");
+    expect(st.deck.meta.title).toBe("CI/CD パイプライン改善 進捗報告");
   });
 });
 

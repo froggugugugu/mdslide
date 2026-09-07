@@ -62,9 +62,9 @@ def test_folder_workspace_paste_autosave_viewer_reload_and_export(web_page):
     pg.locator(".cm-content").click(); pg.keyboard.press("Escape"); pg.keyboard.type("29G")
     pg.evaluate(PASTE_JS, png_b64(800, 500))
     pg.wait_for_timeout(2500)
-    assert pg.evaluate(OPFS_LIST, "images") == ["2-1-計測基盤の構成.png"]
+    assert pg.evaluate(OPFS_LIST, "images") == ["2-1-パイプラインの構成.png"]
     md = pg.evaluate(OPFS_READ, "deck.md")
-    assert "![構成図](images/2-1-計測基盤の構成.png)" in md
+    assert "![構成図](images/2-1-パイプラインの構成.png)" in md
     assert pg.get_by_role("button", name="保存済み").is_visible()
     # viewer mode: rewrite deck.md from outside while clean
     pg.evaluate(OPFS_WRITE, ["deck.md", md.replace("# 背景と目的", "# 背景と目的（外部更新）")])

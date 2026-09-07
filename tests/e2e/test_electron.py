@@ -36,8 +36,8 @@ def test_workspace_from_argv_paste_watch_and_pptx_export(electron_app):
     pg.locator(".cm-content").click(); pg.keyboard.press("Escape"); pg.keyboard.type("29G")
     pg.evaluate(PASTE_JS, png_b64(600, 900))
     # the image is written first, then the reference is autosaved into deck.md (1.5 s debounce)
-    assert wait_until(pg, lambda: (ws / "images").exists() and [p.name for p in (ws / "images").iterdir()] == ["2-1-計測基盤の構成.png"])
-    assert wait_until(pg, lambda: "images/2-1-計測基盤の構成.png" in deck_text(ws))
+    assert wait_until(pg, lambda: (ws / "images").exists() and [p.name for p in (ws / "images").iterdir()] == ["2-1-パイプラインの構成.png"])
+    assert wait_until(pg, lambda: "images/2-1-パイプラインの構成.png" in deck_text(ws))
     pg.get_by_role("button", name="保存済み").wait_for(timeout=10000)
 
     # chokidar picks up an external rewrite
@@ -57,8 +57,8 @@ def test_workspace_from_argv_paste_watch_and_pptx_export(electron_app):
     assert out.exists()
     prs = Presentation(str(out))
     titles = [s.shapes.title.text for s in prs.slides if s.shapes.title is not None]
-    assert "2.1. 計測基盤の構成" in titles
-    img_slide = [s for s in prs.slides if s.shapes.title is not None and s.shapes.title.text == "2.1. 計測基盤の構成"][0]
+    assert "2.1. パイプラインの構成" in titles
+    img_slide = [s for s in prs.slides if s.shapes.title is not None and s.shapes.title.text == "2.1. パイプラインの構成"][0]
     pics = [sh for sh in img_slide.shapes if sh.shape_type == 13]
     assert len(pics) == 1 and abs(pics[0].width / pics[0].height - 600 / 900) < 0.01
     assert pics[0].left < prs.slide_width / 2  # side=left
