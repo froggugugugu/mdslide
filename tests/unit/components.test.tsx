@@ -146,6 +146,21 @@ describe("ThumbnailPane", () => {
     const ev = fireEvent.dragStart(document.querySelectorAll(".nav-item")[0].parentElement!, { dataTransfer: dt });
     expect(ev).toBe(false);
   });
+  it("a chapter dropped inside another chapter lands after it, so that chapter keeps its own slides", () => {
+    useDeckStore.getState().setMarkdown("# A\n\n## a1\n\n- x\n\n## a2\n\n- y\n\n# B\n\n## b1\n\n- z\n\n# C\n\n## c1\n\n- w\n");
+    render(<ThumbnailPane />);
+    const tiles = [...document.querySelectorAll("[role=option]")] as HTMLElement[];
+    const byLabel = (t: string) => tiles.find((el) => el.querySelector(".label")?.textContent?.endsWith(t))!;
+    const dt = { effectAllowed: "" };
+    fireEvent.dragStart(byLabel("C"), { dataTransfer: dt });
+    const a1 = byLabel("a1");
+    vi.spyOn(a1, "getBoundingClientRect").mockReturnValue({ top: 0, height: 100 } as DOMRect);
+    fireEvent.dragOver(a1, { clientY: 20, dataTransfer: dt }); // upper half of a1, in the middle of chapter A
+    expect(a1.querySelector(".drop-line")).toBeNull();                           // the line is not drawn where the drop is not
+    expect(byLabel("a2").querySelector(".drop-line")).not.toBeNull();            // but under A's last slide: "after A"
+    fireEvent.drop(a1, { dataTransfer: dt });
+    expect(useDeckStore.getState().deck.blocks.map((b) => b.title)).toEqual(["A", "a1", "a2", "C", "c1", "B", "b1"]); // B still owns b1
+  });
   it("every part of an auto-split slide is a drag handle, and dragging one moves the whole block", () => {
     const long = `# One\n\n## Long\n\n${Array.from({ length: 30 }, (_, i) => `- line ${i}`).join("\n")}\n\n---\n\n- tail\n\n## Next\n\n- n\n`;
     useDeckStore.getState().setMarkdown(long);
