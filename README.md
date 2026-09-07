@@ -46,7 +46,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 | 項目 | 要件 |
 | --- | --- |
 | OS | macOS(Electron)。Linux / Windows は未検証 |
-| Node.js | 22 以上(ソースから動かす場合) |
+| Node.js | 24.15 以上(ソースから動かす場合。`.node-version` / `.nvmrc` を置いてあるので fnm / nvm / asdf はそのまま切り替わる) |
 | Python | 3.12(pptx 出力と図生成。`requirements.txt`) |
 | AI エージェント | 任意。PATH 上の `claude` `codex` `gemini` `aider` `copilot` `cursor-agent` `opencode` を検出して起動する |
 
@@ -62,7 +62,7 @@ xattr -d com.apple.quarantine /Applications/mdslide.app
 
 pptx 出力には別途 Python 3.12 と `requirements.txt` の導入が必要。
 
-ソースから動かす場合:
+ソースから動かす場合。Node は 24.15 以上(`.npmrc` の `engine-strict` により、古い Node では `npm ci` が最初に止まる)。node-pty のビルドに Xcode Command Line Tools(`xcode-select --install`)が要る。
 
 ```bash
 npm ci                                       # Electron と node-pty の再ビルドを含む

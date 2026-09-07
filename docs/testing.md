@@ -15,7 +15,7 @@
 - E2E は「ユーザーが実際に行う一連の操作」単位で書く。細かい分岐は単体に落とす。
 
 ## 環境
-- Node 22、Python 3.12、`pip install -r requirements-dev.txt` と `python -m playwright install chromium`。バージョンは `requirements*.txt` と `package.json` で完全一致に固定している（更新は Dependabot の PR 経由）。
+- Node 24.15 以上、Python 3.12、`pip install -r requirements-dev.txt` と `python -m playwright install chromium`。バージョンは `requirements*.txt` と `package.json` で完全一致に固定している（更新は Dependabot の PR 経由）。
 - Electron E2E は表示が必要。Linux では Xvfb を自動起動、macOS はそのまま動く。
 
 ## jsdom の制約
