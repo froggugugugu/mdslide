@@ -332,9 +332,11 @@ export const useDeckStore = create<DeckState>((set, get) => {
       set({ markdown: deck.text, ...d, diskModified: deck.modified, dirty: false, externalChange: false,
         externalEditVersion: get().externalEditVersion + 1, selectedId: "cover", imageUrls: {} });
     } else {
-      // No deck file yet: the scaffold (an empty frame for a new file; otherwise the current document, i.e. the sample) is written.
+      // No deck file yet: the scaffold (an empty frame for a new file; otherwise the current document, i.e. the sample) is written
+      // and becomes the document. The editor must be told too, or it keeps showing whatever it held before (the sample).
       const modified = await writeText(ws, ws.deckFile, text);
-      set({ ...d, diskModified: modified, dirty: false });
+      set({ markdown: text, ...d, diskModified: modified, dirty: false, externalChange: false,
+        externalEditVersion: get().externalEditVersion + 1, selectedId: "cover", imageUrls: {} });
     }
   },
   save: async (force = false) => {

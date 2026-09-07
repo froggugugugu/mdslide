@@ -176,6 +176,31 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     expect(useDeckStore.getState().deck.meta.title).toBe("Outside");
   });
 
+  it("a new file (no deck on disk) takes the scaffold as the document: editor, thumbnails and disk all agree", async () => {
+    const files = new Map<string, string>();
+    const backend = {
+      kind: "browser" as const,
+      readText: async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null,
+      readBlob: async () => null, writeText: async (p: string, t: string) => { files.set(p, t); return 7; }, writeBlob: async () => 1,
+      modified: async (p: string): Promise<number | null> => files.has(p) ? 1 : null, exists: async (p: string) => files.has(p), list: async () => [], remove: async () => undefined,
+    };
+    const { useDeckStore } = await fresh(); // the store holds the sample (MD) as if the app had just started
+    const { newDeckTemplate } = await import("../../src/model/template");
+    const scaffold = newDeckTemplate("q3-report.md");
+    const version = useDeckStore.getState().externalEditVersion;
+    useDeckStore.setState({ workspace: { name: "w", deckFile: "q3-report.md", backend: backend as never }, started: true });
+    await useDeckStore.getState().loadFromDisk(scaffold);
+    const s = useDeckStore.getState();
+    expect(files.get("q3-report.md")).toBe(scaffold);                       // written to disk
+    expect(s.markdown).toBe(scaffold);                                        // the editor's document, not the previous one
+    expect(s.externalEditVersion).toBe(version + 1);                          // so the editor replaces its buffer
+    expect(s.deck.meta.title).toBe("q3-report");
+    expect(s.slides.map((x) => x.displayTitle)).toEqual(["q3-report", "Agenda", "1. 章タイトル", "1.1. スライドタイトル"]);
+    expect(s.selectedId).toBe("cover");
+    expect(s.dirty).toBe(false);
+    expect(s.diskModified).toBe(7);
+  });
+
   it("resolves the master: frontmatter, then the folder's master.pptx, then the configured default", async () => {
     vi.useRealTimers(); // JSZip needs real timers
     root.put("master.pptx", readFileSync("examples/sample-master.pptx"));
