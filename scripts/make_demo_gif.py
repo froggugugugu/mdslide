@@ -4,7 +4,7 @@
 
 Frames are captured at key moments with per-frame hold times, then downscaled and quantized with Pillow.
 The app runs against a throwaway workspace and settings file; nothing on the machine is touched."""
-import io, json, os, re, shutil, signal, subprocess, tempfile, time, urllib.request
+import io, json, os, re, shutil, signal, subprocess, sys, tempfile, time, urllib.request
 from pathlib import Path
 from PIL import Image
 from playwright.sync_api import sync_playwright
@@ -27,10 +27,14 @@ tmp = Path(tempfile.mkdtemp(prefix="mdslide-demo-"))
 ws = tmp / "資料" / "四半期報告"; ws.mkdir(parents=True)
 (ws / "deck.md").write_text(SAMPLE, encoding="utf8")
 shutil.copy(ROOT / "examples" / "sample-master.pptx", ws / "master.pptx")
+# The sample references images/overview.png; draw it with the deck's own figure tool so the slide and the export are complete.
+subprocess.run([sys.executable, str(ROOT / "tools" / "mdslide_draw.py"), "cycle", str(ws / "images" / "overview.png"), "計画", "実行", "計測", "改善"], cwd=ws, check=True, capture_output=True)
 cfg = tmp / "config" / "settings.json"; cfg.parent.mkdir()
 cfg.write_text(json.dumps({"version": 1, "help": {"seen": True}, "console": {"open": False, "autoStart": False, "height": 260},
                            "workspace": {"lastPath": None, "lastDeckFile": None, "recent": [{"path": str(ws), "deckFile": "deck.md"}]},
-                           "editor": {"vim": True, "width": None}}, ensure_ascii=False), encoding="utf8")
+                           "editor": {"vim": True, "width": None},
+                           "appearance": {"theme": "light"}},  # the GIF is always the light look, whatever the machine's appearance
+                          ensure_ascii=False), encoding="utf8")
 env = {**os.environ, "ELECTRON_DISABLE_SECURITY_WARNINGS": "1", "MDSLIDE_CONFIG": str(cfg), "SHELL": "/bin/zsh"}
 binary = subprocess.run(["node", "-e", "process.stdout.write(require('electron'))"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip().splitlines()[-1]
 port = 9444
@@ -61,7 +65,7 @@ try:
         snap(pg, 1400)                                                    # 3. a thumbnail selects the slide, the editor follows
         pg.locator(".cm-content").click(); pg.keyboard.press("Escape")
         pg.keyboard.type("15G"); pg.keyboard.type("o"); pg.wait_for_timeout(200)
-        for chunk in ["- 指標は", "チームで", "毎週見る"]:
+        for chunk in ["- CI の結果を", "チームで", "毎週見る"]:
             pg.keyboard.type(chunk); pg.wait_for_timeout(120); snap(pg, 450)   # 4. typing: the preview and the gauge follow
         pg.keyboard.press("Escape"); pg.wait_for_timeout(1700); snap(pg, 1400)  # autosaved
         # HTML5 drag and drop does not come through CDP mouse events, so the events are dispatched directly (the app's own handlers run).
