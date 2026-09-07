@@ -15,7 +15,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         <h3>はじめの5分</h3>
         <ol>
           <li>設定（<kbd>{mod}</kbd> <kbd>,</kbd>）の「マスター」で、レイアウト名を <code>Cover / Agenda / Section / Body-Text / Body-2col</code> と付けた pptx を保管フォルダに取り込む。最初の 1 つは既定になる。資料ごとに変えるならツールバーのマスター選択で（資料フォルダに <code>master.pptx</code> を置いてもよい）。見本の pptx と、手持ちのテンプレートから作る手順・AI 用プロンプトは使い方ページの「マスターを用意する」にある</li>
-          <li>起動画面の「{isElectron ? "Markdown を開く" : "フォルダを開く"}」で資料を開く。「新しく作る」は保存先を選ぶと空の枠（表紙・章・スライド 1 枚）で作る。フォルダを開いた場合はその中の <code>deck.md</code>（無ければ見本から作成）を使う</li>
+          <li>起動画面の「{isElectron ? "Markdown を開く" : "フォルダを開く"}」で資料を開く。「新しく作る」は資料のフォルダを選ぶ（その場で作れる）と、中に <code>deck.md</code> を空の枠（表紙・章・スライド 1 枚）で作る。フォルダを開いた場合はその中の <code>deck.md</code>（無ければ見本から作成）を使う</li>
           <li>右のエディタで書く（既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替え可）。左のサムネイルはドラッグか <kbd>{alt}</kbd> <kbd>↑</kbd> <kbd>↓</kbd> で並べ替える。番号は自動</li>
           <li>「書き出す」で <code>out/deck.pptx</code></li>
         </ol>
@@ -77,7 +77,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
           <li>気に入らなければ「前の版に戻す」。あとはエディタとプレビューで直す</li>
         </ol>
         <h3>コンソール（CLI エージェント）</h3>
-        <p>中央下のコンソールは、このフォルダで開いた本物のターミナルです。バーで選んだツール（Claude Code / Codex / Gemini / Aider など。設定の「ツール」で追加・編集、自動起動の切り替え）がシェル起動時に自動で立ち上がるので、「2章にリスク一覧の表を足して」と打つだけで <code>deck.md</code> が編集され、即座に反映されます。フォルダには規約を書いた <code>CLAUDE.md</code> が自動で置かれます。</p>
+        <p>中央下のコンソールは、このフォルダで開いた本物のターミナルです。バーで選んだツール（Claude Code / Codex / Gemini / Aider など。設定の「ツール」で追加・編集、自動起動の切り替え）がシェル起動時に自動で立ち上がるので、「2章にリスク一覧の表を足して」と打つだけで <code>deck.md</code> が編集され、即座に反映されます。フォルダには規約を書いた <code>AGENTS.md</code> と、それを読み込む <code>CLAUDE.md</code>（中身は <code>@AGENTS.md</code> の 1 行）が自動で置かれます。</p>
 
         <div className="mt-4 flex justify-end"><button className="btn primary" onClick={onClose}>閉じる</button></div>
       </div>

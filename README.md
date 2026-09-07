@@ -20,12 +20,12 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 2. **書式は PowerPoint に任せる**。レイアウト名を `Cover / Agenda / Section / Body-Text / Body-2col` と付けたマスター pptx を保管フォルダに置き、資料ごとに選ぶ。ツールは書式を持たない
 3. **本文量は縮めずに分ける**。表示行モデルでスライドごとの本文量を推定してゲージに出し、溢れたら自動でページを分割する。読めない資料を作らない
 4. **入口は Markdown ファイル、単位はフォルダ**。開いた `.md` と同じフォルダの `images/`(貼り付けた画像)、`notes/`(下書き・素材)、`out/`(生成物)がひとまとまり。フォルダごと渡せる
-5. **AI は隣で動く**。中央ペイン下の端末で Claude Code / Codex CLI / Gemini CLI などをそのフォルダで起動し、「下書き」に書いたメモを渡して整形させたり、マスターの配色に沿った図を生成させたりする。規約を書いた `CLAUDE.md` がフォルダに自動で置かれる
+5. **AI は隣で動く**。中央ペイン下の端末で Claude Code / Codex CLI / Gemini CLI などをそのフォルダで起動し、「下書き」に書いたメモを渡して整形させたり、マスターの配色に沿った図を生成させたりする。規約を書いた `AGENTS.md` と、それを読み込む `CLAUDE.md`(中身は `@AGENTS.md` の 1 行)がフォルダに自動で置かれる
 
 ## はじめの 5 分
 
 1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け、未署名。初回は Finder で右クリック → 「開く」)。pptx を出すには Python 3.12 と `python3 -m pip install -r requirements.txt` も
-2. 起動画面で「新しく作る」を押し、保存先とファイル名を決める。表紙・章・スライド 1 枚だけの空の枠で Markdown ができる(見本を触りたければ「サンプルを見る」)
+2. 起動画面で「新しく作る」を押し、資料のフォルダを選ぶ(ダイアログで新しく作ってもよい)。その中に `deck.md` が表紙・章・スライド 1 枚だけの空の枠でできる。題はフォルダ名(見本を触りたければ「サンプルを見る」)
 3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本の `examples/sample-master.pptx` をそのまま使ってもよい。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
 4. 右ペインで書く(既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替えられる)。左ペインでドラッグか ⌥↑↓ で並べ替える。番号は自動で振り直される
 5. 「書き出す」で `out/deck.pptx` ができる。PowerPoint で開いて仕上げる
@@ -39,7 +39,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 3. 「図を統一テーマで生成」で、`![TODO 説明]()` の仮置きが `theme.json`(マスターから抽出した配色)の PNG に置き換わる
 4. 気に入らなければ「前の版に戻す」(`.mdslide/history/`)
 
-フォルダには規約を書いた `CLAUDE.md`、`theme.json`、図の生成ヘルパー `tools/mdslide_draw.py` が自動で置かれる。
+フォルダには規約を書いた `AGENTS.md`(と、それを `@AGENTS.md` で読み込む `CLAUDE.md`)、`theme.json`、図の生成ヘルパー `tools/mdslide_draw.py` が自動で置かれる。
 
 ## 動作環境
 
@@ -135,7 +135,8 @@ my-deck/
 ├── notes/               # 下書き・素材
 ├── theme.json           # マスターから抽出した配色とフォント
 ├── tools/mdslide_draw.py
-├── CLAUDE.md            # エージェント向けの規約(初回のみ生成、編集可)
+├── AGENTS.md            # エージェント向けの規約(初回のみ生成、編集可)
+├── CLAUDE.md            # @AGENTS.md の 1 行。Claude Code は同じ規約を読む
 └── .mdslide/history/    # deck.md のスナップショット
 ```
 

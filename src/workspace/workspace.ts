@@ -156,7 +156,7 @@ function splitFile(file: string): { root: string; deckFile: string } {
 /** Open a folder; the deck is deck.md inside it (scaffolded on first load when missing). */
 export async function pickWorkspace(): Promise<Workspace | null> {
   if (isElectron) {
-    const root = await window.mdslide!.openFolder();
+    const root = await window.mdslide!.openFolder({ title: "資料のフォルダを開く", buttonLabel: "開く" });
     if (!root) return null;
     remember(root, DECK_FILE);
     return electronWorkspace(root, DECK_FILE);
@@ -176,14 +176,16 @@ export async function openMarkdownFile(): Promise<Workspace | null> {
   return electronWorkspace(root, deckFile);
 }
 
-/** Desktop: choose where a new Markdown file goes. The store scaffolds it on load when it does not exist yet. */
-export async function createMarkdownFile(): Promise<Workspace | null> {
+/**
+ * Desktop: choose (or create, in the dialog) the folder for a new deck. The deck is deck.md inside it; the store scaffolds
+ * it on load when it does not exist yet. A folder, not a file: images/, notes/ and the master live next to the Markdown.
+ */
+export async function createWorkspaceFolder(): Promise<Workspace | null> {
   if (!isElectron) return null;
-  const file = await window.mdslide!.saveMarkdown();
-  if (!file) return null;
-  const { root, deckFile } = splitFile(file);
-  remember(root, deckFile);
-  return electronWorkspace(root, deckFile);
+  const root = await window.mdslide!.openFolder({ title: "新しい資料のフォルダ", buttonLabel: "ここに作る", message: `資料ごとに 1 フォルダ。${DECK_FILE} と images/ がこの中にできます。新しいフォルダを作って選んでもかまいません。` });
+  if (!root) return null;
+  remember(root, DECK_FILE);
+  return electronWorkspace(root, DECK_FILE);
 }
 
 /** Desktop: an entry of the recent list; null when its file has gone. */

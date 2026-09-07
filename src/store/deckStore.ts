@@ -13,7 +13,7 @@ import { importMaster } from "../master/importMaster";
 import { masterSource } from "../master/masterSource";
 import { settings } from "../settings/settings";
 import {
-  EXPORT_FILE, MASTER_FILE, OUTPUT_FILE, createMarkdownFile, imageUrl, modifiedOf, openMarkdownFile, openRecentWorkspace, pickWorkspace,
+  EXPORT_FILE, MASTER_FILE, OUTPUT_FILE, createWorkspaceFolder, imageUrl, modifiedOf, openMarkdownFile, openRecentWorkspace, pickWorkspace,
   readBlob, readText, restoreWorkspace, saveImage, writeText, type RecentEntry, type Workspace,
 } from "../workspace/workspace";
 
@@ -55,7 +55,7 @@ interface DeckState {
   openWorkspace: () => Promise<void>;
   /** Desktop: pick a Markdown file; its folder becomes the workspace and the file keeps its name. */
   openMarkdown: () => Promise<void>;
-  /** Desktop: choose where a new Markdown file goes; a missing file is scaffolded as an empty frame (newDeckTemplate). */
+  /** Desktop: choose (or create) the folder of a new deck; its deck.md is scaffolded as an empty frame (newDeckTemplate). */
   createMarkdown: () => Promise<void>;
   openRecent: (entry: RecentEntry) => Promise<void>;
   /** Show the built-in sample without a workspace; nothing is saved. */
@@ -278,8 +278,9 @@ export const useDeckStore = create<DeckState>((set, get) => {
     if (ws) await adopt(ws);
   },
   createMarkdown: async () => {
-    const ws = await createMarkdownFile();
-    if (ws) await adopt(ws, newDeckTemplate(ws.deckFile));
+    // A folder is chosen (or created in the dialog); the deck is deck.md inside it, titled after the folder.
+    const ws = await createWorkspaceFolder();
+    if (ws) await adopt(ws, newDeckTemplate(ws.deckFile, new Date(), ws.name));
   },
   openRecent: async (entry) => {
     const ws = await openRecentWorkspace(entry);

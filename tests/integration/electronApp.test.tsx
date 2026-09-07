@@ -13,9 +13,8 @@ const api = vi.hoisted(() => {
     settingsPath: async () => "/w/.config/mdslide/settings.json",
     settingsRead: async () => files.get("settings.json") ?? null,
     settingsWrite: async (t: string) => { files.set("settings.json", t); },
-    openFolder: async () => "/w/deck",
+    openFolder: vi.fn(async (): Promise<string | null> => "/w/deck"),
     openMarkdown: vi.fn(async (): Promise<string | null> => "/w/plans/q3.md"),
-    saveMarkdown: vi.fn(async (): Promise<string | null> => null),
     readText: async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null,
     readFile: async (p: string) => files.has(p) ? { data: new TextEncoder().encode(files.get(p)!), modified: 1 } : null,
     writeText: async (p: string, t: string) => { files.set(p, t); return Date.now(); },
@@ -51,7 +50,8 @@ describe("App in Electron", () => {
     expect(document.body.classList.contains("electron")).toBe(true);
     await screen.findByRole("button", { name: "deck/deck.md" }, { timeout: 4000 });
     expect(api.files.get("/w/deck/deck.md")).toContain("title:");
-    expect(api.files.get("/w/deck/CLAUDE.md")).toContain("deck.md");   // conventions for interactive Claude Code
+    expect(api.files.get("/w/deck/AGENTS.md")).toContain("deck.md");   // conventions for any interactive agent
+    expect(api.files.get("/w/deck/CLAUDE.md")).toBe("@AGENTS.md\n");   // Claude Code imports the same file
     expect(api.ptySpawn).toHaveBeenCalledWith({ cwd: "/w/deck", cols: 80, rows: 24 });
     expect(api.ptyWrite).toHaveBeenCalledWith(1, "claude\r");
     // the last folder is remembered in the settings file
@@ -101,24 +101,28 @@ describe("App in Electron", () => {
     await screen.findByRole("button", { name: "plans/q3.md" }, { timeout: 4000 });
     expect(useDeckStore.getState().deck.meta.title).toBe("Q3");
     expect(useDeckStore.getState().workspace).toMatchObject({ path: "/w/plans", deckFile: "q3.md" });
-    expect(api.files.get("/w/plans/CLAUDE.md")).toContain("q3.md");
+    expect(api.files.get("/w/plans/AGENTS.md")).toContain("q3.md");
     const { settings } = await import("../../src/settings/settings");
     expect(settings.get().workspace.recent[0]).toEqual({ path: "/w/plans", deckFile: "q3.md" });
   });
 
-  it("「新しく作る」 scaffolds an empty frame named after the file, not the sample", async () => {
+  it("「新しく作る」 picks a folder and scaffolds its deck.md as an empty frame titled after the folder, not the sample", async () => {
     api.files.clear();
     api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
     api.initialWorkspace.mockResolvedValueOnce(null);
-    api.saveMarkdown.mockResolvedValueOnce("/w/new/talk.md");
+    api.openFolder.mockResolvedValueOnce("/w/talk");
     useDeckStore.setState({ workspace: null, started: false });
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "新しく作る" }, { timeout: 4000 }));
-    await screen.findByRole("button", { name: "new/talk.md" }, { timeout: 4000 });
-    const written = api.files.get("/w/new/talk.md")!;
+    await screen.findByRole("button", { name: "talk/deck.md" }, { timeout: 4000 });
+    expect(api.openFolder).toHaveBeenLastCalledWith(expect.objectContaining({ buttonLabel: "ここに作る" }));
+    const written = api.files.get("/w/talk/deck.md")!;
     expect(written).toContain("title: talk");
     expect(written).toContain("# 章タイトル");
     expect(written).not.toContain("開発生産性");
     expect(useDeckStore.getState().deck.meta.title).toBe("talk");
+    expect(useDeckStore.getState().markdown).toBe(written); // the editor shows the new deck, not what was open before
+    expect(api.files.get("/w/talk/AGENTS.md")).toContain("deck.md");
+    expect(api.files.get("/w/talk/CLAUDE.md")).toBe("@AGENTS.md\n");
   });
 });

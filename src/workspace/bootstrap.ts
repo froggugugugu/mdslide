@@ -1,5 +1,5 @@
 import drawSource from "../../tools/mdslide_draw.py?raw";
-import { deckClaudeMd } from "../console/deckClaudeMd";
+import { ensureAgentFiles } from "../console/agentsMd";
 import type { MasterProfile } from "../master/importMaster";
 import type { Backend } from "./workspace";
 
@@ -37,16 +37,16 @@ async function writeIfDifferent(fs: Fs, rel: string, text: string): Promise<bool
 
 /**
  * Files an AI agent needs to work in the folder:
- *   CLAUDE.md            conventions (written once; the person may edit it)
+ *   AGENTS.md            conventions for any agent (written once; the person may edit it)
+ *   CLAUDE.md            "@AGENTS.md": Claude Code imports the same conventions (written once)
  *   theme.json           palette/fonts from master.pptx (kept in sync with the master)
  *   tools/mdslide_draw.py theme-aware figure helpers (kept in sync with the app)
  *   notes/               inbox for raw material
  */
-export async function bootstrapWorkspace(fs: Fs & { list?: Backend["list"] }, master: MasterProfile | undefined, deckFile = "deck.md"): Promise<{ claudeMd: boolean; theme: boolean; draw: boolean }> {
-  const claudeMd = !(await fs.exists("CLAUDE.md"));
-  if (claudeMd) await fs.writeText("CLAUDE.md", deckClaudeMd(deckFile));
+export async function bootstrapWorkspace(fs: Fs & { list?: Backend["list"] }, master: MasterProfile | undefined, deckFile = "deck.md"): Promise<{ agents: boolean; claude: boolean; theme: boolean; draw: boolean }> {
+  const { agents, claude } = await ensureAgentFiles(fs, deckFile);
   const theme = await writeIfDifferent(fs, "theme.json", themeJson(master));
   const draw = await writeIfDifferent(fs, "tools/mdslide_draw.py", drawSource);
   if (!(await fs.exists("notes/.keep"))) await fs.writeText("notes/.keep", "");
-  return { claudeMd, theme, draw };
+  return { agents, claude, theme, draw };
 }

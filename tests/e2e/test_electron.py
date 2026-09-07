@@ -72,7 +72,8 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     pg, ws = electron_app
     pg.get_by_test_id("console").wait_for(timeout=10000)
     dismiss_help(pg)
-    assert (ws / "CLAUDE.md").exists() and "deck.md" in (ws / "CLAUDE.md").read_text(encoding="utf8")
+    assert "deck.md" in (ws / "AGENTS.md").read_text(encoding="utf8")           # conventions for any agent
+    assert (ws / "CLAUDE.md").read_text(encoding="utf8") == "@AGENTS.md\n"       # Claude Code imports the same file
     # the shell starts in the deck folder and `claude` is launched automatically
     pg.wait_for_function(f"({TERM_TEXT})().includes('FAKE CLAUDE READY')", timeout=15000)
     pg.locator(".terminal-host").click()

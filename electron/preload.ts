@@ -6,9 +6,9 @@ const api = {
   settingsRead: (): Promise<string | null> => ipcRenderer.invoke("settings:read"),
   settingsWrite: (text: string): Promise<void> => ipcRenderer.invoke("settings:write", text),
   initialWorkspace: (): Promise<{ root: string; deckFile: string | null } | null> => ipcRenderer.invoke("workspace:initial"),
-  openFolder: (): Promise<string | null> => ipcRenderer.invoke("dialog:openFolder"),
+  /** Folder picker (can create a folder in the dialog). The caption tells the person what the folder is for. */
+  openFolder: (opts?: { title?: string; buttonLabel?: string; message?: string }): Promise<string | null> => ipcRenderer.invoke("dialog:openFolder", opts),
   openMarkdown: (): Promise<string | null> => ipcRenderer.invoke("dialog:openMarkdown"),
-  saveMarkdown: (): Promise<string | null> => ipcRenderer.invoke("dialog:saveMarkdown"),
   mastersResolve: (configured: string | null): Promise<string> => ipcRenderer.invoke("masters:resolve", configured),
   importMaster: (dir: string): Promise<string | null> => ipcRenderer.invoke("dialog:importMaster", dir),
   readText: (p: string): Promise<{ text: string; modified: number } | null> => ipcRenderer.invoke("fs:readText", p),

@@ -164,7 +164,8 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     useDeckStore.setState({ workspace: { name: "w", deckFile: "plan.md", backend: backend as never }, started: true });
     await useDeckStore.getState().loadFromDisk();
     expect(useDeckStore.getState().deck.meta.title).toBe("Plan");
-    expect(files.get("CLAUDE.md")).toContain("plan.md");
+    expect(files.get("AGENTS.md")).toContain("plan.md");
+    expect(files.get("CLAUDE.md")).toBe("@AGENTS.md\n");
     useDeckStore.getState().setMarkdown("---\ntitle: Plan2\n---\n\n## P\n");
     await useDeckStore.getState().save(true);
     expect(files.get("plan.md")).toContain("Plan2");

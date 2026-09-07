@@ -107,7 +107,7 @@ Cover: title(ctrTitle), subTitle。Agenda: title, body。Section: title, body（
 
 - ⌘J で表示切替、境界のドラッグで高さ変更
 - Claude Code のスラッシュコマンド、許可ダイアログ、`/resume` などがそのまま使える
-- フォルダに `CLAUDE.md`（deck.md の規約）が自動で置かれる。手で編集してよい
+- フォルダに `AGENTS.md`（deck.md の規約。Claude Code / Codex / Gemini などが共通で読む）と、`@AGENTS.md` の 1 行だけの `CLAUDE.md`（Claude Code の import 構文）が自動で置かれる。手で編集してよい
 - 「終了」でシェルを終了、「再起動」で新しいシェル
 
 ## メモから資料へ（下書き）
@@ -117,4 +117,4 @@ Cover: title(ctrTitle), subTitle。Agenda: title, body。Section: title, body（
 3. 「図を統一テーマで生成」で `![TODO ...]()` が `theme.json` の配色の PNG になる。`tools/mdslide_draw.py` のフロー・ベン図・柱・サイクル・マトリクス・年表が使われる
 4. 「前の版に戻す」で AI に渡す直前の `deck.md` に戻る（`.mdslide/history/`）
 
-フォルダに自動生成されるもの：`CLAUDE.md`（規約、初回のみ）、`theme.json`（マスターから、同期）、`tools/mdslide_draw.py`（同期）、`notes/`。
+フォルダに自動生成されるもの：`AGENTS.md`（規約、初回のみ）、`CLAUDE.md`（`@AGENTS.md` の 1 行、初回のみ）、`theme.json`（マスターから、同期）、`tools/mdslide_draw.py`（同期）、`notes/`。

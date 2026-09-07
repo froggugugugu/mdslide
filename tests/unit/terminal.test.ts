@@ -1,20 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DECK_CLAUDE_MD, ensureDeckClaudeMd } from "../../src/console/deckClaudeMd";
+import { AGENTS_FILE, CLAUDE_FILE, CLAUDE_MD_IMPORT, DECK_AGENTS_MD, deckAgentsMd, ensureAgentFiles } from "../../src/console/agentsMd";
 import { useTerminalStore, type PtyBridge } from "../../src/console/terminalStore";
 import { settings } from "../../src/settings/settings";
 
-describe("deck CLAUDE.md", () => {
-  it("documents the markdown conventions Claude Code must follow", () => {
-    for (const s of ["deck.md", "images/", "# ", "## ", "img=", "layout=2col", "![TODO", "> note:", "---", "番号"]) expect(DECK_CLAUDE_MD).toContain(s);
+describe("deck AGENTS.md", () => {
+  it("documents the markdown conventions any agent must follow, and CLAUDE.md just imports it", () => {
+    for (const s of ["deck.md", "images/", "notes/", "theme.json", "frontmatter", "# ", "## ", "img=", "layout=2col", "size=", "![TODO", "> note:", "---", "番号", ".mdslide/history/"]) {
+      expect(DECK_AGENTS_MD).toContain(s);
+    }
+    expect(deckAgentsMd("plan.md")).toContain("`plan.md`");
+    expect(CLAUDE_MD_IMPORT).toBe("@AGENTS.md\n");
   });
-  it("is written once and never overwrites a user's file", async () => {
+  it("writes AGENTS.md and the importing CLAUDE.md once, never overwriting a person's files", async () => {
     const files = new Map<string, string>();
     const backend = { exists: async (p: string) => files.has(p), writeText: async (p: string, t: string) => { files.set(p, t); return 1; } };
-    expect(await ensureDeckClaudeMd(backend)).toBe(true);
-    expect(files.get("CLAUDE.md")).toBe(DECK_CLAUDE_MD);
-    files.set("CLAUDE.md", "custom");
-    expect(await ensureDeckClaudeMd(backend)).toBe(false);
-    expect(files.get("CLAUDE.md")).toBe("custom");
+    expect(await ensureAgentFiles(backend, "plan.md")).toEqual({ agents: true, claude: true });
+    expect(files.get(AGENTS_FILE)).toBe(deckAgentsMd("plan.md"));
+    expect(files.get(CLAUDE_FILE)).toBe(CLAUDE_MD_IMPORT);
+    files.set(AGENTS_FILE, "custom");
+    files.delete(CLAUDE_FILE);
+    expect(await ensureAgentFiles(backend)).toEqual({ agents: false, claude: true }); // each file on its own
+    expect(files.get(AGENTS_FILE)).toBe("custom");
+    expect(files.get(CLAUDE_FILE)).toBe(CLAUDE_MD_IMPORT);
   });
 });
 

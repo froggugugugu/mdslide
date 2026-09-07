@@ -88,8 +88,8 @@ ipcMain.handle("settings:write", async (_e, text: string) => {
   await fs.rename(tmp, p); // atomic replace so a crash never leaves a half-written file
 });
 
-ipcMain.handle("dialog:openFolder", async () => {
-  const r = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
+ipcMain.handle("dialog:openFolder", async (_e, opts?: { title?: string; buttonLabel?: string; message?: string }) => {
+  const r = await dialog.showOpenDialog({ ...opts, properties: ["openDirectory", "createDirectory"] });
   return r.canceled ? null : r.filePaths[0];
 });
 /** Masters live in one folder (settings masters.dir, default <config dir>/masters) so they can be managed like any other files. */
@@ -111,10 +111,6 @@ const MARKDOWN_FILTER = [{ name: "Markdown", extensions: ["md", "markdown"] }];
 ipcMain.handle("dialog:openMarkdown", async () => {
   const r = await dialog.showOpenDialog({ properties: ["openFile"], filters: MARKDOWN_FILTER });
   return r.canceled ? null : r.filePaths[0];
-});
-ipcMain.handle("dialog:saveMarkdown", async () => {
-  const r = await dialog.showSaveDialog({ defaultPath: "deck.md", filters: MARKDOWN_FILTER, properties: ["createDirectory", "showOverwriteConfirmation"] });
-  return r.canceled || !r.filePath ? null : r.filePath;
 });
 
 ipcMain.handle("fs:readText", async (_e, p: string) => {

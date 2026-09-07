@@ -16,7 +16,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
    画像スライドはマスターに専用レイアウトを持たせず、`Body-Text` の上に `src/layouts/geometry.ts` の計算で配置する。
    プレビューと Python 出力は同じ幾何（deck.json の `geometry`、EMU）を共有する。幾何を変えるときは geometry.ts とテストを直す。
 4. **入口は Markdown ファイル、単位はフォルダ、本体は Electron**（ADR-0013）
-   開いた `.md` の親フォルダがワークスペース。ファイル名は `Workspace.deckFile`（既定 `deck.md`、フォルダを開いたときはこの名前）で、`deck.md` をコードに直書きしない。
+   開いた `.md` の親フォルダがワークスペース。ファイル名は `Workspace.deckFile`（既定 `deck.md`。フォルダを開いたとき・「新しく作る」でフォルダを選んだときはこの名前。ADR-0015）で、`deck.md` をコードに直書きしない。
    `images/` / `master.pptx` / `deck.json` / `out/deck.pptx` / `notes/` はその隣に置く。
    起動直後は起動画面（`StartScreen`）。サンプルは「サンプルを見る」でだけ表示し、黙って出さない。
    ファイル I/O は `src/workspace/workspace.ts` の `Backend` インターフェースに閉じ込める。
@@ -42,13 +42,13 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 
 ```
 src/model/      imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。Python 側 export_pptx.py の display_lines と対で保つ)  boxes.ts (レイアウトごとの本文枠 pt)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  types.ts
-src/master/     importMaster.ts (pptx zip → layouts/placeholders)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)
+src/master/     importMaster.ts (pptx zip → layouts/placeholders)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)  sampleMaster.ts (examples/sample-master.pptx をバンドルし、設定の「見本を取り込む」で保管フォルダへ)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
 src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: Markdown を開く・新しく作る・フォルダ・最近・サンプル) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・ツール。開くのは useSettingsSheet。ADR-0014) / Icon (単色ラインアイコン)
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)
 src/layouts/    geometry.ts (画像/本文の配置計算)  presets.ts (マスター無し時の既定枠)
 src/settings/   settings.ts (settings.json の読み書き。設定は必ずここを通す。ADR-0010)
-src/console/    presets.ts (CLI プリセット)  terminalStore.ts (端末セッション状態)  toolsStore.ts (CLI ツールのプリセットと設定)  deckClaudeMd.ts (フォルダ用 CLAUDE.md)
+src/console/    presets.ts (CLI プリセット)  terminalStore.ts (端末セッション状態)  toolsStore.ts (CLI ツールのプリセットと設定)  agentsMd.ts (フォルダ用 AGENTS.md と、それを @import する CLAUDE.md。ADR-0016)
 src/console/    prompts.ts (端末に流す定型プロンプト。1 行ずつ)  inboxStore.ts (notes/ への下書き自動保存)
 src/settings/appearance.ts (外観: <html data-theme> と Electron の nativeTheme。CSS は light-dark() で色を一度だけ書く)
 src/components/InboxDrawer.tsx (素材の受け入れと AI への指示。ADR-0012)  editorGuides.ts (区切り線・ゲージ・分割マーカーの装飾)
@@ -90,7 +90,7 @@ python3 tools/export_pptx.py deck.json --master master.pptx -o out.pptx --assets
 - `src/console/terminalStore.ts`：セッション状態と設定（開閉・高さ・claude 自動起動）。`src/components/TerminalPane.tsx`：xterm.js。
 - 設定を増やすときは `SettingsFile` と `DEFAULT_SETTINGS` に項目を足し、localStorage を直接使わない。UI は `SettingsSheet` のタブに置き、メイン画面（ツールバー・コンソールバー）に設定コントロールを置かない（ADR-0014）。frontmatter を書き換える「資料の設定」（この資料のマスター、レイアウト）は別で、メイン画面に残す。
 - 起動するツールは `presets.ts` の `PRESET_TOOLS`。プリセットを増やすときはコマンド名が公式のものであることを確認する。
-- フォルダを開いたら `CLAUDE.md` `theme.json` `tools/mdslide_draw.py` `notes/` を用意する（`src/workspace/bootstrap.ts`）。Markdown 規約を変えたら `deckClaudeMd.ts` も更新する。
+- フォルダを開いたら `AGENTS.md`（規約）と `CLAUDE.md`（`@AGENTS.md` の 1 行）、`theme.json` `tools/mdslide_draw.py` `notes/` を用意する（`src/workspace/bootstrap.ts`）。Markdown 規約を変えたら `agentsMd.ts` も更新する。規約は AGENTS.md にだけ書き、CLAUDE.md には書かない（ADR-0016）。
 - 定型プロンプトは `src/console/prompts.ts`。1 行で書く（端末に 1 メッセージとして流す）。
 - ネイティブモジュールを増やすときは `electron-builder.yml` の `asarUnpack` と `postinstall` を更新する。
 

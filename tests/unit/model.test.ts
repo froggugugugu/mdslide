@@ -177,7 +177,9 @@ describe("newDeckTemplate: the scaffold for a new file is a frame, not the sampl
     expect(serializeForMeta(deck)).toBe(md); // round-trips
     expect(md).not.toContain("開発生産性");
   });
-  it("falls back to a placeholder title for the default file name", () => {
+  it("titles the default deck.md after its folder, else a placeholder", () => {
+    expect(newDeckTemplate("deck.md", new Date(), "q3-report")).toContain("title: q3-report"); // 新しく作る: a folder is chosen
     expect(newDeckTemplate("deck.md")).toContain("title: 資料タイトル");
+    expect(newDeckTemplate("deck.md", new Date(), "  ")).toContain("title: 資料タイトル");
   });
 });
