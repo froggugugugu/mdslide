@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { RenderedSlide } from "../model/types";
 import { BODY_PRESETS, KIND_PRESETS, type PresetLayout, type Region } from "../layouts/presets";
-import { findLayout, type MasterProfile } from "../master/importMaster";
+import { findLayout, type Decor, type MasterProfile, type PlaceholderStyle, type Rect } from "../master/importMaster";
 import { useDeckStore } from "../store/deckStore";
 import { contentArea, placeImage, toCss, type Frame } from "../layouts/geometry";
 
@@ -108,6 +108,10 @@ export function parseTableRow(line: string): string[] | null {
 }
 
 const pct = (r: Region) => ({ left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.w * 100}%`, height: `${r.h * 100}%` });
+const alignCss = (a?: PlaceholderStyle["align"]): CSSProperties["textAlign"] => (a === "ctr" ? "center" : a === "r" ? "right" : "left");
+const anchorCss = (a?: PlaceholderStyle["anchor"]): CSSProperties["justifyContent"] => (a === "ctr" ? "center" : a === "b" ? "flex-end" : "flex-start");
+/** A theme font pair as a CSS stack (Japanese face first when the theme names one). */
+const fontStack = (latin?: string, ja?: string) => (latin || ja ? [ja, latin].filter(Boolean).map((f) => `"${f}"`).concat("var(--font-ui)").join(", ") : undefined);
 
 export function SlideCanvas({ slide, master, className = "" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -121,27 +125,85 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
   }, []);
   const aspect = master ? master.slideSize.w / master.slideSize.h : 16 / 9;
   const regions = regionsFor(slide, master);
+  const layout = master ? findLayout(master, slide.kind, slide.layout.kind === "2col" ? "2col" : "text") : undefined;
   const unit = width / 100; // 1 unit = 1% of slide width
   const slideWidthPt = (master?.slideSize.w ?? 12192000) / 12700;
-  const bodyPx = slide.fontPt ? (slide.fontPt / slideWidthPt) * width : unit * 1.6;
+  const ptPx = (pt: number) => (pt / slideWidthPt) * width;
+  const bodyPx = slide.fontPt ? ptPx(slide.fontPt) : unit * 1.6;
   const isSplitBody = slide.kind === "body" && slide.layout.kind === "2col";
   const [col1, col2] = isSplitBody ? splitColumns(slide.body) : [slide.body, []];
   const imageLayout = slide.kind === "body" && slide.layout.kind === "image" ? slide.layout : null;
   const imageSrc = slide.images[0]?.src ?? "";
   const dims = useDeckStore((s) => s.imageDims[imageSrc]);
+  const index = useDeckStore((s) => s.slides.findIndex((x) => x.id === slide.id));
+  const deckDate = useDeckStore((s) => s.deck.meta.date);
   // Image slides: geometry is computed, not taken from the master. Only the title block comes from the master.
   const titleFrame: Frame = { x: regions.title.x, y: regions.title.y / aspect, w: regions.title.w, h: regions.title.h / aspect };
   const content = contentArea(titleFrame.y + titleFrame.h, aspect);
   const placement = imageLayout ? placeImage(imageLayout, content, dims ? dims.w / dims.h : undefined) : null;
   const bodyStyle = placement ? (placement.body ? toCss(placement.body, aspect) : null) : regions.body ? pct(regions.body) : null;
 
+  // What the master gives the look: background, decorations (unless the layout hides the master's), theme fonts, text colours.
+  const theme = master?.theme;
+  const fontMajor = fontStack(theme?.fonts.major, theme?.fonts.majorJa);
+  const fontMinor = fontStack(theme?.fonts.minor, theme?.fonts.minorJa);
+  const background = layout?.background ?? master?.master.background;
+  const decor: Decor[] = master ? [...(layout?.showMasterShapes === false ? [] : master.master.decor), ...(layout?.decor ?? [])] : [];
+  const emu = (r: Rect): CSSProperties => master
+    ? { left: `${(r.x / master.slideSize.w) * 100}%`, top: `${(r.y / master.slideSize.h) * 100}%`, width: `${(r.w / master.slideSize.w) * 100}%`, height: `${(r.h / master.slideSize.h) * 100}%` }
+    : {};
+  const phStyle = (types: string[]) => layout?.placeholders.find((p) => types.includes(p.type))?.style;
+  const titlePh = phStyle(["title", "ctrTitle"]), bodyPh = phStyle(["body", "subTitle", "obj"]);
+  const titleColor = titlePh?.color ?? master?.master.titleColor;
+  const bodyColor = bodyPh?.color ?? master?.master.bodyColor;
+  const footers = (layout?.placeholders ?? []).filter((p) => (p.type === "dt" || p.type === "ftr" || p.type === "sldNum") && p.rect)
+    .map((p) => ({ ...p, value: p.field === "slidenum" ? (index >= 0 ? String(index + 1) : "") : p.field === "datetime" ? (deckDate ?? "") : (p.text ?? "") }))
+    .filter((p) => p.value.trim());
+
+  const renderDecor = (d: Decor, i: number) => {
+    const base: CSSProperties = { position: "absolute", ...emu(d.rect), transform: d.rotation ? `rotate(${d.rotation}deg)` : undefined, boxSizing: "border-box" };
+    if (d.kind === "image") {
+      return <div key={i} className="decor image" style={base}><img src={d.src} alt="" style={{ display: "block", width: "100%", height: "100%", objectFit: "fill" }} /></div>;
+    }
+    const lineW = d.line ? Math.max(1, ptPx(d.line.width / 12700)) : 0;
+    if (d.kind === "shape" && (d.geometry === "line" || d.geometry?.startsWith("straightConnector"))) {
+      const horizontal = d.rect.w >= d.rect.h;
+      const color = d.line?.color ?? d.fill;
+      return <div key={i} className="decor shape line" style={{ ...base, height: horizontal ? lineW : undefined, width: horizontal ? undefined : lineW, backgroundColor: color }} />;
+    }
+    const box: CSSProperties = {
+      ...base, backgroundColor: d.fill, border: d.line ? `${lineW}px solid ${d.line.color}` : undefined,
+      borderRadius: d.geometry === "ellipse" ? "50%" : d.geometry === "roundRect" ? ptPx(6) : undefined,
+    };
+    if (d.kind === "shape") return <div key={i} className="decor shape" style={box} />;
+    return (
+      <div key={i} className="decor text" style={{ ...box, display: "flex", flexDirection: "column", justifyContent: anchorCss(d.anchor), textAlign: alignCss(d.align),
+        fontSize: ptPx(d.fontPt ?? 12), color: d.color ?? bodyColor, fontWeight: d.bold ? 600 : 400, fontFamily: fontMinor, whiteSpace: "pre-wrap", lineHeight: 1.2,
+        padding: `${ptPx(3.6)}px ${ptPx(7.2)}px`, overflow: "hidden" }}>
+        {d.text}
+      </div>
+    );
+  };
+
   return (
-    <div ref={ref} className={`slide-canvas ${className}`} style={{ aspectRatio: `${aspect}`, fontSize: unit * 1.6 }}>
-      <div className="region" style={{ ...pct(regions.title), fontSize: unit * (slide.kind === "cover" ? 4.2 : slide.kind === "section" ? 3.6 : 2.6), fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em" }}>
-        {slide.displayTitle}
+    <div ref={ref} className={`slide-canvas ${className}`} style={{
+      aspectRatio: `${aspect}`, fontSize: unit * 1.6, backgroundColor: background?.color ?? "#ffffff",
+      backgroundImage: background?.image ? `url(${background.image})` : undefined, backgroundSize: "cover", backgroundPosition: "center",
+      color: bodyColor, fontFamily: fontMinor,
+    }}>
+      {decor.map(renderDecor)}
+      {footers.map((p) => (
+        <div key={`${p.type}-${p.idx}`} className="footer-ph" style={{ position: "absolute", ...emu(p.rect!), display: "flex", flexDirection: "column", justifyContent: anchorCss(p.style?.anchor ?? "ctr"),
+          textAlign: alignCss(p.style?.align ?? (p.type === "sldNum" ? "r" : p.type === "ftr" ? "ctr" : "l")), fontSize: ptPx(p.style?.fontPt ?? 12), color: p.style?.color ?? bodyColor, fontFamily: fontMinor, overflow: "hidden" }}>
+          {p.value}
+        </div>
+      ))}
+      <div className="region" style={{ ...pct(regions.title), fontSize: unit * (slide.kind === "cover" ? 4.2 : slide.kind === "section" ? 3.6 : 2.6), fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em",
+        color: titleColor, backgroundColor: titlePh?.fill, fontFamily: fontMajor, textAlign: alignCss(titlePh?.align), display: "flex", flexDirection: "column", justifyContent: anchorCss(titlePh?.anchor) }}>
+        <div>{slide.displayTitle}</div>
       </div>
       {slide.kind === "agenda" && slide.agenda && regions.body && (
-        <div className="region" style={{ ...pct(regions.body), fontSize: unit * 2.2, lineHeight: 1.9 }}>
+        <div className="region" style={{ ...pct(regions.body), fontSize: unit * 2.2, lineHeight: 1.9, backgroundColor: bodyPh?.fill }}>
           {slide.agenda.items.map((it) => (
             <div key={it.number + it.title} style={{ color: slide.agenda?.current && slide.agenda.current !== it.number ? "var(--muted)" : "inherit", fontWeight: slide.agenda?.current === it.number ? 600 : 400 }}>
               {it.number ? `${it.number}. ` : ""}{it.title}
@@ -150,7 +212,7 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
         </div>
       )}
       {slide.kind !== "agenda" && bodyStyle && col1.length > 0 && (
-        <div className="region" style={{ ...bodyStyle, lineHeight: 1.2, fontSize: bodyPx }}><BodyText lines={col1} /></div>
+        <div className="region" style={{ ...bodyStyle, lineHeight: 1.2, fontSize: bodyPx, backgroundColor: bodyPh?.fill, textAlign: alignCss(bodyPh?.align) }}><BodyText lines={col1} /></div>
       )}
       {placement && !placement.body && col1.length > 0 && (
         <div className="region" style={{ left: "5%", bottom: "2%", width: "90%", color: "var(--warn)", fontSize: unit * 1.3 }}>本文の置き場がありません。画像幅を 3/4 か 1/2 にしてください</div>

@@ -17,7 +17,12 @@ import re
 import sys
 from pathlib import Path
 
+import copy
+
+from lxml import etree
 from pptx import Presentation
+from pptx.enum.shapes import PP_PLACEHOLDER
+from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
 try:
@@ -267,6 +272,41 @@ def split_columns(lines: list[str]) -> tuple[list[str], list[str]]:
     return lines[:mid], lines[mid:]
 
 
+def add_footer_placeholders(slide, layout, number: int, date: str | None):
+    """python-pptx clones no date / footer / slide-number placeholders from the layout; copy them so the slides carry the
+    master's footer the way PowerPoint's own slides do. The slide number gets its number (kept as a field, so PowerPoint
+    keeps it live), the date becomes the deck's date as plain text (a date field would silently turn into "today"), and
+    a date placeholder is skipped when the deck has no date. Empty footers are removed with the other untouched placeholders."""
+    for ph in layout.placeholders:
+        t = ph.placeholder_format.type
+        if t not in (PP_PLACEHOLDER.DATE, PP_PLACEHOLDER.FOOTER, PP_PLACEHOLDER.SLIDE_NUMBER):
+            continue
+        if t == PP_PLACEHOLDER.DATE and not date:
+            continue
+        el = copy.deepcopy(ph._element)
+        slide.shapes._spTree.append(el)
+        shape = slide.shapes[-1]
+        fields = list(el.iter(qn("a:fld")))
+        if t == PP_PLACEHOLDER.SLIDE_NUMBER:
+            for f in fields:
+                tnode = f.find(qn("a:t"))
+                if tnode is None:
+                    tnode = etree.SubElement(f, qn("a:t"))
+                tnode.text = str(number)
+            if not fields:
+                shape.text_frame.text = str(number)
+        elif t == PP_PLACEHOLDER.DATE:
+            for f in fields:
+                run = etree.Element(qn("a:r"))
+                rpr = f.find(qn("a:rPr"))
+                if rpr is not None:
+                    run.append(copy.deepcopy(rpr))
+                etree.SubElement(run, qn("a:t")).text = date
+                f.getparent().replace(f, run)
+            if not shape.text_frame.text.strip():
+                shape.text_frame.text = date
+
+
 def remove_all_slides(prs):
     sldIdLst = prs.slides._sldIdLst
     for sldId in list(sldIdLst):
@@ -289,7 +329,7 @@ def main():
     prs = Presentation(args.master)
     remove_all_slides(prs)
 
-    for s in deck["slides"]:
+    for number, s in enumerate(deck["slides"], start=1):
         layout = find_layout(prs, s.get("masterLayout"), s["kind"])
         slide = prs.slides.add_slide(layout)
         ph = placeholders_by_type(slide)
@@ -331,6 +371,8 @@ def main():
                     fill_picture(pics[i], img["src"], assets)
                 else:
                     print(f"warning: image on a non-image layout ignored: {img['src']} ('{s['title']}')", file=sys.stderr)
+
+        add_footer_placeholders(slide, layout, number, (deck.get("meta") or {}).get("date"))
 
         # Remove untouched placeholders so PowerPoint does not show "Click to add text".
         for shape in list(slide.placeholders):

@@ -117,6 +117,32 @@ describe("SlideCanvas", () => {
     const title = container.querySelector(".region") as HTMLElement;
     expect(title.style.left).not.toBe("5%"); // came from the master, not the preset
   });
+  it("draws the master's decorations, backgrounds, placeholder colours, theme fonts and footers", async () => {
+    const { decoratedMaster } = await import("../helpers/decoratedMaster");
+    const m = await importMaster(await decoratedMaster(), "deco");
+    const s = renderDeck(parseMarkdown(MD));
+    // a body slide: master bar (accent1), logo, text box, and the slide number footer
+    const bodySlide = s.find((x) => x.title === "Text slide")!;
+    const { container, rerender } = render(<SlideCanvas slide={bodySlide} master={m} />);
+    const canvas = container.querySelector(".slide-canvas") as HTMLElement;
+    expect(canvas.style.background || canvas.style.backgroundColor).toContain("rgb(255, 255, 255)"); // master background: bg1
+    const decor = container.querySelectorAll(".decor");
+    expect(decor.length).toBeGreaterThanOrEqual(4);
+    expect((container.querySelector(".decor.image img") as HTMLImageElement).src).toMatch(/^data:image\/png/);
+    expect((container.querySelector(".decor.shape") as HTMLElement).style.backgroundColor).toContain("rgb(");
+    expect(container.querySelector(".decor.text")?.textContent).toBe("CONFIDENTIAL & INTERNAL");
+    expect(container.querySelector(".footer-ph")?.textContent).toBe(String(s.indexOf(bodySlide) + 1)); // slide number field
+    // theme fonts on the title
+    const title = container.querySelector(".region") as HTMLElement;
+    expect(title.style.fontFamily).toContain(m.theme!.fonts.major);
+    // the cover: layout background and the white title from the placeholder style
+    rerender(<SlideCanvas slide={s[0]} master={m} />);
+    expect((container.querySelector(".slide-canvas") as HTMLElement).style.background || (container.querySelector(".slide-canvas") as HTMLElement).style.backgroundColor).toContain("rgb(29, 53, 87)");
+    expect((container.querySelector(".region") as HTMLElement).style.color).toBe("rgb(255, 255, 255)");
+    // a section: showMasterSp="0" hides the master's decorations
+    rerender(<SlideCanvas slide={s.find((x) => x.kind === "section")!} master={m} />);
+    expect(container.querySelectorAll(".decor")).toHaveLength(0);
+  });
   it("BodyText and parseTableRow handle edge cases", () => {
     expect(parseTableRow("| a | b |")).toEqual(["a", "b"]);
     expect(parseTableRow("plain")).toBeNull();

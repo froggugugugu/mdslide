@@ -73,7 +73,7 @@ def test_full_deck_roundtrip(tmp_path, master, deck_json, png):
     tables = [sh for sh in s[4].shapes if sh.has_table]
     assert len(tables) == 1 and tables[0].table.cell(0, 0).text == "k" and tables[0].table.cell(1, 1).text == "b"
     # two columns
-    cols = [sh.text_frame.text for sh in s[5].placeholders if sh.placeholder_format.idx != 0]
+    cols = [sh.text_frame.text for sh in s[5].placeholders if sh.placeholder_format.idx != 0 and sh.placeholder_format.type not in (13, 15, 16)]  # not the slide number / footer / date
     assert cols == ["l", "r"]
     # image slide: picture fitted (aspect 1:2) inside the box, anchored right; body resized to the left area
     g = geometry("right", 0.5)
@@ -183,3 +183,34 @@ def test_fit_helpers_mirror_the_app():
     assert m.display_lines("", 20) == 0.5
     assert m.display_lines("|---|", 20) == 0
     assert m.capacity_lines(288, 18) == 13
+
+
+def test_footer_date_and_slide_number_placeholders_follow_the_layout(tmp_path, master, deck_json):
+    """python-pptx clones no footer placeholders; the exporter copies them so slides carry the master's footer."""
+    import json
+    from pptx.enum.shapes import PP_PLACEHOLDER
+    slides = [slide("cover", "Deck", master_layout="Cover"), slide("body", "1.1. A", master_layout="Body-Text", body=["x"]),
+              slide("body", "1.2. B", master_layout="Body-Text", body=["y"])]
+    p = deck_json(slides)
+    d = json.loads(p.read_text(encoding="utf-8")); d["meta"]["date"] = "2026-09-08"; p.write_text(json.dumps(d), encoding="utf-8")
+    out = tmp_path / "footer.pptx"
+    r = run(p, master, out, tmp_path)
+    assert r.returncode == 0, r.stderr
+    prs = Presentation(str(out))
+    for i, s in enumerate(prs.slides, start=1):
+        by_type = {}
+        for sh in s.placeholders:
+            by_type.setdefault(sh.placeholder_format.type, []).append(sh)
+        nums = by_type.get(PP_PLACEHOLDER.SLIDE_NUMBER, [])
+        assert len(nums) == 1 and nums[0].text_frame.text == str(i)          # numbered, one per slide
+        dates = by_type.get(PP_PLACEHOLDER.DATE, [])
+        assert len(dates) == 1 and dates[0].text_frame.text == "2026-09-08"  # the deck's date as plain text
+        assert not [r for r in dates[0]._element.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}fld")]  # no live field
+        assert PP_PLACEHOLDER.FOOTER not in by_type                          # the layout's footer is empty: dropped
+    # without a date in the deck, no date placeholder is added
+    d["meta"].pop("date"); p.write_text(json.dumps(d), encoding="utf-8")
+    out2 = tmp_path / "nodate.pptx"
+    assert run(p, master, out2, tmp_path).returncode == 0
+    for s in Presentation(str(out2)).slides:
+        assert not [sh for sh in s.placeholders if sh.placeholder_format.type == PP_PLACEHOLDER.DATE]
+        assert [sh for sh in s.placeholders if sh.placeholder_format.type == PP_PLACEHOLDER.SLIDE_NUMBER]

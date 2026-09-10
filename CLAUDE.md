@@ -15,6 +15,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
    `Cover / Agenda / Section / Body-Text / Body-2col`（大文字小文字・ハイフン無視）。判定は `roleFromLayoutName`。
    画像スライドはマスターに専用レイアウトを持たせず、`Body-Text` の上に `src/layouts/geometry.ts` の計算で配置する。
    プレビューと Python 出力は同じ幾何（deck.json の `geometry`、EMU）を共有する。幾何を変えるときは geometry.ts とテストを直す。
+   プレビューはマスターの装飾（背景・画像・単色図形・固定文字・フッター類）とテーマのフォント・文字色も描く（`importMaster` の `decor` / `style`、ADR-0017）。グラデーション・効果・SmartArt は近似か省略で、忠実な描画は PowerPoint 側。書き出しは日付・フッター・スライド番号のプレースホルダーをレイアウトから複製する。
 4. **入口は Markdown ファイル、単位はフォルダ、本体は Electron**（ADR-0013）
    開いた `.md` の親フォルダがワークスペース。ファイル名は `Workspace.deckFile`（既定 `deck.md`。フォルダを開いたとき・「新しく作る」でフォルダを選んだときはこの名前。ADR-0015）で、`deck.md` をコードに直書きしない。
    `images/` / `master.pptx` / `deck.json` / `out/deck.pptx` / `notes/` はその隣に置く。
@@ -42,7 +43,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 
 ```
 src/model/      imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。Python 側 export_pptx.py の display_lines と対で保つ)  boxes.ts (レイアウトごとの本文枠 pt)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  dnd.ts (ドロップ先の判定。章は章の間にだけ落ちる)  types.ts
-src/master/     importMaster.ts (pptx zip → layouts/placeholders)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)  sampleMaster.ts (examples/sample-master.pptx をバンドルし、設定の「見本を取り込む」で保管フォルダへ)
+src/master/     importMaster.ts (pptx zip → layouts/placeholders、マスターとレイアウトの装飾 decor・背景・プレースホルダーの見た目 style、テーマ色の解決 parseColor)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)  sampleMaster.ts (examples/sample-master.pptx をバンドルし、設定の「見本を取り込む」で保管フォルダへ)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
 src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: Markdown を開く・新しく作る・フォルダ・最近・サンプル) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・ツール。開くのは useSettingsSheet。ADR-0014) / Icon (単色ラインアイコン)
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)

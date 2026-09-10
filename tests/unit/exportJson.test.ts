@@ -6,13 +6,14 @@ import type { MasterProfile } from "../../src/master/importMaster";
 
 const md = `---\ntitle: T\n---\n\n# S\n\n## A {img=1/2 side=left}\n\n- x\n\n![f](images/f.png)\n\n## B {img=1/1}\n\n![g](images/g.png)\n\n## C {layout=2col}\n\n- l\n\n- r\n`;
 
+const plain = { file: "", decor: [], showMasterShapes: true };
 const master: MasterProfile = {
-  id: "m", name: "m", importedAt: "", slideSize: { w: 12192000, h: 6858000 }, unmapped: [], missing: [],
+  id: "m", name: "m", importedAt: "", slideSize: { w: 12192000, h: 6858000 }, unmapped: [], missing: [], master: { decor: [] },
   layouts: [
-    { name: "Cover", file: "", role: { kind: "cover" }, placeholders: [] },
-    { name: "Agenda", file: "", role: { kind: "agenda" }, placeholders: [] },
-    { name: "Section", file: "", role: { kind: "section" }, placeholders: [] },
-    { name: "Body-Text", file: "", role: { kind: "body", layout: "text" }, placeholders: [{ type: "title", idx: 0, rect: { x: 609600, y: 365125, w: 10972800, h: 1325563 } }] },
+    { ...plain, name: "Cover", role: { kind: "cover" }, placeholders: [] },
+    { ...plain, name: "Agenda", role: { kind: "agenda" }, placeholders: [] },
+    { ...plain, name: "Section", role: { kind: "section" }, placeholders: [] },
+    { ...plain, name: "Body-Text", role: { kind: "body", layout: "text" }, placeholders: [{ type: "title", idx: 0, rect: { x: 609600, y: 365125, w: 10972800, h: 1325563 } }] },
   ],
 };
 
