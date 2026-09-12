@@ -64,6 +64,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
             <tr><td><kbd>{mod}</kbd> <kbd>⇧</kbd> <kbd>C</kbd></td><td>表示中のスライドの参照 <code>deck.md:行</code> をコピー。プレビュー下の参照チップは画像パスも。サムネイル右クリックでもコピー</td></tr>
             <tr><td><kbd>{mod}</kbd> <kbd>I</kbd></td><td>下書き。口語のメモを書く / ファイルをドロップ → notes/。ボタンで AI に「整形」「図生成」「描き直し」「要約」「章立て提案」を頼む</td></tr>
             <tr><td><kbd>{mod}</kbd> <kbd>J</kbd></td><td>コンソールの表示 / 非表示</td></tr>
+            <tr><td>アイコンにポインタを重ねる</td><td>説明とショートカットが出る（Tab で移動したときも）</td></tr>
             <tr><td><kbd>{mod}</kbd> <kbd>,</kbd></td><td>設定（外観・Vim・マスターの保管フォルダ・CLI ツール）。メニューの「設定…」からも</td></tr>
             <tr><td><kbd>{mod}</kbd> <kbd>/</kbd></td><td>この画面</td></tr>
           </tbody>

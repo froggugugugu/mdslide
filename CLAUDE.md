@@ -34,7 +34,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
   新しい UI はこれらを使い、インラインの色指定を増やさない。
 - システムフォント（-apple-system）、0.5px ヘアライン、システムブルー `#0a84ff`、装飾は影と余白だけ。絵文字・下線リンクは使わない。
 - アイコンは `src/components/Icon.tsx` の単色ラインアイコン（SF Symbols 風、20px グリッド、currentColor）だけを使う。画像やアイコンフォントは入れない。
-  アイコンだけのボタンは `.btn.icon`（ペインの開閉状態は `.on`）にし、必ず `aria-label`（テストと E2E が名前で探す）と `title`（ショートカット併記）を付ける。文字ボタンにアイコンを添えるときは `.btn.with-icon`。
+  アイコンだけのボタンは `.btn.icon`（ペインの開閉状態は `.on`）にし、必ず `aria-label`（テストと E2E が名前で探す）と `data-tip`（ホバーやキーボードで移動したときに出る説明。ショートカット併記。表示は `Tooltips`）を付ける。操作の説明にネイティブの `title` は使わない（表示までが遅い）。切れた長い文字の全文表示だけは `title` でよい。文字ボタンにアイコンを添えるときは `.btn.with-icon`。
 - ペイン幅（サムネイル・エディタ）は区切り線 `.vsplitter` のドラッグで変え、`settings.json` に記憶する（`navigator.width` / `editor.width`）。
 - Electron の macOS ウィンドウは `hiddenInset` + `vibrancy: sidebar`。`body.electron` で背景を透過し、サイドバーとツールバーが透ける。
 - エディタの配色は `EditorPane.tsx` の `HighlightStyle` で CSS 変数に解決する。
@@ -45,7 +45,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 src/model/      imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。Python 側 export_pptx.py の display_lines と対で保つ)  boxes.ts (レイアウトごとの本文枠 pt)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  dnd.ts (ドロップ先の判定。章は章の間にだけ落ちる)  types.ts
 src/master/     importMaster.ts (pptx zip → layouts/placeholders、マスターとレイアウトの装飾 decor・背景・プレースホルダーの見た目 style、テーマ色の解決 parseColor)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)  sampleMaster.ts (examples/sample-master.pptx をバンドルし、設定の「見本を取り込む」で保管フォルダへ)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
-src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: Markdown を開く・新しく作る・フォルダ・最近・サンプル) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・ツール。開くのは useSettingsSheet。ADR-0014) / Icon (単色ラインアイコン)
+src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: Markdown を開く・新しく作る・フォルダ・最近・サンプル) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・ツール。開くのは useSettingsSheet。ADR-0014) / Icon (単色ラインアイコン) / Tooltips (data-tip のホバー説明)
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)
 src/layouts/    geometry.ts (画像/本文の配置計算)  presets.ts (マスター無し時の既定枠)
 src/settings/   settings.ts (settings.json の読み書き。設定は必ずここを通す。ADR-0010)

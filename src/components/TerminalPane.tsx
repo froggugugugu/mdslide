@@ -90,14 +90,14 @@ export function TerminalPane() {
           {!bridge ? "デスクトップ版でフォルダを開くと使えます" : ptyId !== null ? workspace?.path : status === "exited" ? `シェルが終了しました (${exitCode})` : status === "stopped" ? "停止中" : "起動中"}
         </span>
         <span className="flex-1" />
-        <select className="select small" aria-label="起動するツール" value={selectedTool} onChange={(e) => selectTool(e.target.value)}>
+        <select className="select small" aria-label="起動するツール" data-tip="起動するツール（設定の「ツール」で追加・編集）" value={selectedTool} onChange={(e) => selectTool(e.target.value)}>
           {tools.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <button className="btn icon" onClick={() => runTool()} disabled={ptyId === null} aria-label="起動" title="選択中のツールを起動"><Icon name="play" /></button>
-        <button className="btn icon" onClick={() => openSettings("tools")} aria-label="ツール設定" title="ツール設定（自動起動・コマンド）"><Icon name="gear" /></button>
+        <button className="btn icon" onClick={() => runTool()} disabled={ptyId === null} aria-label="起動" data-tip="選択中のツールを起動"><Icon name="play" /></button>
+        <button className="btn icon" onClick={() => openSettings("tools")} aria-label="ツール設定" data-tip="ツール設定（自動起動・コマンド）"><Icon name="gear" /></button>
         {ptyId !== null
-          ? <button className="btn icon" onClick={() => stop()} aria-label="終了" title="シェルを終了"><Icon name="stop" /></button>
-          : bridge && <button className="btn icon" onClick={() => term.current && start(bridge, workspace!.path!, term.current.cols, term.current.rows)} aria-label="再起動" title="シェルを再起動"><Icon name="restart" /></button>}
+          ? <button className="btn icon" onClick={() => stop()} aria-label="終了" data-tip="シェルを終了"><Icon name="stop" /></button>
+          : bridge && <button className="btn icon" onClick={() => term.current && start(bridge, workspace!.path!, term.current.cols, term.current.rows)} aria-label="再起動" data-tip="シェルを再起動"><Icon name="restart" /></button>}
       </div>
       <div ref={host} className="terminal-host" onClick={() => term.current?.focus()} />
     </div>

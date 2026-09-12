@@ -319,6 +319,11 @@ describe("App", () => {
     await screen.findByRole("button", { name: "フォルダを開く" });
     await userEvent.click(screen.getByRole("button", { name: "フォルダを開く" }));
     await screen.findByRole("button", { name: "deck/deck.md" });
+    // every icon-only control explains itself on hover (data-tip, shown by Tooltips)
+    const iconButtons = [...document.querySelectorAll(".btn.icon, .seg.icon")];
+    expect(iconButtons.length).toBeGreaterThan(4);
+    for (const b of iconButtons) expect(b.getAttribute("data-tip"), b.getAttribute("aria-label") ?? "").toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "設定" })[0]).toHaveAttribute("data-tip", "設定 (⌘,)");
     await userEvent.click(screen.getByRole("button", { name: "書き出す" }));
     await waitFor(() => expect(root.text("deck.json")).toContain('"version": 2'));
     expect(await screen.findByText(/deck.json を書き出しました/)).toBeInTheDocument();
@@ -363,7 +368,7 @@ describe("references for Claude Code", () => {
     expect(screen.getByText("コピーしました")).toBeInTheDocument();
     await userEvent.click(screen.getByText("images/fig.png"));
     expect(written.at(-1)).toBe("images/fig.png");
-    await userEvent.click(screen.getAllByRole("button", { name: "端末へ" })[1]);
+    await userEvent.click(screen.getAllByRole("button", { name: "コンソールへ" })[1]);
     expect(termWrites).toEqual(["images/fig.png "]);
     fireEvent.keyDown(window, { key: "c", metaKey: true, shiftKey: true });
     await waitFor(() => expect(written.at(-1)).toBe(`deck.md:${line}`));

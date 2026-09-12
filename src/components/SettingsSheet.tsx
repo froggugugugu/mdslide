@@ -195,7 +195,7 @@ function MasterTab() {
       <input ref={fileRef} type="file" accept=".pptx,.potx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void add(f); e.target.value = ""; }} />
       <div className="flex flex-wrap items-center gap-2">
         <button className="btn primary with-icon" onClick={() => { if (isElectron) void add(); else fileRef.current?.click(); }} disabled={busy}><Icon name="plus" />{busy ? "取り込み中" : "pptx を取り込む"}</button>
-        <button className="btn with-icon" onClick={() => void addSample()} disabled={busy} title={`${SAMPLE_MASTER_NAME} を保管フォルダに置く`}><Icon name="master" />見本を取り込む</button>
+        <button className="btn with-icon" onClick={() => void addSample()} disabled={busy} data-tip={`${SAMPLE_MASTER_NAME} を保管フォルダに置く`}><Icon name="master" />見本を取り込む</button>
       </div>
       <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>見本（{SAMPLE_MASTER_NAME}）は Office 標準テーマのレイアウトに規約どおりの名前を付けたものです。取り込んだら「Finder で表示」から PowerPoint で開き、配色やロゴを直して上書き保存すれば、そのまま自分のマスターになります。</p>
       {error && <p className="mt-3" style={{ color: "var(--warn)" }}>{error}</p>}

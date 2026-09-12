@@ -87,7 +87,7 @@ export function InboxDrawer() {
         <span className="console-title">下書き</span>
         <span className="console-meta">{!fs ? "フォルダを開くと使えます" : saving ? "保存中" : draftFile ? draftFile.replace("notes/", "") : "notes/ に自動保存"}</span>
         <span className="flex-1" />
-        <button className="btn icon" onClick={toggle} aria-label="下書きを閉じる" title="閉じる (⌘I)"><Icon name="close" /></button>
+        <button className="btn icon" onClick={toggle} aria-label="下書きを閉じる" data-tip="閉じる (⌘I)"><Icon name="close" /></button>
       </div>
       <textarea className="inbox-draft" aria-label="メモ" placeholder="話したいこと、説明したいことを口語のままつらつらと。ここに書いたものは notes/ に保存され、下のボタンで AI に渡せます。ファイルはこのペインにドロップ。"
         value={draft} onChange={(e) => setDraft(e.target.value)} disabled={!fs} onBlur={() => fs && void flush(fs)} />
@@ -103,8 +103,8 @@ export function InboxDrawer() {
             <span className="flex items-center gap-1 min-w-0">
               <input type="checkbox" checked={selected.has(n)} onChange={() => pick(n)} aria-label={`${n} を渡す`} />
               {isTextNote(n)
-                ? <button className="name" onClick={() => fs && void openNote(fs, n)} aria-label={`${n} を開く`} title="上の編集エリアで確認・編集">{n.replace("notes/", "")}</button>
-                : <code className="name" title="テキスト以外は開けません（AI には渡せます）">{n.replace("notes/", "")}</code>}
+                ? <button className="name" onClick={() => fs && void openNote(fs, n)} aria-label={`${n} を開く`} data-tip="上の編集エリアで確認・編集">{n.replace("notes/", "")}</button>
+                : <code className="name" data-tip="テキスト以外は開けません（AI には渡せます）">{n.replace("notes/", "")}</code>}
             </span>
             <button className="link" onClick={() => fs && void remove(fs, n)} aria-label={`${n} を削除`}>削除</button>
           </div>
@@ -114,9 +114,9 @@ export function InboxDrawer() {
       <div className="inbox-actions">
         <div className="seg-label" style={{ marginLeft: 0 }}>{tool} に頼む</div>
         {PROMPTS.map((p) => (
-          <button key={p.id} className="btn" title={p.hint} disabled={!fs || busy !== null} onClick={() => send(p.id)}>{busy === p.id ? "送信中" : p.label.replace("deck.md", deckFile)}</button>
+          <button key={p.id} className="btn" data-tip={p.hint} disabled={!fs || busy !== null} onClick={() => send(p.id)}>{busy === p.id ? "送信中" : p.label.replace("deck.md", deckFile)}</button>
         ))}
-        <button className="btn quiet with-icon" onClick={undo} disabled={!fs} title={`AI に渡す直前の ${deckFile} に戻す`}><Icon name="undo" />前の版に戻す</button>
+        <button className="btn quiet with-icon" onClick={undo} disabled={!fs} data-tip={`AI に渡す直前の ${deckFile} に戻す`}><Icon name="undo" />前の版に戻す</button>
         {!termRunning && fs && <div className="console-hint">コンソールでツールを起動すると送れます。</div>}
       </div>
     </aside>

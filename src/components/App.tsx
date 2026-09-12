@@ -9,6 +9,7 @@ import { useInboxStore } from "../console/inboxStore";
 import { HelpSheet } from "./HelpSheet";
 import { StartScreen } from "./StartScreen";
 import { Icon } from "./Icon";
+import { Tooltips } from "./Tooltips";
 import { settings } from "../settings/settings";
 import { applyTheme } from "../settings/appearance";
 import { useTerminalStore } from "../console/terminalStore";
@@ -173,8 +174,8 @@ export function App() {
         <header className="toolbar" style={{ paddingLeft: mac ? 84 : 14 }}>
           <span className="title">mdslide</span>
           <div className="spacer" />
-          <button className="btn icon" onClick={() => setShowHelp(true)} title="使い方 (⌘/)" aria-label="使い方"><Icon name="help" /></button>
-          <button className="btn icon" onClick={() => openSettings()} title="設定 (⌘,)" aria-label="設定"><Icon name="gear" /></button>
+          <button className="btn icon" onClick={() => setShowHelp(true)} data-tip="使い方 (⌘/)" aria-label="使い方"><Icon name="help" /></button>
+          <button className="btn icon" onClick={() => openSettings()} data-tip="設定 (⌘,)" aria-label="設定"><Icon name="gear" /></button>
         </header>
         {notice && (
           <div className="banner warn">
@@ -184,6 +185,7 @@ export function App() {
         )}
         <StartScreen />
         <SettingsHost />
+        <Tooltips />
         {showHelp && <HelpSheet onClose={closeHelp} />}
       </div>
     );
@@ -196,12 +198,12 @@ export function App() {
         {supportsWorkspace ? (
           <>
             <button className="btn with-icon" onClick={() => (isElectron ? openMarkdownFile() : openWorkspace()).catch(() => undefined)}
-              title={isElectron ? "Markdown ファイルを開く" : "フォルダを開く"}>
+              data-tip={isElectron ? "Markdown ファイルを開く" : "フォルダを開く"}>
               <Icon name={workspace ? "doc" : "folder"} />
               {workspace ? `${workspace.name}/${workspace.deckFile}` : isElectron ? "開く" : "フォルダを開く"}
             </button>
             {workspace && (
-              <button className={`btn quiet ${dirty ? "dirty" : ""}`} onClick={() => save(true)} title="保存 (⌘S)">
+              <button className={`btn quiet ${dirty ? "dirty" : ""}`} onClick={() => save(true)} data-tip="保存 (⌘S)">
                 {saveState === "saving" ? "保存中" : dirty ? "未保存" : "保存済み"}
               </button>
             )}
@@ -214,19 +216,19 @@ export function App() {
           </>
         )}
         <span className="toolbar-sep" />
-        <select className="select" value={master?.id ?? ""} onChange={(e) => setMaster(e.target.value || null)} aria-label="マスター" title="この資料のマスター（frontmatter の master: に書かれる）">
+        <select className="select" value={master?.id ?? ""} onChange={(e) => setMaster(e.target.value || null)} aria-label="マスター" data-tip="この資料のマスター（frontmatter の master: に書かれる）">
           <option value="">マスターなし</option>
           {masters.map((m) => <option key={m.id} value={m.id}>{m.id.startsWith("ws:") ? "このフォルダの master.pptx" : m.name}</option>)}
         </select>
-        <button className="btn icon" onClick={() => openSettings("master")} aria-label="マスター" title="スライドマスターの取り込みと管理（設定）"><Icon name="master" /></button>
+        <button className="btn icon" onClick={() => openSettings("master")} aria-label="マスター" data-tip="スライドマスターの取り込みと管理（設定）"><Icon name="master" /></button>
         <span className="toolbar-sep" />
-        <button className={`btn icon ${inboxOpen ? "on" : ""}`} onClick={toggleInbox} title="下書き (⌘I)" aria-label="下書き" aria-pressed={inboxOpen}><Icon name="note" /></button>
-        <button className={`btn icon ${consoleOpen ? "on" : ""}`} onClick={toggleConsole} title="コンソール (⌘J)" aria-label="コンソール" aria-pressed={consoleOpen}><Icon name="terminal" /></button>
-        <button className="btn icon" onClick={() => setShowHelp(true)} title="使い方 (⌘/)" aria-label="使い方"><Icon name="help" /></button>
-        <button className="btn icon" onClick={() => openSettings()} title="設定 (⌘,)" aria-label="設定"><Icon name="gear" /></button>
+        <button className={`btn icon ${inboxOpen ? "on" : ""}`} onClick={toggleInbox} data-tip="下書き (⌘I)" aria-label="下書き" aria-pressed={inboxOpen}><Icon name="note" /></button>
+        <button className={`btn icon ${consoleOpen ? "on" : ""}`} onClick={toggleConsole} data-tip="コンソール (⌘J)" aria-label="コンソール" aria-pressed={consoleOpen}><Icon name="terminal" /></button>
+        <button className="btn icon" onClick={() => setShowHelp(true)} data-tip="使い方 (⌘/)" aria-label="使い方"><Icon name="help" /></button>
+        <button className="btn icon" onClick={() => openSettings()} data-tip="設定 (⌘,)" aria-label="設定"><Icon name="gear" /></button>
         <span className="toolbar-sep" />
         <button className="btn primary with-icon" disabled={exporting} onClick={exportJson}
-          title={isElectron ? "deck.json を書き出し、master.pptx を母体に out/deck.pptx を生成" : "deck.json を書き出し、tools/export_pptx.py で pptx を生成"}>
+          data-tip={isElectron ? "deck.json を書き出し、master.pptx を母体に out/deck.pptx を生成" : "deck.json を書き出し、tools/export_pptx.py で pptx を生成"}>
           <Icon name="export" />{exporting ? "生成中" : "書き出す"}
         </button>
       </header>
@@ -266,7 +268,7 @@ export function App() {
       )}
       <div ref={gridRef} className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: gridColumns }}>
         <aside className="navigator min-h-0"><ThumbnailPane /></aside>
-        <div className="vsplitter min-h-0" onMouseDown={startNavResize} role="separator" aria-orientation="vertical" aria-label="サムネイルの幅" title="ドラッグでサムネイルの幅を変更" />
+        <div className="vsplitter min-h-0" onMouseDown={startNavResize} role="separator" aria-orientation="vertical" aria-label="サムネイルの幅" data-tip="ドラッグでサムネイルの幅を変更" />
         <main className="stage min-h-0 flex flex-col">
           <div className="flex-1 min-h-0"><PreviewPane /></div>
           {consoleOpen && (
@@ -276,11 +278,12 @@ export function App() {
             </>
           )}
         </main>
-        <div className="vsplitter min-h-0" onMouseDown={startEditorResize} role="separator" aria-orientation="vertical" aria-label="エディタの幅" title="ドラッグでエディタの幅を変更" />
+        <div className="vsplitter min-h-0" onMouseDown={startEditorResize} role="separator" aria-orientation="vertical" aria-label="エディタの幅" data-tip="ドラッグでエディタの幅を変更" />
         <section className="editor min-h-0"><EditorPane /></section>
         {inboxOpen && <InboxDrawer />}
       </div>
       <SettingsHost />
+      <Tooltips />
       {showHelp && <HelpSheet onClose={closeHelp} />}
     </div>
   );

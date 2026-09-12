@@ -40,7 +40,7 @@ export function PreviewPane() {
 
   // label: an icon-only segment; the label is its accessible name and (unless given) its tooltip.
   const Seg = ({ on, onClick, children, label, title }: { on: boolean; onClick: () => void; children: React.ReactNode; label?: string; title?: string }) => (
-    <button className={`seg ${label ? "icon" : ""} ${on ? "on" : ""}`} onClick={onClick} aria-label={label} title={title ?? label}>{children}</button>
+    <button className={`seg ${label ? "icon" : ""} ${on ? "on" : ""}`} onClick={onClick} aria-label={label} data-tip={title ?? label}>{children}</button>
   );
 
   return (
@@ -78,13 +78,13 @@ export function PreviewPane() {
             {explicit && <button className="link" onClick={() => setLayout(block.id, null)}>既定に戻す</button>}
             <span className="seg-label">文字</span>
             <div className="segmented" aria-label="本文フォントサイズ">
-              <button className="seg" aria-label="小さく" onClick={() => setAttr(block.id, "size", String(Math.max(8, (slide.fontPt ?? 18) - 2)))}>−</button>
+              <button className="seg" aria-label="小さく" data-tip="文字を小さく（2pt）" onClick={() => setAttr(block.id, "size", String(Math.max(8, (slide.fontPt ?? 18) - 2)))}>−</button>
               <span className="seg on" style={{ minWidth: 48, textAlign: "center", whiteSpace: "nowrap" }}>{slide.fontPt}pt{block.attrs.size ? "" : " (既定)"}</span>
-              <button className="seg" aria-label="大きく" onClick={() => setAttr(block.id, "size", String(Math.min(48, (slide.fontPt ?? 18) + 2)))}>+</button>
+              <button className="seg" aria-label="大きく" data-tip="文字を大きく（2pt）" onClick={() => setAttr(block.id, "size", String(Math.min(48, (slide.fontPt ?? 18) + 2)))}>+</button>
             </div>
             {block.attrs.size && <button className="link" onClick={() => setAttr(block.id, "size", null)}>既定の大きさ</button>}
             {slide.fit && (
-              <span className={`fit ${slide.fit.used > slide.fit.capacity ? "over" : slide.fit.used > slide.fit.capacity * 0.9 ? "near" : ""}`} title="推定の表示行数。PowerPoint 側と 1 行程度ずれることがあります">
+              <span className={`fit ${slide.fit.used > slide.fit.capacity ? "over" : slide.fit.used > slide.fit.capacity * 0.9 ? "near" : ""}`} data-tip="推定の表示行数。PowerPoint 側と 1 行程度ずれることがあります">
                 推定 {Math.ceil(slide.fit.used)} / {slide.fit.capacity} 行{slide.fit.autofit ? " · マスターは自動縮小あり" : ""}
               </span>
             )}
@@ -103,11 +103,11 @@ export function PreviewPane() {
         <span className="seg-label" style={{ marginLeft: 0 }}>参照</span>
         {refs.map((r) => (
           <span key={r.text} className="ref">
-            <button className="ref-copy" title={`${r.detail} をクリップボードへ (⌘⇧C はスライド)`} onClick={() => copy(r.text)}>
+            <button className="ref-copy" data-tip={`${r.detail} をクリップボードへ (⌘⇧C はスライド)`} onClick={() => copy(r.text)}>
               <code>{r.text}</code>
               <span className="ref-detail">{copied === r.text ? "コピーしました" : r.detail}</span>
             </button>
-            {termOpen && <button className="ref-term" title="端末に貼る" onClick={() => termWrite(r.text + " ")}>端末へ</button>}
+            {termOpen && <button className="ref-term" data-tip="コンソールに貼る（実行はしない）" onClick={() => termWrite(r.text + " ")}>コンソールへ</button>}
           </span>
         ))}
       </div>
