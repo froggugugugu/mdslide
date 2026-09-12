@@ -214,3 +214,27 @@ def test_footer_date_and_slide_number_placeholders_follow_the_layout(tmp_path, m
     for s in Presentation(str(out2)).slides:
         assert not [sh for sh in s.placeholders if sh.placeholder_format.type == PP_PLACEHOLDER.DATE]
         assert [sh for sh in s.placeholders if sh.placeholder_format.type == PP_PLACEHOLDER.SLIDE_NUMBER]
+
+
+def test_decorated_master_exports_with_its_footer_and_pictures(tmp_path, deck_json):
+    """examples/decorated-master.pptx (scripts/make_decorated_master.py): bands, pictures, a picture background and a fixed
+    footer must come through the exporter untouched, and the copied footer carries the master's text."""
+    from pptx.enum.shapes import PP_PLACEHOLDER
+    master = ROOT / "examples" / "decorated-master.pptx"
+    slides = [slide("cover", "Deck", master_layout="Cover", body=["Sub"]), slide("section", "1. A", master_layout="Section"),
+              slide("body", "1.1. B", master_layout="Body-Text", body=["- x"])]
+    out = tmp_path / "decorated.pptx"
+    r = run(deck_json(slides), master, out, tmp_path)
+    assert r.returncode == 0, r.stderr
+    prs = Presentation(str(out))
+    assert [s.slide_layout.name for s in prs.slides] == ["Cover", "Section", "Body-Text"]
+    master_pics = [sh.name for sh in prs.slide_master.shapes if sh.shape_type == 13]
+    assert set(master_pics) >= {"Header pattern", "Logo small", "Footer icon"}          # master pictures survive the round trip
+    cover = prs.slides[0]
+    assert cover.slide_layout._element.get("showMasterSp") == "0"
+    assert [sh.name for sh in cover.slide_layout.shapes if sh.shape_type == 13] == ["Logo", "Tile mountains", "Tile waves", "Tile grid"]
+    body = prs.slides[2]
+    footers = [sh for sh in body.placeholders if sh.placeholder_format.type == PP_PLACEHOLDER.FOOTER]
+    assert len(footers) == 1 and footers[0].text_frame.text == "ACME Platform Engineering · Confidential"
+    nums = [sh for sh in body.placeholders if sh.placeholder_format.type == PP_PLACEHOLDER.SLIDE_NUMBER]
+    assert len(nums) == 1 and nums[0].text_frame.text == "3"

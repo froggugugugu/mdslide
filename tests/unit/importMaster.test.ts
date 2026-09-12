@@ -103,6 +103,26 @@ describe("importMaster: decorations the preview draws", () => {
   });
 });
 
+describe("examples/decorated-master.pptx (scripts/make_decorated_master.py)", () => {
+  it("carries bands, pictures, a picture background, changed fonts and a fixed footer the preview can show", async () => {
+    const m = await importMaster(new Blob([readFileSync("examples/decorated-master.pptx")]), "decorated");
+    expect(m.missing).toEqual([]);
+    expect(m.theme!.fonts).toMatchObject({ major: "Avenir Next", minor: "Avenir Next", majorJa: "Hiragino Sans", minorJa: "Hiragino Sans" });
+    expect(m.theme!.colors.accent1).toBe("#0B3D91");
+    expect(m.master.decor.map((d) => d.kind)).toEqual(["shape", "image", "image", "shape", "image"]); // header band, pattern, logo, footer band, icon
+    expect(m.master.decor[0].fill).toBe("#0B3D91");
+    const cover = findLayout(m, "cover")!;
+    expect(cover.showMasterShapes).toBe(false);
+    expect(cover.background?.image).toMatch(/^data:image\/png;base64,/);
+    expect(cover.decor.filter((d) => d.kind === "image")).toHaveLength(4);                       // logo + three tiles
+    expect(cover.placeholders.find((p) => p.type === "ctrTitle")!.style).toMatchObject({ color: "#FFFFFF", align: "l", anchor: "b", fontPt: 44 });
+    expect(findLayout(m, "section")!.decor.map((d) => d.kind)).toEqual(["image"]);
+    const body = findLayout(m, "body", "text")!;
+    expect(body.placeholders.find((p) => p.type === "ftr")!.text).toBe("ACME Platform Engineering · Confidential"); // inherited from the master
+    expect(body.placeholders.find((p) => p.type === "sldNum")!.field).toBe("slidenum");
+  });
+});
+
 describe("parseColor", () => {
   const theme = { name: "t", colors: { dk1: "#000000", lt1: "#FFFFFF", accent1: "#0A84FF" }, fonts: { major: "A", minor: "B" } };
   it("resolves srgb, scheme aliases and modifiers", () => {

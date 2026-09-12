@@ -284,6 +284,13 @@ def add_footer_placeholders(slide, layout, number: int, date: str | None):
         if t == PP_PLACEHOLDER.DATE and not date:
             continue
         el = copy.deepcopy(ph._element)
+        if t == PP_PLACEHOLDER.FOOTER and not ph.text_frame.text.strip():
+            # A fixed footer is usually typed on the master, not on every layout: take the master's text (and formatting).
+            for mph in layout.slide_master.placeholders:
+                if mph.placeholder_format.type == PP_PLACEHOLDER.FOOTER and mph.text_frame.text.strip():
+                    el.remove(el.txBody)
+                    el.append(copy.deepcopy(mph._element.txBody))
+                    break
         slide.shapes._spTree.append(el)
         shape = slide.shapes[-1]
         fields = list(el.iter(qn("a:fld")))

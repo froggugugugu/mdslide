@@ -198,7 +198,7 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
           {p.value}
         </div>
       ))}
-      <div className="region" style={{ ...pct(regions.title), fontSize: unit * (slide.kind === "cover" ? 4.2 : slide.kind === "section" ? 3.6 : 2.6), fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em",
+      <div className="region" style={{ ...pct(regions.title), fontSize: titlePh?.fontPt ? ptPx(titlePh.fontPt) : unit * (slide.kind === "cover" ? 4.2 : slide.kind === "section" ? 3.6 : 2.6), fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em",
         color: titleColor, backgroundColor: titlePh?.fill, fontFamily: fontMajor, textAlign: alignCss(titlePh?.align), display: "flex", flexDirection: "column", justifyContent: anchorCss(titlePh?.anchor) }}>
         <div>{slide.displayTitle}</div>
       </div>
