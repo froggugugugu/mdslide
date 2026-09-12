@@ -3,7 +3,7 @@ on:
   push:
     tags: ["v*"]
 
-# Builds the unsigned macOS package and attaches it to a GitHub Release.
+# Builds the macOS package (ad-hoc signed, not notarized) and attaches it to a GitHub Release.
 # This is the only workflow allowed to write to the repository; ci.yml and pages.yml stay read-only on contents.
 permissions:
   contents: write
@@ -23,6 +23,12 @@ jobs:
       - run: npm run typecheck && npm test
       - run: npm run dist:mac
         env: { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
+      - name: The app in the dmg must have an intact signature (a broken one makes macOS call the download damaged)
+        run: |
+          mnt="$(mktemp -d)"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" release/*.dmg
+          codesign --verify --deep --strict --verbose=2 "$mnt/mdslide.app"
+          hdiutil detach "$mnt"
       - name: Create the release with dmg / zip attached
         run: gh release create "$GITHUB_REF_NAME" release/*.dmg release/*.zip --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
         env: { GH_TOKEN: "${{ github.token }}" }

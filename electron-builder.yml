@@ -16,5 +16,7 @@ mac:
   icon: build/icon.icns   # generated from docs/media/icon.svg by scripts/make_icon.py
   category: public.app-category.productivity
   target: [dmg, zip]
-  # Unsigned build for personal use. Set CSC_IDENTITY_AUTO_DISCOVERY/notarize for distribution.
-  identity: null
+  # Ad-hoc signed, not notarized. Unsigned (identity: null) leaves Electron's seal broken, and macOS calls a downloaded copy damaged.
+  # Hardened runtime stays off: with an ad-hoc identity its library validation rejects Electron's own frameworks.
+  identity: "-"
+  hardenedRuntime: false

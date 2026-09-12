@@ -82,7 +82,7 @@ npm run test:all
 npm run typecheck
 npm run build        # Electron → out/
 npm run build:web    # ブラウザ版 → dist/（静的配布可能）
-npm run dist:mac     # dmg / zip（未署名）→ release/
+npm run dist:mac     # dmg / zip（アドホック署名、公証なし）→ release/
 python3 tools/export_pptx.py deck.json --master master.pptx -o out.pptx --assets ./images-root
 ```
 
