@@ -143,11 +143,11 @@
                     <span class="i-check text-emerald-400"><i data-lucide="check" class="h-4 w-4"></i></span>
                   </button>
                 </div>
-                <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6"><code>xattr -d com.apple.quarantine /Applications/mdslide.app
+                <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6"><code>xattr -dr com.apple.quarantine /Applications/mdslide.app
 python3 -m venv ~/.config/mdslide/venv
 ~/.config/mdslide/venv/bin/python -m pip install python-pptx</code></pre>
               </div>
-              <p class="mt-2 text-xs text-muted-foreground">1 行目は未署名のため初回だけ必要です。Finder で右クリックして「開く」でも構いません。2〜3 行目は pptx の書き出しに使う python-pptx を、mdslide 専用の環境に入れます。</p>
+              <p class="mt-2 text-xs text-muted-foreground">1 行目は、Apple の公証を受けていないアプリを初回に開くためのものです。ターミナルを使わない場合は、一度開いて警告を「完了」で閉じ、システム設定の「プライバシーとセキュリティ」にある「このまま開く」を押してください。macOS 15 以降は Finder の右クリックでは開けません。2〜3 行目は pptx の書き出しに使う python-pptx を、mdslide 専用の環境に入れます。</p>
             </div>
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm font-medium">

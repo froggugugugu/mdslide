@@ -24,7 +24,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 ## はじめの 5 分
 
-1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け、未署名。初回は Finder で右クリック → 「開く」)。pptx を出すには Python と python-pptx も要る。見つからなければ起動時に案内が出て、設定(⌘,)の「書き出し」に入れ方がある
+1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け。Apple の公証を受けていないので、初回の開き方は下の「インストール」を見る)。pptx を出すには Python と python-pptx も要る。見つからなければ起動時に案内が出て、設定(⌘,)の「書き出し」に入れ方がある
 2. 起動画面で「新しく作る」を押し、資料のフォルダを選ぶ(ダイアログで新しく作ってもよい)。その中に `deck.md` が表紙・章・スライド 1 枚だけの空の枠でできる。題はフォルダ名(見本を触りたければ「サンプルを見る」)
 3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本の `examples/sample-master.pptx` をそのまま使ってもよい。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
 4. 右ペインで書く(既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替えられる)。左ペインでドラッグか ⌥↑↓ で並べ替える。番号は自動で振り直される
@@ -54,11 +54,16 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 ## インストール
 
-配布版は [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg をダウンロードする(Apple silicon 向け)。未署名なので、初回は Finder で右クリック → 「開く」を選ぶか、次を実行する。
+配布版は [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg をダウンロードする(Apple silicon 向け)。アドホック署名だけで Apple の公証は受けていないので、初回は macOS に止められる。次のどちらかで開く。
+
+- dmg から「アプリケーション」に入れて一度開き、開発元を検証できないという警告を「完了」で閉じる。システム設定の「プライバシーとセキュリティ」の下の方に出る「このまま開く」を押し、パスワードか Touch ID で許可する。以後はそのまま起動する
+- ターミナルで次を実行する(「壊れているため開けません」と出た場合もこれで開ける)
 
 ```bash
-xattr -d com.apple.quarantine /Applications/mdslide.app
+xattr -dr com.apple.quarantine /Applications/mdslide.app
 ```
+
+macOS 15 以降は、Finder の右クリックから「開く」を選んでも開けない。
 
 pptx の書き出しには、この Mac に Python と python-pptx が必要(アプリには含まれない)。アプリは起動時に確認し、見つからなければ案内を出す。おすすめは mdslide 専用の環境に入れる方法で、アプリはこの場所を最初に探す。
 
@@ -77,7 +82,7 @@ python3 -m pip install -r requirements.txt   # 開発する場合は requirement
 npm run dev
 ```
 
-配布用のビルドは `npm run dist:mac`(未署名の dmg / zip を `release/` に出す)。GUI を使わずに出力だけ行うこともできる。
+配布用のビルドは `npm run dist:mac`(アドホック署名の dmg / zip を `release/` に出す)。GUI を使わずに出力だけ行うこともできる。
 
 ```bash
 python3 tools/export_pptx.py deck.json --master master.pptx -o out.pptx --assets .
