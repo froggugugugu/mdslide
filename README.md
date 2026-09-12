@@ -24,7 +24,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 ## はじめの 5 分
 
-1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け。Apple の公証を受けていないので、初回の開き方は下の「インストール」を見る)。pptx を出すには Python と python-pptx も要る。見つからなければ起動時に案内が出て、設定(⌘,)の「書き出し」に入れ方がある
+1. ターミナルで `curl -fsSL https://froggugugugu.github.io/mdslide/install.sh | bash` を実行する(Apple silicon 向け)。mdslide が「アプリケーション」に入り、pptx の書き出しに使う python-pptx も専用の環境に入る。dmg から手で入れる方法は下の「インストール」
 2. 起動画面で「新しく作る」を押し、資料のフォルダを選ぶ(ダイアログで新しく作ってもよい)。その中に `deck.md` が表紙・章・スライド 1 枚だけの空の枠でできる。題はフォルダ名(見本を触りたければ「サンプルを見る」)
 3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本の `examples/sample-master.pptx` をそのまま使ってもよい。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
 4. 右ペインで書く(既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替えられる)。左ペインでドラッグか ⌥↑↓ で並べ替える。番号は自動で振り直される
@@ -54,10 +54,24 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 ## インストール
 
-配布版は [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg をダウンロードする(Apple silicon 向け)。Apple の公証を受けていないので、ブラウザでダウンロードしたまま開くと、macOS は「“mdslide”は壊れているため開けません」と表示する。アプリは壊れていない。「ゴミ箱に入れる」は押さずに閉じ、次の順で入れる。
+ターミナルで次を実行する(Apple silicon 向け)。
 
-1. dmg を開き、mdslide を「アプリケーション」にドラッグする
-2. ターミナルで次を実行し、ダウンロードしたときに付く隔離属性を外す(初回だけ)
+```bash
+curl -fsSL https://froggugugugu.github.io/mdslide/install.sh | bash
+```
+
+[scripts/install.sh](https://github.com/froggugugugu/mdslide/blob/main/scripts/install.sh) が次を行う。オプションはスクリプト冒頭のコメントにある。
+
+- [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の最新版の zip をダウンロードし、署名を確かめてから `/Applications/mdslide.app` に入れる(書き込めなければ `~/Applications`)。入っていれば置き換える
+- pptx の書き出しに使う python-pptx を `~/.config/mdslide/venv` に入れる。アプリはこの場所を最初に探す。Python 3 が無ければ `xcode-select --install` を案内して飛ばす
+- mdslide を開く
+
+curl でダウンロードしたファイルには、ブラウザと違って隔離属性(`com.apple.quarantine`)が付かない。Apple の公証を受けていない配布版でも、このコマンドで入れればそのまま開ける。
+
+ブラウザで dmg をダウンロードして入れる場合は、開く前に隔離属性を外す。外さずに開くと、macOS は「“mdslide”は壊れているため開けません」と表示する(アプリは壊れていない。「ゴミ箱に入れる」は押さずに閉じる)。
+
+1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を開き、mdslide を「アプリケーション」にドラッグする
+2. ターミナルで次を実行する
 
    ```bash
    xattr -dr com.apple.quarantine /Applications/mdslide.app
@@ -65,7 +79,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 3. 「アプリケーション」から mdslide を開く
 
-pptx の書き出しには、この Mac に Python と python-pptx が必要(アプリには含まれない)。アプリは起動時に確認し、見つからなければ案内を出す。おすすめは mdslide 専用の環境に入れる方法で、アプリはこの場所を最初に探す。
+この場合、python-pptx は自分で入れる。アプリは起動時に確認し、見つからなければ案内を出す。
 
 ```bash
 python3 -m venv ~/.config/mdslide/venv

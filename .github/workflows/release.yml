@@ -29,6 +29,11 @@ jobs:
           hdiutil attach -nobrowse -readonly -mountpoint "$mnt" release/*.dmg
           codesign --verify --deep --strict --verbose=2 "$mnt/mdslide.app"
           hdiutil detach "$mnt"
+      - name: The installer puts the built app in place with an intact signature
+        run: |
+          dir="$(mktemp -d)"
+          MDSLIDE_ZIP="$(ls release/*.zip)" MDSLIDE_APP_DIR="$dir" MDSLIDE_SKIP_PYTHON=1 MDSLIDE_NO_OPEN=1 bash scripts/install.sh
+          codesign --verify --deep --strict "$dir/mdslide.app"
       - name: Create the release with dmg / zip attached
         run: gh release create "$GITHUB_REF_NAME" release/*.dmg release/*.zip --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
         env: { GH_TOKEN: "${{ github.token }}" }

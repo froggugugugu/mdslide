@@ -4,7 +4,7 @@
 |---|---|---|---|
 | 単体 | `tests/unit/` | `npm test` | parser / render / geometry / importMaster / workspace / editor 拡張 / 各コンポーネント |
 | 内部結合 | `tests/integration/` | `npm test` | store を通した Markdown→スライド→保存の一連、フォルダ監視と競合、Electron ブリッジ経由の書き出し |
-| Python | `tests/python/` | `npm run test:py` | deck.json v2 → pptx。レイアウト解決、画像内接、表、ノート、警告、失敗時のメッセージ |
+| Python | `tests/python/` | `npm run test:py` | deck.json v2 → pptx。レイアウト解決、画像内接、表、ノート、警告、失敗時のメッセージ。`scripts/install.sh`(macOS のみ): 隔離属性を付けずに入れる、署名が合わなければ入れない、入れ替え |
 | E2E（Web） | `tests/e2e/test_web.py` | `npm run test:e2e` | ビルド済みレンダラを headless Chromium で操作。フォルダは OPFS で代替 |
 | E2E（Electron） | `tests/e2e/test_electron.py` | `npm run test:e2e:electron` | 実アプリを起動し CDP で操作。argv 起動、chokidar、Python 生成まで |
 

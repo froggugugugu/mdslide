@@ -36,4 +36,5 @@ jobs:
         with: { python-version: "3.12", cache: pip }
       - run: npm ci
       - run: pip install -r requirements-dev.txt
+      - run: python -m pytest tests/python/test_install_script.py -q   # macOS only (ditto, codesign, xattr); skipped on the Linux job
       - run: npm run test:e2e:electron
