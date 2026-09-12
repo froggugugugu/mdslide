@@ -127,7 +127,7 @@
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <div class="max-w-2xl">
             <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">インストール</h2>
-            <p class="mt-3 text-muted-foreground">配布版は dmg を入れるだけです。pptx を書き出すには Python と python-pptx が必要で、見つからなければアプリが起動時に入れ方を案内します。</p>
+            <p class="mt-3 text-muted-foreground">配布版は dmg を入れて、ターミナルで 1 行実行します。pptx を書き出すには Python と python-pptx が必要で、見つからなければアプリが起動時に入れ方を案内します。</p>
           </div>
           <div class="mt-8 grid gap-6 lg:grid-cols-2">
             <div>
@@ -147,7 +147,7 @@
 python3 -m venv ~/.config/mdslide/venv
 ~/.config/mdslide/venv/bin/python -m pip install python-pptx</code></pre>
               </div>
-              <p class="mt-2 text-xs text-muted-foreground">1 行目は、Apple の公証を受けていないアプリを初回に開くためのものです。ターミナルを使わない場合は、一度開いて警告を「完了」で閉じ、システム設定の「プライバシーとセキュリティ」にある「このまま開く」を押してください。macOS 15 以降は Finder の右クリックでは開けません。2〜3 行目は pptx の書き出しに使う python-pptx を、mdslide 専用の環境に入れます。</p>
+              <p class="mt-2 text-xs text-muted-foreground">1 行目は、mdslide を「アプリケーション」に入れたあとに一度だけ実行します。Apple の公証を受けていないため、実行しないと macOS が「壊れているため開けません」と表示して開けません（アプリは壊れていません）。2〜3 行目は pptx の書き出しに使う python-pptx を、mdslide 専用の環境に入れます。</p>
             </div>
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm font-medium">

@@ -54,16 +54,16 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 ## インストール
 
-配布版は [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg をダウンロードする(Apple silicon 向け)。アドホック署名だけで Apple の公証は受けていないので、初回は macOS に止められる。次のどちらかで開く。
+配布版は [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg をダウンロードする(Apple silicon 向け)。Apple の公証を受けていないので、ブラウザでダウンロードしたまま開くと、macOS は「“mdslide”は壊れているため開けません」と表示する。アプリは壊れていない。「ゴミ箱に入れる」は押さずに閉じ、次の順で入れる。
 
-- dmg から「アプリケーション」に入れて一度開き、開発元を検証できないという警告を「完了」で閉じる。システム設定の「プライバシーとセキュリティ」の下の方に出る「このまま開く」を押し、パスワードか Touch ID で許可する。以後はそのまま起動する
-- ターミナルで次を実行する(「壊れているため開けません」と出た場合もこれで開ける)
+1. dmg を開き、mdslide を「アプリケーション」にドラッグする
+2. ターミナルで次を実行し、ダウンロードしたときに付く隔離属性を外す(初回だけ)
 
-```bash
-xattr -dr com.apple.quarantine /Applications/mdslide.app
-```
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/mdslide.app
+   ```
 
-macOS 15 以降は、Finder の右クリックから「開く」を選んでも開けない。
+3. 「アプリケーション」から mdslide を開く
 
 pptx の書き出しには、この Mac に Python と python-pptx が必要(アプリには含まれない)。アプリは起動時に確認し、見つからなければ案内を出す。おすすめは mdslide 専用の環境に入れる方法で、アプリはこの場所を最初に探す。
 
