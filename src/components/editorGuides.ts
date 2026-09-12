@@ -25,9 +25,10 @@ class GaugeWidget extends WidgetType {
     const ratio = this.capacity ? this.used / this.capacity : 0;
     const state = ratio > 1 ? "over" : ratio > 0.9 ? "near" : "";
     el.className = `cm-gauge ${state}`;
+    el.dataset.tip = "推定の表示行数。PowerPoint の折り返しとは 1 行程度ずれることがあります";
     const text = document.createElement("span"); text.className = "cm-gauge-text";
     const bits = [`本文 ${Math.ceil(this.used)} / ${this.capacity} 行`, `${this.fontPt}pt${this.explicitSize ? "" : "（既定）"}`];
-    if (this.parts > 1) bits.push(`→ ${this.parts} 枚に分割`);
+    if (this.parts > 1) bits.push(`→ ${this.parts} 枚に分割（目安）`);
     if (this.images) bits.push(`画像 ${this.images}`);
     if (this.notes) bits.push("ノート");
     text.textContent = bits.join(" · ");
@@ -50,7 +51,8 @@ class SplitWidget extends WidgetType {
   toDOM() {
     const el = document.createElement("div");
     el.className = "cm-split";
-    el.textContent = `自動分割 ${this.index}/${this.total}`;
+    el.textContent = `自動分割目安 ${this.index}/${this.total}`;
+    el.dataset.tip = "本文量の推定から決めた分割位置（プレビューと書き出しもここで分かれます）。PowerPoint の折り返しとは 1 行程度ずれることがあります";
     return el;
   }
   ignoreEvent() { return true; }
@@ -60,14 +62,20 @@ class SplitWidget extends WidgetType {
 const sep = Decoration.line({ class: "cm-slide-sep" });
 const selectedSep = Decoration.line({ class: "cm-slide-sep cm-slide-sep-selected" });
 
-/** Find where each continuation chunk starts in the document: the first line of chunk i after the heading. */
+/**
+ * Where each auto-split part after the first starts in the document (1-based lines). A part's lines are the block's
+ * source lines in order, minus notes, image lines, "---" and trimmed blank lines, so every line of every part is matched
+ * in sequence. Looking a part's first line up by its text alone lands on an earlier duplicate ("- 要点" repeated).
+ */
 export function splitLines(doc: { lines: number; line(n: number): { text: string } }, headingLine0: number, chunks: string[][]): number[] {
   const out: number[] = [];
-  let cursor = headingLine0 + 2; // 1-based line after the heading
-  for (let c = 1; c < chunks.length; c++) {
-    const first = chunks[c][0];
-    for (let n = Math.max(cursor, headingLine0 + 2); n <= doc.lines; n++) {
-      if (doc.line(n).text === first) { out.push(n); cursor = n + 1; break; }
+  let n = headingLine0 + 2; // 1-based: the line after the heading
+  for (let c = 0; c < chunks.length; c++) {
+    for (let k = 0; k < chunks[c].length; k++) {
+      while (n <= doc.lines && doc.line(n).text !== chunks[c][k]) n++;
+      if (n > doc.lines) return out; // the document has moved on since the deck was rendered
+      if (k === 0 && c > 0) out.push(n);
+      n++;
     }
   }
   return out;

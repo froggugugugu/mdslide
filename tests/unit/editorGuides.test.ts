@@ -38,11 +38,26 @@ describe("editor guides", () => {
       while (it.value) { const w = (it.value.spec as { widget?: { toDOM(): HTMLElement } }).widget; if (w) { const el = w.toDOM(); if (el.className === "cm-split") splits.push(el.textContent!); } it.next(); }
     }
     const total = slides.filter((s) => s.title === "長い").length;
-    expect(splits).toEqual(Array.from({ length: total - 1 }, (_, i) => `自動分割 ${i + 2}/${total}`));
+    expect(splits).toEqual(Array.from({ length: total - 1 }, (_, i) => `自動分割目安 ${i + 2}/${total}`));
     // the marker sits on the first line of the second chunk
     const second = slides.filter((s) => s.title === "長い")[1].body[0];
     const line = MD.split("\n").indexOf(second) + 1;
     expect(splitLines(v.state.doc, slides.find((s) => s.title === "長い")!.sourceLine!, slides.filter((s) => s.title === "長い").map((s) => s.body))[0]).toBe(line);
+  });
+  it("puts each split marker where its part really starts, even when every line is the same", () => {
+    const same = Array.from({ length: 40 }, () => "- 要点").join("\n"); // about 17 lines fit the default box: 3 parts
+    const md = `# 章\n\n## スライドタイトル\n\n${same}\n\n## 次\n\n- x\n`;
+    const parts = renderDeck(parseMarkdown(md)).filter((s) => s.title === "スライドタイトル");
+    expect(parts.length).toBeGreaterThanOrEqual(3);
+    const heading = parts[0].sourceLine!;               // 0-based
+    let next = heading + 3;                             // 1-based: heading, blank, then the first body line
+    const expected = parts.slice(1).map((_, i) => (next += parts[i].body.length));
+    expect(splitLines(mk(md).state.doc, heading, parts.map((p) => p.body))).toEqual(expected);
+    // a note, blank lines and an explicit "---" between parts are skipped, never matched
+    const md2 = `## A\n\n- x\n- x\n\n> note: n\n\n---\n\n- x\n`;
+    const p2 = renderDeck(parseMarkdown(md2)).filter((s) => s.title === "A");
+    expect(p2).toHaveLength(2);
+    expect(splitLines(mk(md2).state.doc, p2[0].sourceLine!, p2.map((p) => p.body))).toEqual([md2.split("\n").lastIndexOf("- x") + 1]);
   });
   it("survives edits that move headings and ignores stale positions", () => {
     const slides = renderDeck(parseMarkdown(MD));
