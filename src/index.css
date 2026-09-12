@@ -290,3 +290,13 @@ body.electron { background: transparent; }
 /* Body text laid out with the master's spacing: SlideCanvas sets --para-gap from the master's paragraph spacing. */
 .slide-canvas .region.metrics ul { margin: 0; }
 .slide-canvas .region.metrics li, .slide-canvas .region.metrics p { margin-top: var(--para-gap, 0); margin-bottom: 0; }
+
+/* Settings: text inputs and copyable commands (the 書き出し tab). */
+.settings-input { width: 100%; height: 28px; border: none; border-radius: 6px; background: var(--control); padding: 0 8px; font: inherit; font-size: 12.5px; color: var(--ink); }
+.settings-input.mono { font-family: var(--font-mono); font-size: 11.5px; }
+.settings-input:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-tint); }
+.settings-install { margin-top: 8px; padding-top: 12px; border-top: 0.5px solid var(--hairline); }
+.settings-install h3 { font-size: 12px; font-weight: 600; margin: 0 0 8px; color: var(--ink); }
+.settings-install p { margin: 0 0 6px; }
+.cmd { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px; }
+.cmd pre { flex: 1; min-width: 0; margin: 0; padding: 8px 10px; border-radius: 6px; background: var(--control); color: var(--ink); font: 11.5px/1.55 var(--font-mono); white-space: pre-wrap; word-break: break-all; user-select: text; }

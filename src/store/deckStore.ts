@@ -70,8 +70,8 @@ interface DeckState {
   /** Resolve a markdown image path into imageUrls. Never rejects: a read failure is recorded as not found (null). */
   resolveImage: (src: string) => Promise<void>;
   exportDeckJson: (json: string) => Promise<"written" | "download">;
-  /** Electron only: run the Python exporter. Result message for the UI. */
-  runExport: () => Promise<{ ok: boolean; message: string }>;
+  /** Electron only: run the Python exporter. Result message for the UI; `python` when Python or python-pptx is missing. */
+  runExport: () => Promise<{ ok: boolean; message: string; python?: boolean }>;
   /** Called by the file watcher (Electron) with a workspace-relative path. */
   onFileChanged: (rel: string) => void;
 
@@ -402,7 +402,13 @@ export const useDeckStore = create<DeckState>((set, get) => {
     else if (masterId?.startsWith("ws:") || (await ws.backend.exists(MASTER_FILE))) masterPath = MASTER_FILE;
     if (!masterPath) return { ok: false, message: "書き出しにはマスターが必要です。「マスター」から保管フォルダの pptx を選ぶか、フォルダに master.pptx を置いてください。" };
     const r = await ws.backend.runExport(EXPORT_FILE, masterPath, OUTPUT_FILE);
-    if (r.code !== 0) return { ok: false, message: `生成に失敗しました (${r.code})。${r.stderr.trim().split("\n").slice(-3).join(" / ")}` };
+    if (r.code !== 0) {
+      // On a new Mac the usual cause is a missing Python or python-pptx: say so, so the UI can point to the instructions.
+      if (r.code === -1 || /ModuleNotFoundError|No module named|ENOENT|xcrun: error|invalid active developer path/.test(r.stderr)) {
+        return { ok: false, python: true, message: "Python と python-pptx が見つからないため、pptx を書き出せませんでした。設定の「書き出し」に入れ方があります。" };
+      }
+      return { ok: false, message: `生成に失敗しました (${r.code})。${r.stderr.trim().split("\n").slice(-3).join(" / ")}` };
+    }
     const warnings = r.stderr.trim() ? ` 警告: ${r.stderr.trim().split("\n").length}件（${r.stderr.trim().split("\n")[0]}）` : "";
     return { ok: true, message: `${OUTPUT_FILE} を生成しました。${warnings}` };
   },

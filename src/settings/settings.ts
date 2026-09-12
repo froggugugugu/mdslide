@@ -21,6 +21,8 @@ export interface SettingsFile {
   editor: { vim: boolean; width: number | null };
   /** Thumbnail pane width in px (null = the default 232). Thumbnails scale with it. */
   navigator: { width: number | null };
+  /** Python used to write pptx (null: found automatically, see electron/python.ts). */
+  export: { python: string | null };
   console: { open: boolean; height: number; autoStart: boolean };
   tools: { selectedId: string; items: CliTool[] };
   help: { seen: boolean };
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: SettingsFile = {
   masters: { dir: null, default: null },
   editor: { vim: true, width: null },
   navigator: { width: null },
+  export: { python: null },
   console: { open: true, height: 260, autoStart: true },
   tools: { selectedId: "claude", items: [] },
   help: { seen: false },

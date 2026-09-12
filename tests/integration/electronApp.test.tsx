@@ -27,6 +27,7 @@ const api = vi.hoisted(() => {
     onChanged: (cb: (rel: string) => void) => { listeners.push(cb); return () => undefined; },
     runExport: vi.fn(async () => ({ code: 0, stdout: "wrote", stderr: "warning: one\n" })),
     showItem: vi.fn(async () => undefined), openPath: async () => "",
+    checkPython: vi.fn(async (): Promise<unknown> => ({ ok: true, python: "/usr/bin/python3", version: "3.9.6", pptx: "1.0.2", venv: "/w/.config/mdslide/venv", tried: ["/usr/bin/python3"] })),
     ptySpawn: vi.fn(async () => 1), ptyWrite: vi.fn(async () => undefined), ptyResize: vi.fn(async () => undefined), ptyKill: vi.fn(async () => undefined),
     ptyBackend: async () => "host" as const, onPtyData: (_cb: unknown) => () => undefined, onPtyExit: (_cb: unknown) => () => undefined,
   };
@@ -54,6 +55,8 @@ describe("App in Electron", () => {
     expect(api.files.get("/w/deck/CLAUDE.md")).toBe("@AGENTS.md\n");   // Claude Code imports the same file
     expect(api.ptySpawn).toHaveBeenCalledWith({ cwd: "/w/deck", cols: 80, rows: 24 });
     expect(api.ptyWrite).toHaveBeenCalledWith(1, "claude\r");
+    expect(api.checkPython).toHaveBeenCalled(); // the launch check: python-pptx is there, so no banner
+    expect(screen.queryByText(/python-pptx が入っていません/)).toBeNull();
     // the last folder is remembered in the settings file
     const { settings } = await import("../../src/settings/settings");
     await settings.flush();
@@ -76,6 +79,12 @@ describe("App in Electron", () => {
     await userEvent.click(screen.getByRole("button", { name: "書き出す" }));
     expect(await screen.findByText(/生成に失敗しました \(1\)/)).toBeInTheDocument();
 
+    // a missing python-pptx is named, with the way to the instructions
+    api.runExport.mockResolvedValueOnce({ code: 1, stdout: "", stderr: "Traceback (most recent call last)\nModuleNotFoundError: No module named 'pptx'" });
+    await userEvent.click(screen.getByRole("button", { name: "書き出す" }));
+    expect(await screen.findByText(/Python と python-pptx が見つからないため/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "入れ方を見る" })).toBeInTheDocument();
+
     // watcher: deck.md rewritten on disk while clean -> reloaded
     api.files.set("/w/deck/deck.md", "---\ntitle: Watched\n---\n\n## W\n");
     api.modified = async () => Date.now() + 100000;
@@ -83,6 +92,19 @@ describe("App in Electron", () => {
     await waitFor(() => expect(useDeckStore.getState().deck.meta.title).toBe("Watched"));
     // the bogus master.pptx is reported, not fatal
     expect(await screen.findByText(/master\.pptx を読み込めませんでした/)).toBeInTheDocument();
+  });
+
+  it("says at launch when python-pptx is missing and opens the instructions from the banner", async () => {
+    api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
+    api.checkPython.mockResolvedValueOnce({ ok: false, problem: "no-pptx", python: "/usr/bin/python3", version: "3.9.6", venv: "/w/.config/mdslide/venv", tried: ["/usr/bin/python3"] });
+    const { usePythonStore } = await import("../../src/export/python");
+    usePythonStore.setState({ check: null, dismissed: false });
+    render(<App />);
+    expect(await screen.findByText("pptx の書き出しに必要な python-pptx が入っていません。", undefined, { timeout: 4000 })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "入れ方を見る" }));
+    expect(screen.getByRole("dialog", { name: "設定" })).toBeInTheDocument();
+    expect(screen.getByText("python-pptx が入っていません。Python 3.9.6 は見つかりました")).toBeInTheDocument();
+    expect(screen.getByLabelText("専用の環境に入れるコマンド").textContent).toContain("/w/.config/mdslide/venv/bin/python -m pip install python-pptx");
   });
 
   it("shows the start screen when nothing is restored, and opens a Markdown file as the workspace", async () => {

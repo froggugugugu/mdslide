@@ -30,6 +30,10 @@ def test_workspace_from_argv_paste_watch_and_pptx_export(electron_app):
     pg, ws = electron_app
     dismiss_help(pg)
     assert pg.get_by_role("button", name="ws/deck.md").is_visible()  # toolbar shows folder/file
+    # the launch check finds a Python that can import python-pptx (the export below uses the same one)
+    check = pg.evaluate("() => window.mdslide.checkPython()")
+    assert check["ok"] and check["pptx"], check
+    assert pg.get_by_text("python-pptx が入っていません").count() == 0
     assert (ws / "deck.md").exists()
     assert pg.get_by_role("banner").get_by_role("combobox").input_value() == "ws:ws"
 

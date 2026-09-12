@@ -24,7 +24,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 ## はじめの 5 分
 
-1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け、未署名。初回は Finder で右クリック → 「開く」)。pptx を出すには Python 3.12 と `python3 -m pip install -r requirements.txt` も
+1. [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の dmg を入れる(Apple silicon 向け、未署名。初回は Finder で右クリック → 「開く」)。pptx を出すには Python と python-pptx も要る。見つからなければ起動時に案内が出て、設定(⌘,)の「書き出し」に入れ方がある
 2. 起動画面で「新しく作る」を押し、資料のフォルダを選ぶ(ダイアログで新しく作ってもよい)。その中に `deck.md` が表紙・章・スライド 1 枚だけの空の枠でできる。題はフォルダ名(見本を触りたければ「サンプルを見る」)
 3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本の `examples/sample-master.pptx` をそのまま使ってもよい。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
 4. 右ペインで書く(既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替えられる)。左ペインでドラッグか ⌥↑↓ で並べ替える。番号は自動で振り直される
@@ -47,7 +47,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 | --- | --- |
 | OS | macOS(Electron)。Linux / Windows は未検証 |
 | Node.js | 24.15 以上(ソースから動かす場合。`.node-version` / `.nvmrc` を置いてあるので fnm / nvm / asdf はそのまま切り替わる) |
-| Python | 3.12(pptx 出力と図生成。`requirements.txt`) |
+| Python | pptx の書き出しに Python 3.9 以上と python-pptx。図の生成を AI に任せるなら 3.12 と `requirements.txt` |
 | AI エージェント | 任意。PATH 上の `claude` `codex` `gemini` `aider` `copilot` `cursor-agent` `opencode` を検出して起動する |
 
 ブラウザ版(`npm run dev:web`)は開発と E2E テストのためのもの。Chromium 限定で、pptx 生成とコンソールは使えない。
@@ -60,7 +60,14 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 xattr -d com.apple.quarantine /Applications/mdslide.app
 ```
 
-pptx 出力には別途 Python 3.12 と `requirements.txt` の導入が必要。
+pptx の書き出しには、この Mac に Python と python-pptx が必要(アプリには含まれない)。アプリは起動時に確認し、見つからなければ案内を出す。おすすめは mdslide 専用の環境に入れる方法で、アプリはこの場所を最初に探す。
+
+```bash
+python3 -m venv ~/.config/mdslide/venv
+~/.config/mdslide/venv/bin/python -m pip install python-pptx
+```
+
+Python 自体が無ければ、先に `xcode-select --install` を実行する(Command Line Tools に Python 3 が入っている)。Python の場所は設定の「書き出し」で指定することもできる。
 
 ソースから動かす場合。Node は 24.15 以上(`.npmrc` の `engine-strict` により、古い Node では `npm ci` が最初に止まる)。node-pty のビルドに Xcode Command Line Tools(`xcode-select --install`)が要る。
 
@@ -147,7 +154,7 @@ my-deck/
 | 環境変数 | 用途 |
 | --- | --- |
 | `MDSLIDE_CONFIG` | 設定ファイルのパス |
-| `MDSLIDE_PYTHON` | pptx 出力に使う Python(既定 `python3`) |
+| `MDSLIDE_PYTHON` | pptx の書き出しに使う Python。指定するとそれだけを使い、自動では探さない |
 | `MDSLIDE_NODE` | node-pty を読み込めない環境で端末を中継する Node(既定 `node`) |
 
 ## 開発

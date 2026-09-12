@@ -6,16 +6,19 @@ import { THEMES } from "../settings/appearance";
 import { masterSource } from "../master/masterSource";
 import { SAMPLE_MASTER_NAME, sampleMasterBlob } from "../master/sampleMaster";
 import { bodyOverlaps } from "../model/boxes";
+import { copyText } from "../model/refs";
+import { installCommands, usePythonStore } from "../export/python";
 import { useDeckStore } from "../store/deckStore";
 import { isPreset, useToolsStore } from "../console/toolsStore";
 import { useTerminalStore } from "../console/terminalStore";
 import { isElectron } from "../workspace/workspace";
 
-export type SettingsTab = "general" | "editor" | "master" | "tools";
+export type SettingsTab = "general" | "editor" | "master" | "export" | "tools";
 const TABS: { id: SettingsTab; label: string; icon: IconName }[] = [
   { id: "general", label: "一般", icon: "gear" },
   { id: "editor", label: "エディタ", icon: "layoutText" },
   { id: "master", label: "マスター", icon: "master" },
+  { id: "export", label: "書き出し", icon: "export" },
   { id: "tools", label: "ツール", icon: "terminal" },
 ];
 
@@ -39,6 +42,7 @@ function useSetting<T>(pick: (s: SettingsFile) => T): T {
 const pickTheme = (s: SettingsFile) => s.appearance.theme;
 const pickVim = (s: SettingsFile) => s.editor.vim;
 const pickDefaultMaster = (s: SettingsFile) => s.masters.default;
+const pickPython = (s: SettingsFile) => s.export.python;
 
 /**
  * App settings only: how mdslide behaves on this machine. What a document says (its master, layouts, sizes) stays on the
@@ -67,6 +71,7 @@ export function SettingsSheet({ tab, onTab, onClose }: { tab: SettingsTab; onTab
             {tab === "general" && <GeneralTab />}
             {tab === "editor" && <EditorTab />}
             {tab === "master" && <MasterTab />}
+            {tab === "export" && <ExportTab />}
             {tab === "tools" && <ToolsTab />}
           </div>
           <div className="settings-foot">
@@ -234,6 +239,77 @@ function MasterTab() {
           </div>
         ))}
       </div>
+    </>
+  );
+}
+
+/** Writing pptx needs Python with python-pptx on this Mac: its status, where the app looks, and how to install it (ADR-0019). */
+function ExportTab() {
+  const check = usePythonStore((s) => s.check);
+  const checking = usePythonStore((s) => s.checking);
+  const run = usePythonStore((s) => s.run);
+  const configured = useSetting(pickPython);
+  const [copied, setCopied] = useState<string | null>(null);
+  useEffect(() => { if (isElectron && !usePythonStore.getState().check) void usePythonStore.getState().run(); }, []);
+  const cmds = installCommands(check);
+  const command = (label: string, lines: string[]) => {
+    const text = lines.join("\n");
+    const copy = () => { void copyText(text).then((ok) => { if (ok) { setCopied(text); setTimeout(() => setCopied((c) => (c === text ? null : c)), 1500); } }); };
+    return (
+      <div className="cmd">
+        <pre aria-label={label}>{text}</pre>
+        <button className="btn" onClick={copy}>{copied === text ? "コピーしました" : "コピー"}</button>
+      </div>
+    );
+  };
+  if (!isElectron) {
+    return (
+      <>
+        <h2>書き出し</h2>
+        <p>ブラウザ版では pptx を直接書き出せません。「書き出す」で deck.json を保存したあと、Python と python-pptx が入った環境で次を実行します。</p>
+        {command("書き出しのコマンド", ["python3 tools/export_pptx.py deck.json --master master.pptx -o out/deck.pptx --assets ."])}
+      </>
+    );
+  }
+  const status = !check ? (checking ? "確認中" : "未確認")
+    : check.ok ? `使えます。python-pptx ${check.pptx}、Python ${check.version}`
+    : check.problem === "no-pptx" ? `python-pptx が入っていません。Python ${check.version} は見つかりました`
+    : check.problem === "needs-clt" ? "Python を使うには Command Line Tools が必要です"
+    : "Python が見つかりません";
+  const needsPython = check?.problem === "no-python" || check?.problem === "needs-clt";
+  return (
+    <>
+      <h2>書き出し</h2>
+      <p>「書き出す」は、アプリに入っている変換スクリプトを Python で動かして pptx を作ります。Python と python-pptx はアプリに含まれていないので、この Mac に入っている必要があります。起動時にも確認し、使えなければ知らせます。</p>
+      <div className="settings-row">
+        <div className="settings-label">状態</div>
+        <div className="flex items-center gap-3">
+          <span style={{ color: check && !check.ok ? "var(--warn)" : "var(--ink)" }}>{status}</span>
+          <button className="btn" onClick={() => void run()} disabled={checking}>{checking ? "確認中" : "再確認"}</button>
+        </div>
+        {check?.python && <div className="settings-hint">{check.python}</div>}
+      </div>
+      <label className="settings-row">
+        <div className="settings-label">Python の場所</div>
+        <input className="settings-input mono" aria-label="Python の場所" placeholder="空欄なら自動で探す" value={configured ?? ""}
+          onChange={(e) => settings.update((v) => { v.export.python = e.target.value.trim() || null; })} />
+        <div className="settings-hint">空欄なら、mdslide 専用の環境、PATH、Homebrew などの順に探します。変えたら「再確認」を押します。</div>
+      </label>
+      {check && !check.ok && (
+        <section className="settings-install" aria-label="入れ方">
+          <h3>入れ方</h3>
+          {needsPython && (
+            <>
+              <p>1. Python を入れます。Apple の Command Line Tools に Python 3 が含まれています。ターミナルで次を実行し、表示に従います。</p>
+              {command("Command Line Tools のコマンド", [cmds.tools])}
+            </>
+          )}
+          <p>{needsPython ? "2. " : ""}mdslide 専用の環境を作り、python-pptx を入れます。ターミナルに貼り付けて実行し、終わったら「再確認」を押します。アプリはこの場所を最初に探します。</p>
+          {command("専用の環境に入れるコマンド", cmds.venv)}
+          <p className="settings-hint">今ある python3 にそのまま入れる場合は、次のコマンドでも構いません。</p>
+          {command("今の python3 に入れるコマンド", [cmds.user])}
+        </section>
+      )}
     </>
   );
 }

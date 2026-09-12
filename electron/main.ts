@@ -4,6 +4,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import chokidar, { type FSWatcher } from "chokidar";
 import { getSession, killAll, ptyBackend, spawnPty } from "./pty";
+import { checkPython, type PythonCheck } from "./python";
 
 /**
  * Main process: owns the file system. The renderer only sees the API in preload.ts.
@@ -147,12 +148,29 @@ ipcMain.handle("watch:start", async (_e, root: string) => {
 });
 ipcMain.handle("watch:stop", async () => { await watcher?.close(); watcher = null; });
 
-/** Run tools/export_pptx.py inside the workspace. Python is resolved from PATH (override with MDSLIDE_PYTHON). */
+/**
+ * The Python for the exporter (electron/python.ts, ADR-0019): an explicit choice (MDSLIDE_PYTHON, settings export.python),
+ * else mdslide's own venv next to settings.json, PATH and the usual places on a Mac. The last result is remembered.
+ */
+let lastPythonCheck: PythonCheck | null = null;
+async function configuredPython(): Promise<string | null> {
+  try {
+    const v = JSON.parse(await fs.readFile(settingsPath(), "utf8"))?.export?.python;
+    return typeof v === "string" && v.trim() ? v.trim() : null;
+  } catch { return null; }
+}
+async function runPythonCheck(): Promise<PythonCheck> {
+  lastPythonCheck = await checkPython({ env: process.env, home: app.getPath("home"), configDir: path.dirname(settingsPath()), configured: await configuredPython(), platform: process.platform });
+  return lastPythonCheck;
+}
+ipcMain.handle("python:check", () => runPythonCheck());
+
+/** Run tools/export_pptx.py inside the workspace with the Python the check found (checked again when the last one was not usable). */
 ipcMain.handle("export:run", async (_e, root: string, deckJson: string, master: string, output: string) => {
   const script = app.isPackaged
     ? path.join(process.resourcesPath, "tools", "export_pptx.py")
     : path.join(app.getAppPath(), "tools", "export_pptx.py");
-  const python = process.env.MDSLIDE_PYTHON || "python3";
+  const python = (lastPythonCheck?.ok ? lastPythonCheck : await runPythonCheck()).python ?? "python3";
   return new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
     const child = spawn(python, [script, deckJson, "--master", master, "-o", output, "--assets", root], { cwd: root });
     let stdout = "", stderr = "";

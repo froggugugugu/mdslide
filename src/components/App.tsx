@@ -12,6 +12,7 @@ import { Icon } from "./Icon";
 import { Tooltips } from "./Tooltips";
 import { settings } from "../settings/settings";
 import { applyTheme } from "../settings/appearance";
+import { usePythonStore } from "../export/python";
 import { useTerminalStore } from "../console/terminalStore";
 import { useCurrentMaster, useDeckStore } from "../store/deckStore";
 import { buildExport, download } from "../export/exportJson";
@@ -23,6 +24,9 @@ const NAV_DEFAULT = 232, NAV_MIN = 140, NAV_MAX = 520, SPLIT = 6;
 export function App() {
   const [showHelp, setShowHelp] = useState(false);
   const openSettings = useSettingsSheet((s) => s.open);
+  const python = usePythonStore((s) => s.check);
+  const pythonDismissed = usePythonStore((s) => s.dismissed);
+  const dismissPython = usePythonStore((s) => s.dismiss);
   const [ready, setReady] = useState(settings.loaded);
   const inboxOpen = useInboxStore((s) => s.open);
   const toggleInbox = useInboxStore((s) => s.toggle);
@@ -103,6 +107,7 @@ export function App() {
   const runExport = useDeckStore((s) => s.runExport);
   const onFileChanged = useDeckStore((s) => s.onFileChanged);
   const [exportNote, setExportNote] = useState<string | null>(null);
+  const [exportNeedsPython, setExportNeedsPython] = useState(false);
   const notice = useDeckStore((s) => s.notice);
   const setNotice = useDeckStore((s) => s.setNotice);
   const masterMissing = useDeckStore((s) => s.masterMissing);
@@ -111,7 +116,11 @@ export function App() {
   // Settings first (they hold the last folder and the help flag), then masters, then the folder.
   useEffect(() => {
     const offTheme = settings.subscribe((s) => applyTheme(s.appearance.theme)); // subscribed before load(), which notifies
-    settings.load().then(() => { setReady(true); setShowHelp(!settings.get().help.seen); return refresh(); }).then(() => restoreWorkspace());
+    settings.load().then(() => {
+      setReady(true); setShowHelp(!settings.get().help.seen);
+      if (isElectron) void usePythonStore.getState().run(); // can this Mac write pptx? (ADR-0019)
+      return refresh();
+    }).then(() => restoreWorkspace());
     // Manual edits to settings.json are picked up when the window regains focus.
     const onFocus = () => { void settings.load(); };
     window.addEventListener("focus", onFocus);
@@ -139,7 +148,9 @@ export function App() {
         const r = await runExport();
         setExporting(false);
         setExportNote(r.message);
+        setExportNeedsPython(!!r.python);
         if (r.ok) void workspace?.backend.showItem?.(OUTPUT_FILE);
+        else if (r.python) void usePythonStore.getState().run(); // refresh what the settings show
       } else {
         setExportNote(`deck.json を書き出しました。 python3 tools/export_pptx.py deck.json --master master.pptx -o out/deck.pptx --assets . を ${workspace?.name} で実行してください。`);
       }
@@ -166,6 +177,15 @@ export function App() {
     void dropFiles(workspace.backend, files).then((saved) => { if (saved.length) { useInboxStore.setState({ open: true }); } });
   };
 
+  // Writing pptx needs Python with python-pptx on this Mac: say so at launch, with the way to the instructions.
+  const pythonBanner = isElectron && python && !python.ok && !pythonDismissed ? (
+    <div className="banner warn">
+      <span className="truncate">{python.problem === "no-pptx" ? "pptx の書き出しに必要な python-pptx が入っていません。" : "pptx の書き出しに必要な Python が見つかりません。"}</span>
+      <button className="link shrink-0" onClick={() => openSettings("export")}>入れ方を見る</button>
+      <button className="link shrink-0" onClick={dismissPython}>閉じる</button>
+    </div>
+  ) : null;
+
   if (!ready) return <div className="h-full" />;
   const deckFile = workspace?.deckFile ?? "deck.md";
   if (!started && !workspace) {
@@ -183,6 +203,7 @@ export function App() {
             <button className="link shrink-0" onClick={() => setNotice(null)}>閉じる</button>
           </div>
         )}
+        {pythonBanner}
         <StartScreen />
         <SettingsHost />
         <Tooltips />
@@ -245,9 +266,11 @@ export function App() {
           <button className="link shrink-0" onClick={() => setNotice(null)}>閉じる</button>
         </div>
       )}
+      {pythonBanner}
       {exportNote && (
-        <div className="banner info">
+        <div className={`banner ${exportNeedsPython ? "warn" : "info"}`}>
           <span className="truncate">{exportNote}</span>
+          {exportNeedsPython && <button className="link shrink-0" onClick={() => openSettings("export")}>入れ方を見る</button>}
           <button className="link shrink-0" onClick={() => setExportNote(null)}>閉じる</button>
         </div>
       )}

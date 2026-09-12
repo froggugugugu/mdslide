@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { PythonCheck } from "./python";
 
 /** The only surface the renderer can reach. Mirrors src/workspace/electronApi.d.ts. */
 const api = {
@@ -42,6 +43,8 @@ const api = {
     const h = (_e: unknown, m: { id: number; code: number }) => cb(m.id, m.code);
     ipcRenderer.on("pty:exit", h); return () => ipcRenderer.removeListener("pty:exit", h);
   },
+  /** Is there a Python with python-pptx for the exporter? Checked at launch and from the settings (electron/python.ts). */
+  checkPython: (): Promise<PythonCheck> => ipcRenderer.invoke("python:check"),
   showItem: (p: string): Promise<void> => ipcRenderer.invoke("shell:showItem", p),
   openPath: (p: string): Promise<string> => ipcRenderer.invoke("shell:openPath", p),
   /** Appearance setting → nativeTheme, so the window chrome and vibrancy follow the page. */
