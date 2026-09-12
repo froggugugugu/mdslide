@@ -103,6 +103,30 @@ describe("importMaster: decorations the preview draws", () => {
   });
 });
 
+describe("importMaster: body text metrics for the fit estimate", () => {
+  it("inherits paragraph spacing from the master's bodyStyle and insets from the master's body placeholder", async () => {
+    const m = await importMaster(sample(), "s");
+    expect(findLayout(m, "body", "text")!.bodyText).toEqual({ spaceBefore: { pct: 0.2 }, insets: { l: 91440, t: 45720, r: 91440, b: 45720 } });
+    expect(findLayout(m, "cover")!.bodyText).toBeUndefined(); // title and subtitle only
+  });
+  it("lets the layout's body placeholder override line spacing, paragraph spacing in points and insets", async () => {
+    const JSZip = (await import("jszip")).default;
+    const zip = await JSZip.loadAsync(readFileSync("examples/sample-master.pptx"));
+    const from = '<p:ph idx="1"/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>';
+    let changed = 0;
+    for (const n of Object.keys(zip.files).filter((f) => /slideLayouts\/slideLayout\d+\.xml$/.test(f))) {
+      const xml = await zip.file(n)!.async("string");
+      if (!xml.includes('name="Body-Text"')) continue;
+      expect(xml).toContain(from);
+      zip.file(n, xml.replace(from, '<p:ph idx="1"/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr tIns="91440" bIns="182880"/><a:lstStyle><a:lvl1pPr><a:lnSpc><a:spcPct val="150000"/></a:lnSpc><a:spcBef><a:spcPts val="600"/></a:spcBef><a:spcAft><a:spcPts val="300"/></a:spcAft></a:lvl1pPr></a:lstStyle>'));
+      changed++;
+    }
+    expect(changed).toBe(1);
+    const m = await importMaster(await zip.generateAsync({ type: "blob" }), "spaced");
+    expect(findLayout(m, "body", "text")!.bodyText).toEqual({ lineSpacing: { pct: 1.5 }, spaceBefore: { pt: 6 }, spaceAfter: { pt: 3 }, insets: { l: 91440, t: 91440, r: 91440, b: 182880 } });
+  });
+});
+
 describe("examples/decorated-master.pptx (scripts/make_decorated_master.py)", () => {
   it("carries bands, pictures, a picture background, changed fonts and a fixed footer the preview can show", async () => {
     const m = await importMaster(new Blob([readFileSync("examples/decorated-master.pptx")]), "decorated");

@@ -26,11 +26,15 @@ export const MIN_TEXT_HEIGHT = 0.06;
 
 export const DEFAULT_TITLE: Frame = { x: MARGIN, y: 0.035, w: 1 - 2 * MARGIN, h: 0.07 };
 
-/** Content area below the title. `slideAspect` = width / height. */
-export function contentArea(titleBottom: number, slideAspect: number): Frame {
+/**
+ * Content area below the title. `slideAspect` = width / height. `band` (fractions of the slide width) keeps it clear of
+ * the master's header and footer (contentBand in src/model/boxes.ts).
+ */
+export function contentArea(titleBottom: number, slideAspect: number, band?: { top: number; bottom: number }): Frame {
   const H = 1 / slideAspect;
-  const y = titleBottom + TITLE_GAP;
-  return { x: MARGIN, y, w: 1 - 2 * MARGIN, h: H - MARGIN - y };
+  const y = Math.max(titleBottom + TITLE_GAP, band?.top ?? 0);
+  const bottom = Math.min(H - MARGIN, band?.bottom ?? H);
+  return { x: MARGIN, y, w: 1 - 2 * MARGIN, h: Math.max(0.01, bottom - y) };
 }
 
 /** Fit an image of the given aspect (w/h) inside a box, anchored to the top and to `side`. */

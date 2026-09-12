@@ -1,6 +1,6 @@
 import type { Block, BodyLayout, Deck, RenderedSlide } from "./types";
 import { layoutFromAttrs } from "../layouts/geometry";
-import { capacityLines, estimateLines, splitByFit } from "./fit";
+import { capacityLines, estimateLines, lineHeightPt, paragraphGapPt, splitByFit } from "./fit";
 import type { BodyBox } from "./boxes";
 
 export interface RenderOptions {
@@ -87,9 +87,12 @@ export function renderDeck(deck: Deck, opts: RenderOptions = {}): RenderedSlide[
     const fontPt = attrPt > 0 ? attrPt : deckFontPt ?? opts.masterFontPt ?? DEFAULT_FONT_PT;
     const box = opts.bodyBox?.(layout, b.images[0]?.src ? opts.imageAspect?.(b.images[0].src) : undefined) ?? DEFAULT_BOX;
     const widthEm = Math.max(4, box.widthPt / fontPt);
-    const capacity = meta.maxLines ?? capacityLines(box.heightPt, fontPt);
+    // One display line is the master's line height; every paragraph also gets the master's paragraph spacing (ADR-0018).
+    const lineH = lineHeightPt(fontPt, box.text);
+    const gap = paragraphGapPt(fontPt, box.text) / lineH;
+    const capacity = meta.maxLines ?? capacityLines(box.heightPt, fontPt, lineH / fontPt);
     // Explicit "---" parts first, then auto-split each part that still overflows the box.
-    const chunks = b.parts.flatMap((p) => splitByFit(textLines(p), widthEm, capacity));
+    const chunks = b.parts.flatMap((p) => splitByFit(textLines(p), widthEm, capacity, gap));
     const total = chunks.length;
     chunks.forEach((body, i) => {
       const continuation = total > 1 ? { index: i + 1, total } : undefined;
@@ -98,7 +101,7 @@ export function renderDeck(deck: Deck, opts: RenderOptions = {}): RenderedSlide[
         id: total > 1 ? `${b.id}#${i + 1}` : b.id, kind: "body", number, title: b.title,
         displayTitle: prefix(number, b.title) + suffix, layout, body,
         images: i === 0 ? b.images : [], notes: i === 0 ? b.notes : [], blockId: b.id, continuation, sourceLine: b.range[0],
-        fontPt, fit: { used: estimateLines(body, widthEm), capacity, widthEm, autofit: opts.autofit },
+        fontPt, fit: { used: estimateLines(body, widthEm, gap), capacity, widthEm, autofit: opts.autofit },
       });
     });
   }

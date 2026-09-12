@@ -238,3 +238,15 @@ def test_decorated_master_exports_with_its_footer_and_pictures(tmp_path, deck_js
     assert len(footers) == 1 and footers[0].text_frame.text == "ACME Platform Engineering · Confidential"
     nums = [sh for sh in body.placeholders if sh.placeholder_format.type == PP_PLACEHOLDER.SLIDE_NUMBER]
     assert len(nums) == 1 and nums[0].text_frame.text == "3"
+
+
+def test_overflow_warning_uses_the_apps_estimate_when_deck_json_has_one(tmp_path, master, deck_json):
+    """The app's estimate already counts the master's paragraph spacing, the insets and the footer; the exporter warns with it."""
+    slides = [
+        slide("body", "Tight", master_layout="Body-Text", body=["- a", "- b", "- c"], fontPt=18, fit={"used": 20.4, "capacity": 12}),
+        slide("body", "Roomy", master_layout="Body-Text", body=[f"- 行{i}" for i in range(60)], fontPt=18, fit={"used": 10, "capacity": 12}),
+    ]
+    r = run(deck_json(slides), master, tmp_path / "warn.pptx", tmp_path)
+    assert r.returncode == 0, r.stderr
+    assert "'Tight' body is estimated at 20.4 lines but the box fits 12 at 18pt" in r.stderr
+    assert "'Roomy'" not in r.stderr

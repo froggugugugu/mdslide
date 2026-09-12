@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import type { SlideKind } from "../model/types";
+import type { Spacing, TextSpacing } from "../model/fit";
 
 /** Body layouts that must exist in the master. Image slides use Body-Text plus a free picture shape. */
 export type MasterBodyKind = "text" | "2col";
@@ -68,6 +69,13 @@ export interface MasterLayout {
   background?: Background;
   /** false when the layout hides the master's shapes (showMasterSp="0"). */
   showMasterShapes: boolean;
+  /** Line / paragraph spacing and text insets of the body placeholder, for the fit estimate (absent without one). */
+  bodyText?: BodyTextMetrics;
+}
+
+/** How PowerPoint lays out text in a body placeholder: spacing plus the text insets (EMU). */
+export interface BodyTextMetrics extends TextSpacing {
+  insets: { l: number; t: number; r: number; b: number };
 }
 
 export interface Theme {
@@ -412,6 +420,36 @@ async function parseBackground(zip: JSZip, cSld: string, rels: Record<string, st
   return undefined;
 }
 
+// ---- Body text metrics ----------------------------------------------------------------------------------------------
+
+const DEFAULT_INSETS = { l: 91440, t: 45720, r: 91440, b: 45720 };
+const lvl1Of = (xml: string | undefined) => xml?.match(/<a:lvl1pPr\b[^>]*>[\s\S]*?<\/a:lvl1pPr>/)?.[0];
+const lstStyleOf = (sp: string | undefined) => sp?.match(/<a:lstStyle>[\s\S]*?<\/a:lstStyle>/)?.[0];
+
+function spacingIn(lvl1: string | undefined, tag: "lnSpc" | "spcBef" | "spcAft"): Spacing | undefined {
+  const block = lvl1?.match(new RegExp(`<a:${tag}>([\\s\\S]*?)</a:${tag}>`))?.[1];
+  if (!block) return undefined;
+  const pct = block.match(/<a:spcPct\b[^>]*\bval="(\d+)"/)?.[1];
+  if (pct !== undefined) return { pct: Number(pct) / 100000 };
+  const pts = block.match(/<a:spcPts\b[^>]*\bval="(\d+)"/)?.[1];
+  return pts !== undefined ? { pt: Number(pts) / 100 } : undefined;
+}
+
+function insetsIn(sp: string | undefined): Partial<BodyTextMetrics["insets"]> {
+  const pr = sp?.match(/<a:bodyPr\b([^>]*)>/)?.[1] ?? "";
+  const n = (k: string) => { const v = pr.match(new RegExp(`\\b${k}="(\\d+)"`))?.[1]; return v === undefined ? undefined : Number(v); };
+  return { l: n("lIns"), t: n("tIns"), r: n("rIns"), b: n("bIns") };
+}
+
+/** Spacing inherits layout body placeholder → master body placeholder → master bodyStyle; insets fall back to the defaults. */
+export function bodyTextMetrics(layoutBody: string | undefined, masterBody: string | undefined, masterBodyStyle: string): BodyTextMetrics {
+  const levels = [lvl1Of(lstStyleOf(layoutBody)), lvl1Of(lstStyleOf(masterBody)), lvl1Of(masterBodyStyle)];
+  const pick = (tag: "lnSpc" | "spcBef" | "spcAft") => { for (const l of levels) { const v = spacingIn(l, tag); if (v) return v; } return undefined; };
+  const li = insetsIn(layoutBody), mi = insetsIn(masterBody);
+  const inset = (k: "l" | "t" | "r" | "b") => li[k] ?? mi[k] ?? DEFAULT_INSETS[k];
+  return { lineSpacing: pick("lnSpc"), spaceBefore: pick("spcBef"), spaceAfter: pick("spcAft"), insets: { l: inset("l"), t: inset("t"), r: inset("r"), b: inset("b") } };
+}
+
 const spTreeOf = (xml: string) => xml.match(/<p:spTree>([\s\S]*?)<\/p:spTree>/)?.[1] ?? "";
 const cSldOf = (xml: string) => xml.match(/<p:cSld\b[^>]*>([\s\S]*?)<\/p:cSld>/)?.[1] ?? "";
 
@@ -427,6 +465,8 @@ export async function importMaster(file: File | Blob, name: string): Promise<Mas
   const theme = themeXml ? parseTheme(themeXml) : undefined;
   const masterPh = parsePlaceholders(masterXml, theme);
   const masterBodyPt = parseLvl1FontPt(masterXml.match(/<p:bodyStyle>[\s\S]*?<\/p:bodyStyle>/)?.[0] ?? "");
+  const masterBodyStyle = masterXml.match(/<p:bodyStyle>[\s\S]*?<\/p:bodyStyle>/)?.[0] ?? "";
+  const masterBodySp = bodyPlaceholderXml(masterXml);
   const masterRels = await readRels(zip, masterPath);
   const styleColor = (tag: string) => {
     const lvl = masterXml.match(new RegExp(`<p:${tag}>[\\s\\S]*?<a:lvl1pPr\\b[^>]*>[\\s\\S]*?<a:defRPr\\b[^>]*>([\\s\\S]*?)</a:defRPr>`))?.[1];
@@ -455,6 +495,7 @@ export async function importMaster(file: File | Blob, name: string): Promise<Mas
       decor: await resolveImages(zip, parseDecor(spTreeOf(xml), theme), rels),
       background: await parseBackground(zip, cSldOf(xml), rels, theme),
       showMasterShapes: !/<p:sldLayout\b[^>]*\bshowMasterSp="0"/.test(xml),
+      bodyText: body ? bodyTextMetrics(body, masterBodySp, masterBodyStyle) : undefined,
     });
   }
   const provided = new Set(layouts.filter((l) => l.role).map((l) => l.role!.kind === "body" ? `body:${l.role!.layout}` : l.role!.kind));

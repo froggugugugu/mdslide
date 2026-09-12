@@ -191,12 +191,17 @@ def apply_font_size(ph, font_pt: float | None):
             r.font.size = Pt(font_pt)
 
 
-def check_fit(slide_title: str, ph, lines: list[str], font_pt: float | None):
+def check_fit(slide_title: str, ph, lines: list[str], font_pt: float | None, fit: dict | None = None):
+    """Warn when the body is estimated to overflow. Uses the app's estimate from deck.json when there is one (it counts
+    the master's line and paragraph spacing, the text insets and the footer); otherwise the plain model below."""
     if not font_pt or not lines:
         return
-    width_em = max(4.0, (ph.width / 12700) / font_pt)
-    used, cap = estimate_lines(lines, width_em), capacity_lines(ph.height / 12700, font_pt)
-    if used > cap:
+    if fit and "used" in fit and "capacity" in fit:
+        used, cap = float(fit["used"]), int(fit["capacity"])
+    else:
+        width_em = max(4.0, (ph.width / 12700) / font_pt)
+        used, cap = estimate_lines(lines, width_em), capacity_lines(ph.height / 12700, font_pt)
+    if used > cap + 1e-9:
         print(f"warning: '{slide_title}' body is estimated at {used:.1f} lines but the box fits {cap} at {font_pt:g}pt", file=sys.stderr)
 
 
@@ -255,7 +260,7 @@ def place_image_slide(slide, s: dict, bodies: list, assets: Path):
             text, tables = split_tables(s["body"])
             fill_text(ph, text)
             apply_font_size(ph, s.get("fontPt"))
-            check_fit(s["title"], ph, text, s.get("fontPt"))
+            check_fit(s["title"], ph, text, s.get("fontPt"), s.get("fit"))
             for rows in tables:
                 add_table(slide, ph, rows, keep_text=bool([t for t in text if t.strip()]))
         else:
@@ -363,7 +368,7 @@ def main():
             if bodies:
                 fill_text(bodies[0], text)
                 apply_font_size(bodies[0], s.get("fontPt"))
-                check_fit(s["title"], bodies[0], text, s.get("fontPt"))
+                check_fit(s["title"], bodies[0], text, s.get("fontPt"), s.get("fit"))
                 for rows in tables:
                     add_table(slide, bodies[0], rows, keep_text=bool([t for t in text if t.strip()]))
             elif s["body"]:

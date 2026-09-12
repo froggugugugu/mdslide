@@ -1,6 +1,8 @@
 /**
  * Text fit model shared by the editor gauge, the auto-split in render.ts and the exporter's warnings
- * (tools/export_pptx.py mirrors it). Deliberately simple: widths in em, CJK = 1em, Latin ≈ 0.55em.
+ * (the exporter warns with the numbers the app put in deck.json; tools/export_pptx.py keeps this base model as a
+ * fallback). Deliberately simple: widths in em, CJK = 1em, Latin ≈ 0.55em. Line height and paragraph spacing come from
+ * the master's body placeholder when there is one (ADR-0018).
  * It is a guide, not a layout engine: PowerPoint's own wrapping may differ by about a line.
  */
 export const LINE_SPACING = 1.2;
@@ -37,18 +39,41 @@ export function displayLines(line: string, widthEm: number): number {
   return Math.max(1, Math.ceil(lineWidthEm(text) / avail));
 }
 
-export function estimateLines(lines: string[], widthEm: number): number {
-  return lines.reduce((n, l) => n + displayLines(l, widthEm), 0);
+/** A spacing value as the master writes it: a share of a single line (a:spcPct) or points (a:spcPts). */
+export type Spacing = { pct: number } | { pt: number };
+/** Line and paragraph spacing of body text, from the master's body placeholder. */
+export interface TextSpacing { lineSpacing?: Spacing; spaceBefore?: Spacing; spaceAfter?: Spacing }
+
+const spacingPt = (v: Spacing | undefined, fontPt: number) => (!v ? 0 : "pt" in v ? v.pt : fontPt * LINE_SPACING * v.pct);
+
+/** Height of one display line in points: the master's line spacing, else PowerPoint's single spacing (font size × 1.2). */
+export function lineHeightPt(fontPt: number, s?: TextSpacing): number {
+  return s?.lineSpacing ? Math.max(fontPt * 0.5, spacingPt(s.lineSpacing, fontPt)) : fontPt * LINE_SPACING;
+}
+
+/** Space PowerPoint adds around every paragraph (before + after), in points. */
+export function paragraphGapPt(fontPt: number, s?: TextSpacing): number {
+  return spacingPt(s?.spaceBefore, fontPt) + spacingPt(s?.spaceAfter, fontPt);
+}
+
+/** Lines that become a paragraph of their own in the body placeholder (and so get the paragraph spacing). */
+const isParagraph = (line: string) => line.trim() !== "" && !IMAGE_ONLY.test(line) && !line.trim().startsWith("|");
+
+/** Display lines of a body; `paragraphGap` (in lines) is added for every text paragraph. */
+export function estimateLines(lines: string[], widthEm: number, paragraphGap = 0): number {
+  return lines.reduce((n, l) => n + displayLines(l, widthEm) + (paragraphGap && isParagraph(l) ? paragraphGap : 0), 0);
 }
 
 /** How many display lines fit in a box `heightPt` tall at `fontPt`. */
 export function capacityLines(heightPt: number, fontPt: number, lineSpacing = LINE_SPACING): number {
-  return Math.max(1, Math.floor(heightPt / (fontPt * lineSpacing)));
+  return Math.max(1, Math.floor(heightPt / (fontPt * lineSpacing) + 1e-9));
 }
 
 /** Split lines into chunks that each fit `capacity` display lines. Prefers blank lines; keeps tables whole. */
-export function splitByFit(lines: string[], widthEm: number, capacity: number): string[][] {
-  if (estimateLines(lines, widthEm) <= capacity) return [lines];
+export function splitByFit(lines: string[], widthEm: number, capacity: number, paragraphGap = 0): string[][] {
+  const est = (ls: string[]) => estimateLines(ls, widthEm, paragraphGap);
+  const room = capacity + 1e-9; // sums of fractional lines must not tip over by rounding
+  if (est(lines) <= room) return [lines];
   const chunks: string[][] = [];
   let cur: string[] = [], used = 0, i = 0;
   const trim = (ls: string[]) => { let s = 0, e = ls.length; while (s < e && !ls[s].trim()) s++; while (e > s && !ls[e - 1].trim()) e--; return ls.slice(s, e); };
@@ -57,11 +82,11 @@ export function splitByFit(lines: string[], widthEm: number, capacity: number): 
     // a table is an indivisible unit
     let unit = [lines[i]];
     if (lines[i].trim().startsWith("|")) { let j = i; while (j < lines.length && lines[j].trim().startsWith("|")) j++; unit = lines.slice(i, j); }
-    const cost = estimateLines(unit, widthEm);
-    if (used > 0 && used + cost > capacity) {
+    const cost = est(unit);
+    if (used > 0 && used + cost > room) {
       // back up to the last blank line inside the current chunk if it is in the latter half
       const blank = cur.lastIndexOf("");
-      if (blank > cur.length / 2) { const tail = cur.slice(blank + 1); cur = cur.slice(0, blank); push(); cur = tail; used = estimateLines(tail, widthEm); }
+      if (blank > cur.length / 2) { const tail = cur.slice(blank + 1); cur = cur.slice(0, blank); push(); cur = tail; used = est(tail); }
       else push();
     }
     cur.push(...unit); used += cost; i += unit.length;

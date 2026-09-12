@@ -11,7 +11,7 @@ import { settings } from "../../src/settings/settings";
 import { useDeckStore } from "../../src/store/deckStore";
 import { parseMarkdown } from "../../src/model/parser";
 import { renderDeck } from "../../src/model/render";
-import { importMaster } from "../../src/master/importMaster";
+import { findLayout, importMaster } from "../../src/master/importMaster";
 import { FakeDirHandle, installFakePicker } from "../helpers/fakeFs";
 
 // supportsWorkspace is decided when the workspace module loads, so the picker must exist before imports run.
@@ -142,6 +142,20 @@ describe("SlideCanvas", () => {
     // a section: showMasterSp="0" hides the master's decorations
     rerender(<SlideCanvas slide={s.find((x) => x.kind === "section")!} master={m} />);
     expect(container.querySelectorAll(".decor")).toHaveLength(0);
+  });
+  it("stops text bodies above the master's footer and lays them out with its insets and paragraph spacing", async () => {
+    const { decoratedMaster } = await import("../helpers/decoratedMaster");
+    const { contentBand } = await import("../../src/model/boxes");
+    const m = await importMaster(await decoratedMaster(), "deco");
+    const s = renderDeck(parseMarkdown(MD));
+    const { container } = render(<SlideCanvas slide={s.find((x) => x.title === "Text slide")!} master={m} />);
+    const body = container.querySelectorAll(".region")[1] as HTMLElement;
+    const r = findLayout(m, "body", "text")!.placeholders.find((p) => p.type === "body" || p.type === "obj")!.rect!;
+    const { w, h } = m.slideSize;
+    expect(parseFloat(body.style.height)).toBeCloseTo(((contentBand(m)!.bottom * w - r.y) / h) * 100, 3);
+    expect(parseFloat(body.style.height)).toBeLessThan((r.h / h) * 100);   // cut off above the logo in the footer
+    expect(body.classList.contains("metrics")).toBe(true);
+    expect(body.style.getPropertyValue("--para-gap")).toMatch(/px$/);
   });
   it("BodyText and parseTableRow handle edge cases", () => {
     expect(parseTableRow("| a | b |")).toEqual(["a", "b"]);
@@ -279,7 +293,7 @@ describe("Settings: master tab", () => {
     expect(settings.get().masters.default).toBe("corp.pptx");          // the first master becomes the default
     expect(useDeckStore.getState().masterId).toBe("dir:corp.pptx");     // a deck that names none resolves to it
     expect(useDeckStore.getState().markdown).not.toContain("master:");  // without its Markdown being touched
-    expect(screen.getByText("既定")).toBeInTheDocument();
+    expect(await screen.findByText("既定")).toBeInTheDocument();          // the card re-renders when the settings change
     expect(screen.getAllByText(/Body-Text/).length).toBeGreaterThan(0);
     expect(screen.getByText(/未使用/)).toBeInTheDocument();
     await userEvent.click(screen.getByText("削除"));
@@ -302,6 +316,14 @@ describe("Settings: master tab", () => {
     expect(await screen.findByText(/すでに保管フォルダにあります/)).toBeInTheDocument(); // never overwrites an edited copy
     await userEvent.click(screen.getByText("削除"));
     await waitFor(() => expect(useDeckStore.getState().masters).toHaveLength(0));
+  });
+  it("warns when a master's body box runs into the footer", async () => {
+    const { decoratedMaster } = await import("../helpers/decoratedMaster");
+    const m = await importMaster(await decoratedMaster(), "deco.pptx");
+    useDeckStore.setState({ masters: [{ ...m, id: "dir:deco.pptx", name: "deco.pptx" }] });
+    render(<SettingsSheet tab="master" onTab={() => undefined} onClose={() => undefined} />);
+    expect(screen.getByText(/本文枠の下端がフッタと重なっています/)).toBeInTheDocument();
+    expect(screen.queryByText(/本文枠の上端がヘッダ/)).toBeNull();
   });
   it("reports invalid files", async () => {
     render(<SettingsSheet tab="master" onTab={() => undefined} onClose={() => undefined} />);

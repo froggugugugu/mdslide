@@ -4,6 +4,8 @@ import { BODY_PRESETS, KIND_PRESETS, type PresetLayout, type Region } from "../l
 import { findLayout, type Decor, type MasterProfile, type PlaceholderStyle, type Rect } from "../master/importMaster";
 import { useDeckStore } from "../store/deckStore";
 import { contentArea, placeImage, toCss, type Frame } from "../layouts/geometry";
+import { contentBand } from "../model/boxes";
+import { lineHeightPt, paragraphGapPt } from "../model/fit";
 
 /** Resolve a markdown image path to something an <img> can show. */
 function useImageSrc(src: string): string | null {
@@ -139,9 +141,19 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
   const deckDate = useDeckStore((s) => s.deck.meta.date);
   // Image slides: geometry is computed, not taken from the master. Only the title block comes from the master.
   const titleFrame: Frame = { x: regions.title.x, y: regions.title.y / aspect, w: regions.title.w, h: regions.title.h / aspect };
-  const content = contentArea(titleFrame.y + titleFrame.h, aspect);
+  const band = master ? contentBand(master) : undefined;
+  const content = contentArea(titleFrame.y + titleFrame.h, aspect, band);
+  // Text and 2col bodies stop above the master's footer, as the fit estimate does (text flows from the top).
+  const clipBody = (r: Region): Region => (band && slide.kind === "body" && r.y + r.h > band.bottom * aspect ? { ...r, h: Math.max(0.02, band.bottom * aspect - r.y) } : r);
+  // Body text as PowerPoint lays it out: the placeholder's insets, the master's line height and paragraph spacing.
+  const metrics = slide.kind === "body" ? layout?.bodyText : undefined;
+  const bodyFontPt = slide.fontPt ?? 18;
+  const textLayout = (metrics
+    ? { lineHeight: lineHeightPt(bodyFontPt, metrics) / bodyFontPt, padding: `${ptPx(metrics.insets.t / 12700)}px ${ptPx(metrics.insets.r / 12700)}px ${ptPx(metrics.insets.b / 12700)}px ${ptPx(metrics.insets.l / 12700)}px`, "--para-gap": `${ptPx(paragraphGapPt(bodyFontPt, metrics))}px` }
+    : { lineHeight: 1.2 }) as CSSProperties;
+  const textClass = metrics ? "region metrics" : "region";
   const placement = imageLayout ? placeImage(imageLayout, content, dims ? dims.w / dims.h : undefined) : null;
-  const bodyStyle = placement ? (placement.body ? toCss(placement.body, aspect) : null) : regions.body ? pct(regions.body) : null;
+  const bodyStyle = placement ? (placement.body ? toCss(placement.body, aspect) : null) : regions.body ? pct(clipBody(regions.body)) : null;
 
   // What the master gives the look: background, decorations (unless the layout hides the master's), theme fonts, text colours.
   const theme = master?.theme;
@@ -212,13 +224,13 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
         </div>
       )}
       {slide.kind !== "agenda" && bodyStyle && col1.length > 0 && (
-        <div className="region" style={{ ...bodyStyle, lineHeight: 1.2, fontSize: bodyPx, backgroundColor: bodyPh?.fill, textAlign: alignCss(bodyPh?.align) }}><BodyText lines={col1} /></div>
+        <div className={textClass} style={{ ...bodyStyle, ...textLayout, fontSize: bodyPx, backgroundColor: bodyPh?.fill, textAlign: alignCss(bodyPh?.align) }}><BodyText lines={col1} /></div>
       )}
       {placement && !placement.body && col1.length > 0 && (
         <div className="region" style={{ left: "5%", bottom: "2%", width: "90%", color: "var(--warn)", fontSize: unit * 1.3 }}>本文の置き場がありません。画像幅を 3/4 か 1/2 にしてください</div>
       )}
       {regions.body2 && col2.length > 0 && (
-        <div className="region" style={{ ...pct(regions.body2), lineHeight: 1.2, fontSize: bodyPx }}><BodyText lines={col2} /></div>
+        <div className={textClass} style={{ ...pct(clipBody(regions.body2)), ...textLayout, fontSize: bodyPx }}><BodyText lines={col2} /></div>
       )}
       {placement && (
         <div className="region image" style={toCss(placement.image, aspect)}>

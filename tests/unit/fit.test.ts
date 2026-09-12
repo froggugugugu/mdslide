@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { capacityLines, charWidthEm, estimateLines, lineWidthEm, splitByFit } from "../../src/model/fit";
+import { capacityLines, charWidthEm, estimateLines, lineHeightPt, lineWidthEm, paragraphGapPt, splitByFit } from "../../src/model/fit";
 
 describe("text fit model", () => {
   it("measures characters: CJK 1em, Latin narrower, spaces narrow", () => {
@@ -35,5 +35,18 @@ describe("text fit model", () => {
     expect(splitByFit(table, 20, 3)).toEqual([["intro"], ["| a | b |", "|---|---|", "| 1 | 2 |", "| 3 | 4 |", "| 5 | 6 |"]]);
     // a long wrapped line counts as several display lines
     expect(splitByFit(["- " + "あ".repeat(50), "- x", "- y"], 20, 4)).toEqual([["- " + "あ".repeat(50), "- x"], ["- y"]]);
+  });
+  it("takes the master's line spacing and paragraph spacing into account", () => {
+    expect(lineHeightPt(18)).toBeCloseTo(21.6);
+    expect(lineHeightPt(18, { lineSpacing: { pct: 1.5 } })).toBeCloseTo(32.4);
+    expect(lineHeightPt(18, { lineSpacing: { pt: 24 } })).toBe(24);
+    expect(paragraphGapPt(18)).toBe(0);
+    expect(paragraphGapPt(18, { spaceBefore: { pct: 0.2 } })).toBeCloseTo(4.32);
+    expect(paragraphGapPt(18, { spaceBefore: { pt: 6 }, spaceAfter: { pt: 3 } })).toBe(9);
+    // every text paragraph adds the gap (in lines); blank lines, table rows and images do not
+    expect(estimateLines(["- a", "", "- b", "| x |", "![i](p.png)"], 20, 0.25)).toBe(4);
+    const six = ["- 0", "- 1", "- 2", "- 3", "- 4", "- 5"];
+    expect(splitByFit(six, 20, 5, 0.25)).toEqual([["- 0", "- 1", "- 2", "- 3"], ["- 4", "- 5"]]);
+    expect(splitByFit(six, 20, 6)).toEqual([six]); // without the spacing all six fit
   });
 });

@@ -5,6 +5,7 @@ import { settings, type SettingsFile } from "../settings/settings";
 import { THEMES } from "../settings/appearance";
 import { masterSource } from "../master/masterSource";
 import { SAMPLE_MASTER_NAME, sampleMasterBlob } from "../master/sampleMaster";
+import { bodyOverlaps } from "../model/boxes";
 import { useDeckStore } from "../store/deckStore";
 import { isPreset, useToolsStore } from "../console/toolsStore";
 import { useTerminalStore } from "../console/terminalStore";
@@ -178,6 +179,8 @@ function MasterTab() {
       <div className="mt-2 text-[12px]" style={{ color: "var(--ink-2)" }}>{m.layouts.filter((l) => l.role).map((l) => l.name).join(" · ") || "対応レイアウトなし"}</div>
       {m.missing.length > 0 && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>不足: {m.missing.join(", ")}</div>}
       {m.unmapped.length > 0 && <div className="mt-1 text-[12px]" style={{ color: "var(--ink-3)" }}>未使用: {m.unmapped.join(", ")}</div>}
+      {bodyOverlaps(m).footer && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>本文枠の下端がフッタと重なっています。自動分割はフッタの手前までで計算します</div>}
+      {bodyOverlaps(m).header && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>本文枠の上端がヘッダと重なっています。PowerPoint のスライドマスターで本文枠を下げてください</div>}
     </>
   );
 

@@ -1,6 +1,7 @@
 import type { Deck, RenderedSlide } from "../model/types";
 import { findLayout, type MasterProfile } from "../master/importMaster";
 import { contentArea, DEFAULT_TITLE, GAP, placeImage, toEmu, type Frame } from "../layouts/geometry";
+import { contentBand } from "../model/boxes";
 
 /**
  * Export contract consumed by tools/export_pptx.py.
@@ -31,7 +32,7 @@ export interface ExportDeck {
     notes: string[];
     /** Body font size in points (body slides). The exporter applies it to every body run. */
     fontPt?: number;
-    /** Fit estimate the app computed; the exporter re-checks and warns on overflow. */
+    /** Fit estimate the app computed (master spacing, insets and footer included); the exporter warns with it on overflow. */
     fit?: { used: number; capacity: number };
     agenda?: RenderedSlide["agenda"];
   }[];
@@ -50,7 +51,7 @@ export function buildExport(deck: Deck, slides: RenderedSlide[], master: MasterP
   const size = master?.slideSize ?? DEFAULT_SIZE;
   const aspect = size.w / size.h;
   const title = titleFrame(master, size);
-  const content = contentArea(title.y + title.h, aspect);
+  const content = contentArea(title.y + title.h, aspect, contentBand(master)); // clear of the master's header and footer
   const resolve = (s: RenderedSlide) => (master ? findLayout(master, s.kind, s.layout.kind === "2col" ? "2col" : "text")?.name ?? null : null);
   const geometry = (s: RenderedSlide) => {
     if (s.kind !== "body" || s.layout.kind !== "image") return undefined;

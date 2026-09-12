@@ -1,15 +1,59 @@
-import { contentArea, DEFAULT_TITLE, placeImage, type Frame } from "../layouts/geometry";
-import { findLayout, type MasterProfile } from "../master/importMaster";
+import { contentArea, DEFAULT_TITLE, GAP, MARGIN, placeImage, type Frame } from "../layouts/geometry";
+import { findLayout, type MasterLayout, type MasterProfile, type Rect } from "../master/importMaster";
+import type { TextSpacing } from "./fit";
 import type { BodyLayout } from "./types";
 
 export const PT_PER_EMU = 1 / 12700;
 export const DEFAULT_SLIDE = { w: 12192000, h: 6858000 };
+/** Clearance kept between body content and the master's header or footer, as a fraction of the slide width. */
+export const SAFE_GAP = 0.01;
+/** A shape belongs to the header when it lies entirely in the top third, to the footer when it starts in the bottom third. */
+const EDGE_ZONE = 1 / 3;
 
-export interface BodyBox { widthPt: number; heightPt: number }
+/** A body text box in points, already net of the placeholder's insets, with the spacing PowerPoint will use in it. */
+export interface BodyBox { widthPt: number; heightPt: number; text?: TextSpacing }
 
 /**
- * Where the body text goes, in points, for a given layout. Text slides use the master's body placeholder;
- * image and 2col slides use the computed geometry (the same one the preview and exporter use).
+ * Where body content may go vertically, in fractions of the slide width (like geometry Frames). The header and footer
+ * are the Body-Text layout's shapes, pictures and date / footer / slide-number placeholders (plus the master's shapes,
+ * unless the layout hides them) that reach into the content columns and sit in the top / bottom third of the slide.
+ * `headerBottom` / `footerTop` are their own edges; `top` / `bottom` keep SAFE_GAP clear of them. The person never
+ * writes margins: they follow from the master (ADR-0018).
+ */
+export interface ContentBand { top: number; bottom: number; headerBottom?: number; footerTop?: number }
+
+export function contentBand(master: MasterProfile | undefined): ContentBand | undefined {
+  if (!master) return undefined;
+  const { w, h } = master.slideSize;
+  const layout = findLayout(master, "body", "text");
+  const obstacles: Rect[] = [
+    ...(layout?.showMasterShapes === false ? [] : master.master.decor.map((d) => d.rect)),
+    ...(layout?.decor ?? []).map((d) => d.rect),
+    ...(layout?.placeholders ?? []).filter((p) => (p.type === "dt" || p.type === "ftr" || p.type === "sldNum") && p.rect).map((p) => p.rect!),
+  ];
+  const left = MARGIN * w, right = (1 - MARGIN) * w;
+  let headerBottom: number | undefined, footerTop: number | undefined;
+  for (const r of obstacles) {
+    if (r.w <= 0 || r.h <= 0 || r.x + r.w <= left || r.x >= right) continue; // outside the content columns (a side stripe)
+    if (r.y + r.h <= h * EDGE_ZONE) headerBottom = Math.max(headerBottom ?? 0, r.y + r.h);
+    else if (r.y >= h * (1 - EDGE_ZONE)) footerTop = Math.min(footerTop ?? h, r.y);
+  }
+  return {
+    top: headerBottom === undefined ? 0 : headerBottom / w + SAFE_GAP,
+    bottom: footerTop === undefined ? h / w : footerTop / w - SAFE_GAP,
+    headerBottom: headerBottom === undefined ? undefined : headerBottom / w,
+    footerTop: footerTop === undefined ? undefined : footerTop / w,
+  };
+}
+
+const bodyRectOf = (l: MasterLayout | undefined): Rect | undefined =>
+  l?.placeholders.find((p) => (p.type === "body" || p.type === "obj") && p.rect)?.rect ?? undefined;
+
+/**
+ * Where the body text goes, in points, for a given layout. Text and 2col slides use the master's body placeholder,
+ * stopped above the footer (text flows from the top, so only the bottom is cut); image slides use the computed geometry
+ * inside the content band. Boxes are net of the placeholder's text insets and carry its line and paragraph spacing, so
+ * the fit estimate counts what PowerPoint will actually lay out.
  */
 export function bodyBoxFor(master: MasterProfile | undefined, layout: BodyLayout, imageAspect?: number): BodyBox {
   const size = master?.slideSize ?? DEFAULT_SLIDE;
@@ -18,21 +62,49 @@ export function bodyBoxFor(master: MasterProfile | undefined, layout: BodyLayout
   const text = master ? findLayout(master, "body", "text") : undefined;
   const titleRect = text?.placeholders.find((p) => (p.type === "title" || p.type === "ctrTitle") && p.rect)?.rect;
   const title: Frame = titleRect ? { x: titleRect.x / size.w, y: titleRect.y / size.w, w: titleRect.w / size.w, h: titleRect.h / size.w } : DEFAULT_TITLE;
-  const content = contentArea(title.y + title.h, aspect);
+  const band = contentBand(master);
+  const content = contentArea(title.y + title.h, aspect, band);
+  const clipped = (r: Rect) => {
+    const bottom = band ? Math.min(r.y + r.h, band.bottom * size.w) : r.y + r.h;
+    return { widthPt: r.w * PT_PER_EMU, heightPt: Math.max(0, bottom - r.y) * PT_PER_EMU };
+  };
+  const inset = (box: { widthPt: number; heightPt: number }, l: MasterLayout | undefined): BodyBox => {
+    const m = l?.bodyText;
+    if (!m) return box;
+    return {
+      widthPt: Math.max(1, box.widthPt - (m.insets.l + m.insets.r) * PT_PER_EMU),
+      heightPt: Math.max(1, box.heightPt - (m.insets.t + m.insets.b) * PT_PER_EMU),
+      text: { lineSpacing: m.lineSpacing, spaceBefore: m.spaceBefore, spaceAfter: m.spaceAfter },
+    };
+  };
   if (layout.kind === "image") {
     const p = placeImage(layout, content, imageAspect);
     const b = p.body ?? { w: content.w, h: 0.001 };
-    return { widthPt: b.w * W, heightPt: b.h * W };
+    return inset({ widthPt: b.w * W, heightPt: b.h * W }, text);
   }
   if (layout.kind === "2col") {
     const l2 = master ? findLayout(master, "body", "2col") : undefined;
-    const b = l2?.placeholders.find((p) => (p.type === "body" || p.type === "obj") && p.rect)?.rect;
-    if (b) return { widthPt: b.w * PT_PER_EMU, heightPt: b.h * PT_PER_EMU };
-    return { widthPt: ((content.w - 0.03) / 2) * W, heightPt: content.h * W };
+    const b = bodyRectOf(l2);
+    if (b) return inset(clipped(b), l2);
+    return { widthPt: ((content.w - GAP) / 2) * W, heightPt: content.h * W };
   }
-  const b = text?.placeholders.find((p) => (p.type === "body" || p.type === "obj") && p.rect)?.rect;
-  if (b) return { widthPt: b.w * PT_PER_EMU, heightPt: b.h * PT_PER_EMU };
+  const b = bodyRectOf(text);
+  if (b) return inset(clipped(b), text);
   return { widthPt: content.w * W, heightPt: content.h * W };
+}
+
+/** Body-Text / Body-2col placeholders that run into the header or the footer: shown as a warning on the master. */
+export function bodyOverlaps(master: MasterProfile): { header: boolean; footer: boolean } {
+  const band = contentBand(master);
+  const W = master.slideSize.w;
+  const rects = (["text", "2col"] as const)
+    .map((k) => master.layouts.find((l) => l.role?.kind === "body" && l.role.layout === k))
+    .flatMap((l) => (l ? l.placeholders.filter((p) => (p.type === "body" || p.type === "obj") && p.rect).map((p) => p.rect!) : []));
+  const headerBottom = band?.headerBottom, footerTop = band?.footerTop;
+  return {
+    header: headerBottom !== undefined && rects.some((r) => r.y < headerBottom * W - 1),
+    footer: footerTop !== undefined && rects.some((r) => r.y + r.h > footerTop * W + 1),
+  };
 }
 
 export function masterBodyFontPt(master: MasterProfile | undefined): number | undefined {
