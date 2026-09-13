@@ -1,8 +1,8 @@
 import sampleDataUrl from "../../examples/sample-master.pptx?inline";
 
 /**
- * The bundled example master (examples/sample-master.pptx): Office's default layouts renamed by the convention
- * (Cover / Agenda / Section / Body-Text / Body-2col), 16:9. Inlined as a data URL so it works from file:// in Electron
+ * The bundled example master (examples/sample-master.pptx, built by scripts/make_sample_master.py): the five
+ * convention layouts (Cover / Agenda / Section / Body-Text / Body-2col) on a 16:9 master. Inlined as a data URL so it works from file:// in Electron
  * and from the browser build alike; the settings sheet copies it into the masters folder so it can be opened in
  * PowerPoint, adjusted, and saved over.
  */
