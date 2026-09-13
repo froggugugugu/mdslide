@@ -13,7 +13,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Scripts are served from this site, pinned by hash (ADR-0027): Tailwind Play CDN 3.4.17 (cdn.tailwindcss.com/3.4.17) and Lucide 1.45.0 (lucide/dist/umd/lucide.min.js). -->
+    <script src="assets/tailwindcss-3.4.17.js" integrity="sha384-igm5BeiBt36UU4gqwWS7imYmelpTsZlQ45FZf+XBn9MuJbn4nQr7yx1yFydocC/K"></script>
     <script>
       // shadcn/ui の既定トークン（hsl）。色はすべてここから引く。
       tailwind.config = {
@@ -311,7 +312,7 @@
                 </div>
                 <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6"><code>curl -fsSL https://froggugugugu.github.io/mdslide/install.sh | bash</code></pre>
               </div>
-              <p class="mt-2 text-xs text-muted-foreground">最新版を「アプリケーション」（書き込めなければ <code class="font-mono">~/Applications</code>）に入れ、python-pptx を mdslide 専用の環境に入れて、mdslide を開きます。Python 3 が無いときは python-pptx を飛ばすので、<code class="font-mono">xcode-select --install</code> のあとにもう一度実行してください。中身は GitHub の <code class="font-mono">scripts/install.sh</code> で読めます。</p>
+              <p class="mt-2 text-xs text-muted-foreground">最新版を GitHub がリリースに記録した sha256 と照らし合わせてから「アプリケーション」（書き込めなければ <code class="font-mono">~/Applications</code>）に入れ、python-pptx を mdslide 専用の環境に入れて、mdslide を開きます。Python 3 が無いときは python-pptx を飛ばすので、<code class="font-mono">xcode-select --install</code> のあとにもう一度実行してください。中身は GitHub の <code class="font-mono">scripts/install.sh</code> で読めます。</p>
               <p class="mt-2 text-xs text-muted-foreground">ブラウザで <a href="https://github.com/froggugugugu/mdslide/releases/latest" class="underline decoration-border underline-offset-4 transition-colors hover:text-foreground" target="_blank" rel="noopener">Releases</a> の dmg から入れる場合は、「アプリケーション」に入れたあと、開く前に <code class="font-mono">xattr -dr com.apple.quarantine /Applications/mdslide.app</code> を実行してください。実行しないと「壊れているため開けません」と表示されます（アプリは壊れていません。「ゴミ箱に入れる」は押さずに閉じてください）。この場合 python-pptx は入らないので、アプリが起動時に出す案内に沿って入れてください。</p>
             </div>
             <div>
@@ -352,7 +353,7 @@ npm run dev</code></pre>
                 <i data-lucide="file-down" class="h-4 w-4 text-muted-foreground"></i>
                 まずは見本で試す
               </div>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">Office の既定テンプレートから作った 16:9 の見本で、5 つのレイアウトに必要な枠だけを置いています。アプリにも同梱されていて、設定（⌘,）のマスターで「見本を取り込む」を押せば保管フォルダに入り、既定のマスターがまだ無ければ既定になります。PowerPoint で開いて配色やロゴを直し、上書き保存すれば自分のマスターになります。ダウンロードした場合は、資料フォルダに <code class="font-mono text-foreground">master.pptx</code> という名前で置いても使えます。</p>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">python-pptx に同梱された Office の既定テンプレート（MIT License）から作った 16:9 の見本で、5 つのレイアウトに必要な枠だけを置いています。アプリにも同梱されていて、設定（⌘,）のマスターで「見本を取り込む」を押せば保管フォルダに入り、既定のマスターがまだ無ければ既定になります。PowerPoint で開いて配色やロゴを直し、上書き保存すれば自分のマスターになります。ダウンロードした場合は、資料フォルダに <code class="font-mono text-foreground">master.pptx</code> という名前で置いても使えます。</p>
               <a href="examples/sample-master.pptx" download class="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
                 <i data-lucide="download" class="h-4 w-4"></i>
                 sample-master.pptx
@@ -435,7 +436,10 @@ npm run dev</code></pre>
     <!-- Footer -->
     <footer class="border-t border-border">
       <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:px-6">
-        <p>&copy; 2026 froggugugugu. MIT License. Built with <a href="https://github.com/froggugugugu/project-blueprints" class="underline decoration-border underline-offset-4 transition-colors hover:text-foreground" target="_blank" rel="noopener">project-blueprints</a>.</p>
+        <div class="max-w-2xl space-y-1">
+          <p>&copy; 2026 froggugugugu. MIT License. Built with <a href="https://github.com/froggugugugu/project-blueprints" class="underline decoration-border underline-offset-4 transition-colors hover:text-foreground" target="_blank" rel="noopener">project-blueprints</a>.</p>
+          <p class="text-xs">PowerPoint は Microsoft Corporation の、Claude Code は Anthropic PBC の、macOS と Apple silicon は Apple Inc. の商標または登録商標です。mdslide はこれらの企業とは関係のない、個人が作っているツールです。<a href="THIRD_PARTY_NOTICES.html" class="underline decoration-border underline-offset-4 transition-colors hover:text-foreground">ライセンス表示</a></p>
+        </div>
         <nav class="flex items-center gap-4">
           <a href="README.html" class="transition-colors hover:text-foreground">使い方</a>
           <a href="docs/markdown-spec.html" class="transition-colors hover:text-foreground">Markdown 規約</a>
@@ -447,7 +451,7 @@ npm run dev</code></pre>
       </div>
     </footer>
 
-    <script src="https://unpkg.com/lucide@1.45.0/dist/umd/lucide.min.js"></script>
+    <script src="assets/lucide-1.45.0.min.js" integrity="sha384-1K5mjRr9EvBwlp0ALeQf1DEysXoqYs+nRQmDBi/UrEty5RgCjPRph7NJZkRjAFWJ"></script>
     <script>
       lucide.createIcons();
       // コードブロックのコピー: クリップボードへ書き、1.6 秒だけアイコンをチェックに変える。

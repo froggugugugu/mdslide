@@ -62,8 +62,8 @@ curl -fsSL https://froggugugugu.github.io/mdslide/install.sh | bash
 
 [scripts/install.sh](https://github.com/froggugugugu/mdslide/blob/main/scripts/install.sh) が次を行う。オプションはスクリプト冒頭のコメントにある。
 
-- [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の最新版の zip をダウンロードし、署名を確かめてから `/Applications/mdslide.app` に入れる(書き込めなければ `~/Applications`)。入っていれば置き換える
-- pptx の書き出しに使う python-pptx を `~/.config/mdslide/venv` に入れる。アプリはこの場所を最初に探す。Python 3 が無ければ `xcode-select --install` を案内して飛ばす
+- [Releases](https://github.com/froggugugugu/mdslide/releases/latest) の最新版の zip を https だけでダウンロードし、GitHub がリリースに記録した sha256 と照らし合わせ、署名を確かめてから `/Applications/mdslide.app` に入れる(書き込めなければ `~/Applications`)。入っていれば置き換える
+- pptx の書き出しに使う python-pptx を `~/.config/mdslide/venv` に入れる。版は固定し、ビルド済みの wheel だけを使う(Python 3.9 では Pillow の修正を含む版が入らないので、3.10 以上を勧める表示が出る)。アプリはこの場所を最初に探す。Python 3 が無ければ `xcode-select --install` を案内して飛ばす
 - mdslide を開く
 
 curl でダウンロードしたファイルには、ブラウザと違って隔離属性(`com.apple.quarantine`)が付かない。Apple の公証を受けていない配布版でも、このコマンドで入れればそのまま開ける。
@@ -83,7 +83,7 @@ curl でダウンロードしたファイルには、ブラウザと違って隔
 
 ```bash
 python3 -m venv ~/.config/mdslide/venv
-~/.config/mdslide/venv/bin/python -m pip install python-pptx
+~/.config/mdslide/venv/bin/python -m pip install python-pptx==1.0.2
 ```
 
 Python 自体が無ければ、先に `xcode-select --install` を実行する(Command Line Tools に Python 3 が入っている)。Python の場所は設定の「書き出し」で指定することもできる。
@@ -199,7 +199,7 @@ npm run test:all             # typecheck / test:coverage / test:py / test:e2e。
 | Python | `tests/python/` | deck.json → pptx(レイアウト解決、画像内接、表、ノート、警告)、図の生成ヘルパー、`scripts/install.sh`(macOS のみ) |
 | E2E | `tests/e2e/` | ユーザーが実際に行う一連の操作。Web は OPFS、Electron は CDP |
 
-リリースは `package.json` の `version` を上げ、同じ版のタグを push する(タグと `version` が違えば `release.yml` が止まる)。`release.yml` が macOS ランナーで dmg / zip をビルドし、署名とインストール用コマンドでの入れ方を確かめてから Releases に添付する。使い方ページ(GitHub Pages)とインストール用コマンドは、main への push で `pages.yml` が更新する。
+リリースは `package.json` の `version` を上げ、同じ版のタグを push する(タグと `version` が違えば `release.yml` が止まる)。`release.yml` の build ジョブが macOS ランナーで dmg / zip をビルドし、署名、インストール用コマンドでの入れ方、ライセンス表示、Electron fuses を確かめる。publish ジョブが下書きのリリースに添付してから公開する(Immutable releases のため、公開後は添付ファイルもタグも変えられない。ADR-0027)。使い方ページ(GitHub Pages)とインストール用コマンドは、main への push で `pages.yml` が更新する。
 
 ```bash
 v="v$(node -p "require('./package.json').version")" && git tag "$v" && git push origin "$v"
@@ -210,6 +210,7 @@ v="v$(node -p "require('./package.json').version")" && git tag "$v" && git push 
 - `src/model/` は純粋関数。React にも Electron にも依存しない
 - `src/store/` は Zustand。`markdown` 以外はすべて派生値
 - レンダラから Node API を直接触らない。IPC の窓口は `electron/preload.ts` だけ
+- レンダラは sandbox と CSP の下で動き、main のファイル系 IPC は開いたフォルダ・マスターの保管フォルダ・設定ファイルの中だけを扱う。deck.md の画像も資料フォルダの中だけ(ADR-0026)
 - プレビューと Python 出力は同じ幾何(`deck.json` の `geometry`)と同じ表示行モデルを共有する
 - 振る舞いの変更はテストから始める。カバレッジ閾値は下げない
 
@@ -217,10 +218,12 @@ v="v$(node -p "require('./package.json').version")" && git tag "$v" && git push 
 
 サプライチェーン攻撃への備えとして、依存はすべて完全一致で固定し、更新は PR 経由でのみ取り込む。
 
-- **npm**: `package.json` は完全一致のバージョン(`.npmrc` の `save-exact`)。`package-lock.json` をコミットし、セットアップも CI も `npm ci`
-- **Python**: `requirements.txt`(実行時)と `requirements-dev.txt`(テスト)で `==` 固定
-- **GitHub Actions**: タグではなくコミット SHA で固定(コメントにバージョンを併記)。ワークフローの `GITHUB_TOKEN` は最小権限で、書き込めるのは Releases を作る `release.yml`(contents)と Pages を公開する `pages.yml`(pages / id-token)だけ
-- **更新**: Dependabot が週次で PR を出す。CI が緑のものだけ取り込む
+- **npm**: `package.json` は完全一致のバージョン(`.npmrc` の `save-exact`)。`package-lock.json` をコミットし、セットアップも CI も `npm ci`。CI とリリースでは依存の install スクリプトを走らせず(`--ignore-scripts`)、node-pty だけを `npm run rebuild` で作る
+- **Python**: `requirements.txt`(実行時)と `requirements-dev.txt`(テスト)で `==` 固定。インストール用コマンドは python-pptx と依存を版で固定し、wheel だけを入れる
+- **GitHub Actions**: コミット SHA で固定(コメントにバージョンを併記)し、リポジトリ設定でも SHA 固定を必須にして、使える action を GitHub 製と認証済みの作成者のものに限る。runner の版も固定する。checkout はトークンを残さない。書き込めるのは `release.yml` の publish ジョブ(contents)と `pages.yml` の deploy ジョブ(pages / id-token)だけで、どちらもリポジトリのコードも依存も実行しない
+- **リリース**: Immutable releases で公開し、公開後は添付ファイルとタグを変えられない。main とリリースタグは、削除と強制 push をルールセットで禁じる
+- **紹介ページ**: Tailwind と Lucide は CDN から読まず、ハッシュで固定した同じサイトのファイルを読む
+- **更新**: Dependabot が週次で PR を出す。CI が緑のものだけ取り込む。脆弱性のアラートとセキュリティ更新の PR も有効
 - **Electron 本体**: バイナリの取得時に `@electron/get` が `SHASUMS256.txt` で検証する
 - **コンソールで起動する CLI**: PATH 上のものをそのまま使う。このリポジトリは AI エージェントを同梱しない
 
@@ -233,6 +236,8 @@ v="v$(node -p "require('./package.json').version")" && git tag "$v" && git push 
 - [docs/adr/](docs/adr/): 設計判断の記録
 - [docs/backlog.md](docs/backlog.md): バックログ
 - [CLAUDE.md](CLAUDE.md): 変えてはいけない原則と構成
+- [SECURITY.md](SECURITY.md): 脆弱性の知らせ方と、配布物の確かめ方
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): 同梱するサードパーティのソフトウェア・素材のライセンス表示と商標
 
 ## クレジット
 
@@ -240,4 +245,4 @@ v="v$(node -p "require('./package.json').version")" && git tag "$v" && git push 
 
 ## ライセンス
 
-[MIT](LICENSE)
+[MIT](LICENSE)。同梱するサードパーティのソフトウェアと素材のライセンス、商標については [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。脆弱性は公開の Issue ではなく、[SECURITY.md](SECURITY.md) の方法で知らせてください。

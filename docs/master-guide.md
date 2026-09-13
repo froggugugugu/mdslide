@@ -20,7 +20,7 @@ mdslide は書式（フォント・配色・背景・ロゴ・フッター）を
 
 ## まずは見本で試す
 
-[examples/sample-master.pptx](../examples/sample-master.pptx) は、Office の既定テンプレートから作った 16:9 の見本です。上の 5 つのレイアウトに必要な枠だけを置いています（ほかに、未使用の例として Blank が 1 つ）。`scripts/make_sample_master.py` で作り直せます。使い方ページからもダウンロードできます。
+[examples/sample-master.pptx](../examples/sample-master.pptx) は、python-pptx に同梱された Office の既定テンプレート（MIT License。表示は [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)）から作った 16:9 の見本です。上の 5 つのレイアウトに必要な枠だけを置いています（ほかに、未使用の例として Blank が 1 つ）。`scripts/make_sample_master.py` で作り直せます。使い方ページからもダウンロードできます。
 
 - いちばん簡単なのはアプリ内。設定（⌘,）のマスターで「見本を取り込む」を押すと、アプリに同梱された見本が保管フォルダに入り、既定のマスターがまだ無ければ既定になる。「Finder で表示」から PowerPoint で開いて配色やロゴを直し、上書き保存すれば、そのまま自分のマスターになる（すでに同名のファイルがあるときは上書きしない。古い見本を取り込み直すときは、先に保管フォルダから消す）
 - ダウンロードした場合は、資料フォルダに `master.pptx` という名前で置く（frontmatter に `master:` が無い資料はこれを使う）か、設定のマスターで「pptx を取り込む」

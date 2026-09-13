@@ -19,9 +19,10 @@
 - Electron E2E は表示が必要。Linux では Xvfb を自動起動、macOS はそのまま動く。
 
 ## CI
-- `ci.yml` unit（ubuntu）: typecheck、test:coverage、test:py、test:e2e。`tests/python/test_install_script.py` は Linux では skip
-- `ci.yml` electron-mac（macos）: `tests/python/test_install_script.py` と test:e2e:electron
-- `release.yml`（`v*` タグ）: typecheck と npm test、dist:mac、dmg の中のアプリの `codesign --verify --deep --strict`、zip からインストール用スクリプトで入れて署名を確認
+- `ci.yml` unit（ubuntu-24.04）: `npm ci --ignore-scripts` のあと typecheck、test:coverage、test:py、test:e2e。`tests/python/test_install_script.py` は Linux では skip
+- `ci.yml` electron-mac（macos-26）: `npm ci --ignore-scripts && npm run rebuild` のあと `tests/python/test_install_script.py` と test:e2e:electron
+- `release.yml`（`v*` タグ）: build（contents: read）が typecheck と npm test、dist:mac、dmg の中のアプリの `codesign --verify --deep --strict`、zip からインストール用スクリプトで入れて署名を確認、ライセンス表示と Electron fuses を確認し、dmg / zip を成果物に上げる。publish（contents: write）が下書きのリリースに添付して公開する（ADR-0027）
+- どのジョブも checkout はトークンを残さない（`persist-credentials: false`）。action はコミット SHA、runner は版で固定する
 
 ## jsdom の制約
 - ブラウザ版のフォルダハンドルは idb-keyval（IndexedDB）に置く。fake-indexeddb は structured clone でハンドルのメソッドを失う（`tests/unit/workspace.test.ts`）。
@@ -37,3 +38,4 @@
 1. ブラウザで Releases の dmg をダウンロードし、Apple silicon の Mac で「アプリケーション」に入れる
 2. `xattr -dr com.apple.quarantine /Applications/mdslide.app` を実行し、開けることを確かめる
 3. インストール用コマンドでも入れ、開けることと、書き出しで pptx ができることを確かめる
+4. `gh release verify v<版>` と `gh release verify-asset v<版> mdslide-<版>-arm64.dmg`（ダウンロードしたファイルで）が通ることを確かめる（Immutable releases のリリース証明。ADR-0027）

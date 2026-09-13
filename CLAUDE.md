@@ -24,6 +24,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
    ファイル I/O は `src/workspace/workspace.ts` の `Backend` インターフェースに閉じ込める。
    Electron では main プロセス（Node fs + chokidar 監視 + Python 起動）、ブラウザ版では File System Access API（Chromium のみ、ポーリング）。
    レンダラから直接 Node API を触らない。IPC の窓口は `electron/preload.ts` のみ。
+   レンダラは sandbox と CSP（`vite-csp.ts`）の下で動かし、新しいウィンドウと画面遷移は止める。main のファイル系 IPC は、開いたフォルダ・マスターの保管フォルダ・設定ファイルの中だけを扱う（`electron/paths.ts`）。deck.md の画像も資料フォルダの中の相対パスだけ（`src/model/imageSrc.ts` と export_pptx.py の `asset_path`。ADR-0026）。
    外部（Claude Code 等）が `deck.md` を書き換えたら、未編集なら自動再読み込み（ビューアモード）。
 5. **ラウンドトリップ保証**
    `serializeDeck(parseMarkdown(md))` は末尾改行の正規化を除き `md` と一致する。`tests/unit/model.test.ts` を壊さない。
@@ -43,7 +44,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 ## 構成
 
 ```
-src/model/      imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。行の高さと段落間隔はマスターから。書き出しの警告は deck.json の fit を使い、Python 側 display_lines は予備として対で保つ)  boxes.ts (レイアウトごとの本文枠 pt。内側余白と行間・段落間隔、ヘッダ・フッタを避ける contentBand、重なりの警告 bodyOverlaps)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  dnd.ts (ドロップ先の判定。章は章の間にだけ落ちる)  template.ts (「新しく作る」の空の枠。ADR-0015)  types.ts
+src/model/      imageSrc.ts (画像参照の判定。フォルダの中の相対パスだけ読む。ADR-0026)  imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。行の高さと段落間隔はマスターから。書き出しの警告は deck.json の fit を使い、Python 側 display_lines は予備として対で保つ)  boxes.ts (レイアウトごとの本文枠 pt。内側余白と行間・段落間隔、ヘッダ・フッタを避ける contentBand、重なりの警告 bodyOverlaps)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  dnd.ts (ドロップ先の判定。章は章の間にだけ落ちる)  template.ts (「新しく作る」の空の枠。ADR-0015)  types.ts
 src/master/     importMaster.ts (pptx zip → layouts/placeholders、本文の枠の選び方 bodyPlaceholders、マスターとレイアウトの装飾 decor・背景・プレースホルダーの見た目 style、テーマ色の解決 parseColor)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)  sampleMaster.ts (examples/sample-master.pptx をバンドルし、設定の「見本を取り込む」で保管フォルダへ)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
 src/sample.ts   「サンプルを見る」の組み込みサンプル（E2E が章・スライド名を前提にする）
@@ -51,20 +52,21 @@ src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)  python.ts (起動時の Python 確認の状態と、入れ方のコマンド)
 src/layouts/    geometry.ts (画像/本文の配置計算)  presets.ts (マスター無し時の既定枠)
 src/settings/   settings.ts (settings.json の読み書き。設定は必ずここを通す。ADR-0010)
-src/console/    presets.ts (CLI プリセット)  terminalStore.ts (端末セッション状態)  toolsStore.ts (CLI ツールのプリセットと設定)  agentsMd.ts (フォルダ用 AGENTS.md と、それを @import する CLAUDE.md。ADR-0016)
-src/console/    prompts.ts (端末に流す定型プロンプト。1 行ずつ)  inboxStore.ts (notes/ への下書き自動保存)
+src/console/    presets.ts (CLI プリセット)  terminalStore.ts (端末セッション状態。前面がツールかシェルかの判定 toolInForeground)  toolsStore.ts (CLI ツールのプリセットと設定)  agentsMd.ts (フォルダ用 AGENTS.md と、それを @import する CLAUDE.md。ADR-0016)
+src/console/    prompts.ts (端末に流す定型プロンプト。1 行ずつ。シェルが解釈する記号を含む名前は渡さない)  inboxStore.ts (notes/ への下書き自動保存)
 src/settings/appearance.ts (外観: <html data-theme> と Electron の nativeTheme。CSS は light-dark() で色を一度だけ書く)
 src/components/InboxDrawer.tsx (素材の受け入れと AI への指示。ADR-0012)  editorGuides.ts (区切り線・ゲージ・分割マーカーの装飾)
 src/components/TerminalPane.tsx (xterm.js 端末)  HelpSheet.tsx (使い方。初回起動で自動表示、⌘/)
-electron/main.ts (ウィンドウ・アプリメニュー・IPC ハンドラ、settings.json と保管フォルダの場所、書き出しの起動)  electron/preload.ts (レンダラに出す唯一の API)  electron/pty.ts (node-pty / ホスト中継)  electron/ptyHost.cjs  electron/python.ts (書き出し用 Python の検出。python-pptx の有無を確かめ、Command Line Tools の無い Mac では /usr/bin/python3 を実行しない。ADR-0019)
+electron/main.ts (ウィンドウ・アプリメニュー・IPC ハンドラ、settings.json と保管フォルダの場所、書き出しの起動)  electron/preload.ts (レンダラに出す唯一の API。sandbox のため CommonJS でビルド)  electron/paths.ts (IPC で扱えるパスの判定。リンクを解決して比べる。ADR-0026)  electron/pty.ts (node-pty / ホスト中継。前面のプロセス名)  electron/ptyHost.cjs  electron/python.ts (書き出し用 Python の検出。python-pptx の有無を確かめ、Command Line Tools の無い Mac では /usr/bin/python3 を実行しない。ADR-0019)
 src/workspace/  workspace.ts (フォルダ I/O、Markdown ファイルの入口と最近一覧、画像保存、外部変更検知)  bootstrap.ts (AGENTS.md / CLAUDE.md / theme.json / tools/mdslide_draw.py / notes/ の生成)  history.ts (.mdslide/history/ スナップショットと undo)
 src/components/editorExtensions.ts (画像貼り付け/ドロップ、スニペット Ctrl-Space、]] [[ 見出し移動、Mod-s / :w 保存)
-tools/          export_pptx.py (deck.json + master.pptx → out.pptx, python-pptx)  mdslide_draw.py (theme.json 準拠の図生成。ワークスペースに配布)
+tools/          export_pptx.py (deck.json + master.pptx → out.pptx, python-pptx。画像は --assets の中だけ)  mdslide_draw.py (theme.json 準拠の図生成。ワークスペースに配布)
 docs/           markdown-spec.md, master-guide.md (マスター pptx の作り方と AI 用プロンプト。紹介ページの同節と内容を揃える), testing.md, adr/, backlog.md, media/ (README のデモ GIF とコンセプト図、紹介ページのカルーセル画像 tour/)
-.github/pages/  index.html (GitHub Pages の紹介ページ。Tailwind / Lucide を CDN で読む単一ファイル。サイトのトップに置かれ、README は README.html になる)  _config.yml (Jekyll)
-.github/workflows/  ci.yml (unit: ubuntu で型・カバレッジ・Python・Web E2E / electron-mac: install.sh のテストと Electron E2E)  release.yml (v* タグで dmg / zip を作り、署名とインストール用スクリプトを確かめて Releases へ)  pages.yml (紹介ページ・README・docs・install.sh を Pages へ。ADR の目次も作る)。依存の更新は .github/dependabot.yml
-scripts/        install.sh (配布版を入れる。Releases の zip を取り /Applications へ、python-pptx を venv へ。Pages の直下に置く。ADR-0022)  make_demo_gif.py (実アプリを CDP で操作して README のデモ GIF を再生成)  make_tour_images.py (同じく実アプリを操作し、紹介ページのカルーセル画像 docs/media/tour/*.webp を撮る)  make_icon.py (docs/media/icon.svg から build/icon.png・icon.icns を生成)  make_sample_master.py (examples/sample-master.pptx を python-pptx の既定テンプレートから 16:9 で作る。ADR-0023)  make_decorated_master.py (見本に Pillow の生成画像などの装飾を足して examples/decorated-master.pptx を作る)
+.github/pages/  index.html (GitHub Pages の紹介ページ。Tailwind / Lucide は assets/ に置いたものを integrity 付きで読む単一ファイル。サイトのトップに置かれ、README は README.html になる)  _config.yml (Jekyll)
+.github/workflows/  ci.yml (unit: ubuntu で型・カバレッジ・Python・Web E2E / electron-mac: install.sh のテストと Electron E2E)  release.yml (v* タグ。build が dmg / zip を作って署名・インストール・ライセンス表示・fuses を確かめ、publish が下書きに添付してから公開。ADR-0027)  pages.yml (紹介ページ・README・docs・install.sh を Pages へ。ADR の目次も作る)。依存の更新は .github/dependabot.yml。CI は `npm ci --ignore-scripts`、checkout はトークンを残さず、action は SHA・runner は版で固定
+scripts/        install.sh (配布版を入れる。Releases の zip を https で取り、GitHub が記録した sha256 と署名を確かめて /Applications へ、版を固定した python-pptx を wheel だけで venv へ。Pages の直下に置く。ADR-0022)  make_demo_gif.py (実アプリを CDP で操作して README のデモ GIF を再生成)  make_tour_images.py (同じく実アプリを操作し、紹介ページのカルーセル画像 docs/media/tour/*.webp を撮る)  make_icon.py (docs/media/icon.svg から build/icon.png・icon.icns を生成)  make_sample_master.py (examples/sample-master.pptx を python-pptx の既定テンプレートから 16:9 で作る。ADR-0023)  make_decorated_master.py (見本に Pillow の生成画像などの装飾を足して examples/decorated-master.pptx を作る)
 build/          icon.png / icon.icns (アプリアイコン。electron-builder と開発時の Dock が使う。元は docs/media/icon.svg)
+SECURITY.md (脆弱性の知らせ方と配布物の確かめ方)  THIRD_PARTY_NOTICES.md (同梱物のライセンス表示と商標。配布アプリの licenses/ にも入れる。ADR-0028)  vite-csp.ts (ビルドしたページの CSP。ADR-0026)
 tests/helpers/  fakeFs.ts (File System Access API のメモリ版。ブラウザ版の Backend とストアのテスト用)  decoratedMaster.ts (見本 pptx に装飾の OOXML を足す。ADR-0017)
 examples/       sample-master.pptx（レイアウト名規約の見本。16:9、役割ごとに本文の枠は決まった数。scripts/make_sample_master.py で生成）  decorated-master.pptx（ロゴ・帯・画像の表紙・フォント変更を足した見本。プレビューと書き出しの確認用。scripts/make_decorated_master.py で生成）
 ```
