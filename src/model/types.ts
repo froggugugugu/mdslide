@@ -20,7 +20,7 @@ export interface DeckMeta {
   fontSize?: number;
   /** Long edge limit (px) for pasted images; 0 keeps the original size. Default 2000. */
   imageMaxPx?: number;
-  /** Legacy: max body lines before auto-split. Only used when no box geometry is available. */
+  /** Legacy: a fixed number of body lines per slide. When set, it replaces the capacity estimated from the body box (render.ts). */
   maxLines?: number;
 }
 
