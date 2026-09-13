@@ -12,6 +12,25 @@ extraResources:
     to: tools
   - from: electron/ptyHost.cjs
     to: pty/ptyHost.cjs
+  # License notices that travel with the binaries (ADR-0028): Electron and the Chromium components inside it, mdslide
+  # itself, and third-party material mdslide ships (the python-pptx template behind the sample master).
+  - from: node_modules/electron/dist/LICENSE
+    to: licenses/LICENSE.electron.txt
+  - from: node_modules/electron/dist/LICENSES.chromium.html
+    to: licenses/LICENSES.chromium.html
+  - from: LICENSE
+    to: licenses/LICENSE.mdslide.txt
+  - from: THIRD_PARTY_NOTICES.md
+    to: licenses/THIRD_PARTY_NOTICES.md
+# Electron fuses (ADR-0026): the packaged binary cannot run as plain Node.js, ignores NODE_OPTIONS and --inspect, and runs
+# only its own app.asar, checked against the hash in Info.plist. File protocol privileges stay on: the renderer is a file:// page.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
 mac:
   icon: build/icon.icns   # generated from docs/media/icon.svg by scripts/make_icon.py
   category: public.app-category.productivity
