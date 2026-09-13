@@ -97,41 +97,197 @@
     </header>
 
     <main>
-      <!-- Hero -->
+      <!-- Hero: 左で何のツールか、右でアプリの画面 -->
       <section class="relative overflow-hidden border-b border-border">
         <div class="grid-bg pointer-events-none absolute inset-0"></div>
-        <div class="relative mx-auto max-w-6xl px-4 pb-20 pt-20 sm:px-6 sm:pb-28 sm:pt-28">
-          <a href="https://github.com/froggugugugu/mdslide/releases/latest" class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:text-foreground" target="_blank" rel="noopener">
-            <span class="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-            <span class="font-mono text-foreground">v0.2.1</span>
-            <span class="h-3 w-px bg-border"></span>
-            <span>Apple silicon 向けに公開中</span>
-            <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
-          </a>
-          <h1 class="mt-6 max-w-3xl text-4xl font-bold leading-[1.15] tracking-tight sm:text-6xl">
-            Markdown を書けば、<br class="hidden sm:block" />パワポができます。
-          </h1>
-          <p class="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            番号・目次・ページ分割はツールが毎回計算し、書式は手持ちの PowerPoint マスターをそのまま使います。左でドラッグ、右で書き、隣のコンソールでは Claude Code が <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">deck.md</code> を直接編集します。報告資料のための、エンジニアのためのスライドエディタです。
-          </p>
-          <div class="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#install" class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-              <i data-lucide="terminal" class="h-4 w-4"></i>
-              インストール
+        <div class="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pb-12 sm:pt-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
+          <div>
+            <a href="https://github.com/froggugugugu/mdslide/releases/latest" class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:text-foreground" target="_blank" rel="noopener">
+              <span class="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <span class="font-mono text-foreground">v0.2.1</span>
+              <span class="h-3 w-px bg-border"></span>
+              <span>Apple silicon 向けに公開中</span>
+              <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
             </a>
-            <a href="README.html" class="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-medium shadow-sm transition-colors hover:bg-accent">
-              <i data-lucide="book-open" class="h-4 w-4"></i>
-              使い方を読む
-            </a>
+            <h1 class="mt-6 max-w-3xl text-[2rem] font-bold leading-[1.2] tracking-tight sm:text-6xl sm:leading-[1.15]"><span class="inline-block">Markdown を書けば、</span><span class="inline-block">パワポができます。</span></h1>
+            <p class="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+              書くのは Markdown だけ。番号・目次・ページ分割はツールが計算し、書式は手持ちの PowerPoint マスターをそのまま使います。隣のコンソールでは、Claude Code などが <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">deck.md</code> を直接編集できます。
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <a href="#install" class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+                <i data-lucide="terminal" class="h-4 w-4"></i>
+                インストール
+              </a>
+              <a href="README.html" class="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-medium shadow-sm transition-colors hover:bg-accent">
+                <i data-lucide="book-open" class="h-4 w-4"></i>
+                使い方を読む
+              </a>
+            </div>
+            <p class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span class="inline-flex items-center gap-1.5"><i data-lucide="apple" class="h-3.5 w-3.5"></i>macOS 13 以降</span>
+              <span class="inline-flex items-center gap-1.5"><i data-lucide="scale" class="h-3.5 w-3.5"></i>MIT License</span>
+              <span class="inline-flex items-center gap-1.5"><i data-lucide="git-branch" class="h-3.5 w-3.5"></i>Markdown は Git でそのまま差分を追えます</span>
+            </p>
           </div>
-          <p class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span class="inline-flex items-center gap-1.5"><i data-lucide="apple" class="h-3.5 w-3.5"></i>macOS 13 以降</span>
-            <span class="inline-flex items-center gap-1.5"><i data-lucide="scale" class="h-3.5 w-3.5"></i>MIT License</span>
-            <span class="inline-flex items-center gap-1.5"><i data-lucide="git-branch" class="h-3.5 w-3.5"></i>Markdown は Git でそのまま差分を追えます</span>
-          </p>
+          <figure class="overflow-hidden rounded-xl border border-border bg-background p-1.5 shadow-lg">
+            <div class="overflow-hidden rounded-lg border border-border">
+              <div class="flex h-7 items-center gap-1.5 border-b border-border bg-muted/60 px-2.5" aria-hidden="true">
+                <span class="h-2 w-2 rounded-full bg-zinc-300"></span>
+                <span class="h-2 w-2 rounded-full bg-zinc-300"></span>
+                <span class="h-2 w-2 rounded-full bg-zinc-300"></span>
+              </div>
+              <img src="docs/media/tour/05-layout.webp" width="1200" height="750" alt="mdslide の画面。左にスライドのサムネイル、中央にマスターの見た目のままのプレビュー、右に Markdown のエディタ" class="block h-auto w-full" />
+            </div>
+          </figure>
         </div>
       </section>
 
+      <!-- Flow: 書く・整える・出す（README のコンセプト図を一目で読める形にしたもの） -->
+      <section class="border-b border-border bg-muted/40" aria-label="mdslide の流れ">
+        <div class="mx-auto grid max-w-6xl gap-3 px-4 py-6 sm:px-6 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)]" role="list">
+          <div role="listitem" class="flex gap-3 rounded-lg border border-border bg-background p-3.5 shadow-sm">
+            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/60"><i data-lucide="file-text" class="h-4 w-4"></i></span>
+            <div>
+              <p class="text-xs font-medium text-muted-foreground">1. 書く</p>
+              <p class="font-semibold">Markdown で書く</p>
+              <p class="mt-0.5 text-sm leading-6 text-muted-foreground"># 章と ## スライドを書くだけ。番号は書きません。</p>
+            </div>
+          </div>
+          <div class="hidden items-center justify-center text-muted-foreground md:flex" aria-hidden="true"><i data-lucide="arrow-right" class="h-4 w-4"></i></div>
+          <div role="listitem" class="flex gap-3 rounded-lg border border-border bg-background p-3.5 shadow-sm">
+            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/60"><i data-lucide="list-ordered" class="h-4 w-4"></i></span>
+            <div>
+              <p class="text-xs font-medium text-muted-foreground">2. 整える</p>
+              <p class="font-semibold">mdslide が整える</p>
+              <p class="mt-0.5 text-sm leading-6 text-muted-foreground">番号・目次・ページ分割は自動。見た目はマスターのまま。</p>
+            </div>
+          </div>
+          <div class="hidden items-center justify-center text-muted-foreground md:flex" aria-hidden="true"><i data-lucide="arrow-right" class="h-4 w-4"></i></div>
+          <div role="listitem" class="flex gap-3 rounded-lg border border-border bg-background p-3.5 shadow-sm">
+            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/60"><i data-lucide="file-down" class="h-4 w-4"></i></span>
+            <div>
+              <p class="text-xs font-medium text-muted-foreground">3. 出す</p>
+              <p class="font-semibold">pptx に書き出す</p>
+              <p class="mt-0.5 text-sm leading-6 text-muted-foreground">手持ちのマスターの書式で out/deck.pptx に。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- Preview -->
+      <section id="preview" class="border-b border-border">
+        <div class="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-12">
+          <div class="max-w-2xl">
+            <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">起動から書き出しまで</h2>
+            <p class="mt-3 text-muted-foreground">資料を開き、書き、並べ替え、レイアウトとマスターを選んで、pptx を書き出すまでを 7 つの場面で紹介します。</p>
+          </div>
+          <div id="tour" class="mt-8" role="region" aria-roledescription="カルーセル" aria-label="起動から書き出しまでの流れ">
+            <div class="rounded-xl border border-border bg-background p-2 shadow-sm">
+              <div class="overflow-hidden rounded-lg border border-border">
+                <div class="flex h-9 items-center gap-2 border-b border-border bg-muted/60 px-3">
+                  <span class="h-2.5 w-2.5 rounded-full bg-zinc-300"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-zinc-300"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-zinc-300"></span>
+                  <span class="ml-3 font-mono text-xs text-muted-foreground">mdslide — 四半期報告/deck.md</span>
+                </div>
+                <div class="relative aspect-[16/10] bg-muted/40">
+                  <div data-track class="flex h-full snap-x snap-mandatory overflow-x-auto scroll-smooth" tabindex="0" aria-label="スクリーンショット。左右の矢印キーかスワイプで切り替えます">
+                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="1 / 7">
+                      <img src="docs/media/tour/01-start.webp" width="1200" height="750" alt="mdslide の起動画面。資料を開くボタンと、最近開いた資料の一覧" class="h-full w-full object-cover object-top" />
+                      <figcaption class="sr-only" data-title="起動画面から始める" data-text="「Markdown を開く」で手元の資料を開き、「新しく作る」でフォルダを選んで空の資料を用意します。前回の資料は「最近開いたもの」からすぐに開けます。">起動画面から始める。「Markdown を開く」で手元の資料を開き、「新しく作る」でフォルダを選んで空の資料を用意します。前回の資料は「最近開いたもの」からすぐに開けます。</figcaption>
+                    </figure>
+                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="2 / 7">
+                      <img src="docs/media/tour/02-open.webp" width="1200" height="750" alt="資料を開いた画面。左にサムネイル、中央にマスターの装飾つきのプレビュー、右に Markdown のエディタ" class="h-full w-full object-cover object-top" loading="lazy" />
+                      <figcaption class="sr-only" data-title="資料を開く" data-text="左にスライドのサムネイル、中央にプレビュー、右に Markdown のエディタが並びます。プレビューは、取り込んだマスターのロゴや帯、フォントのまま描かれます。">資料を開く。左にスライドのサムネイル、中央にプレビュー、右に Markdown のエディタが並びます。プレビューは、取り込んだマスターのロゴや帯、フォントのまま描かれます。</figcaption>
+                    </figure>
+                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="3 / 7">
+                      <img src="docs/media/tour/03-write.webp" width="1200" height="750" alt="エディタに箇条書きを 1 行足した画面。プレビューとゲージが更新され、保存済みになっている" class="h-full w-full object-cover object-top" loading="lazy" />
+                      <figcaption class="sr-only" data-title="Markdown で書く" data-text="エディタで箇条書きを足すと、プレビューと本文量のゲージがその場で追従します。番号は書かなくてよく、保存も自動です。">Markdown で書く。エディタで箇条書きを足すと、プレビューと本文量のゲージがその場で追従します。番号は書かなくてよく、保存も自動です。</figcaption>
+                    </figure>
+                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="4 / 7">
+                      <img src="docs/media/tour/04-reorder.webp" width="1200" height="750" alt="サムネイルをドラッグしている画面。動かすスライドが薄くなり、落とす位置に線が出ている" class="h-full w-full object-cover object-top" loading="lazy" />
+                      <figcaption class="sr-only" data-title="ドラッグで並べ替える" data-text="サムネイルを掴むと、一緒に動くスライドが薄くなり、落とす位置に線が出ます。並べ替えは Markdown の書き換えとして残り、番号は振り直されます。">ドラッグで並べ替える。サムネイルを掴むと、一緒に動くスライドが薄くなり、落とす位置に線が出ます。並べ替えは Markdown の書き換えとして残り、番号は振り直されます。</figcaption>
+                    </figure>
+                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="5 / 7">
+                      <img src="docs/media/tour/05-layout.webp" width="1200" height="750" alt="画像のレイアウトを 1/2・左にした画面。図が左、本文が右に配置されている" class="h-full w-full object-cover object-top" loading="lazy" />
+                      <figcaption class="sr-only" data-title="レイアウトを選ぶ" data-text="プレビューの下で「画像」「1/2」「左」を選ぶと、見出しに {img=1/2 side=left} が書き込まれ、図が左、本文が右に並び替わります。">レイアウトを選ぶ。プレビューの下で「画像」「1/2」「左」を選ぶと、見出しに {img=1/2 side=left} が書き込まれ、図が左、本文が右に並び替わります。</figcaption>
+                    </figure>
+                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="6 / 7">
+                      <img src="docs/media/tour/06-master.webp" width="1200" height="750" alt="設定のマスター画面。保管フォルダにあるマスターの一覧と既定の選択" class="h-full w-full object-cover object-top" loading="lazy" />
+                      <figcaption class="sr-only" data-title="マスターを管理する" data-text="設定の「マスター」で pptx を取り込み、既定のマスターを選びます。必要なレイアウトが足りないときや、本文枠がヘッダ・フッタに重なるときは、ここで知らせます。">マスターを管理する。設定の「マスター」で pptx を取り込み、既定のマスターを選びます。必要なレイアウトが足りないときや、本文枠がヘッダ・フッタに重なるときは、ここで知らせます。</figcaption>
+                    </figure>
+                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="7 / 7">
+                      <img src="docs/media/tour/07-export.webp" width="1200" height="750" alt="書き出しの画面。out/deck.pptx を生成したことが表示されている" class="h-full w-full object-cover object-top" loading="lazy" />
+                      <figcaption class="sr-only" data-title="pptx に書き出す" data-text="「書き出す」を押すと、python-pptx がマスターに流し込み、out/deck.pptx ができます。あとは PowerPoint で開いて仕上げます。">pptx に書き出す。「書き出す」を押すと、python-pptx がマスターに流し込み、out/deck.pptx ができます。あとは PowerPoint で開いて仕上げます。</figcaption>
+                    </figure>
+                  </div>
+                  <button type="button" data-prev aria-label="前の場面" class="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur transition-opacity hover:bg-accent disabled:pointer-events-none disabled:opacity-0"><i data-lucide="chevron-left" class="h-5 w-5"></i></button>
+                  <button type="button" data-next aria-label="次の場面" class="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur transition-opacity hover:bg-accent disabled:pointer-events-none disabled:opacity-0"><i data-lucide="chevron-right" class="h-5 w-5"></i></button>
+                </div>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div class="max-w-3xl" aria-live="polite">
+                <p class="font-mono text-xs text-muted-foreground"><span data-tour-index>1</span> / 7</p>
+                <h3 class="mt-1 text-lg font-semibold tracking-tight" data-tour-title>起動画面から始める</h3>
+                <p class="mt-2 text-sm leading-6 text-muted-foreground" data-tour-text>「Markdown を開く」で手元の資料を開き、「新しく作る」でフォルダを選んで空の資料を用意します。前回の資料は「最近開いたもの」からすぐに開けます。</p>
+              </div>
+              <div class="flex shrink-0 items-center md:pt-5" aria-label="場面を選ぶ">
+                <button type="button" data-dot aria-label="1. 起動画面から始める" aria-current="true"><span></span></button>
+                <button type="button" data-dot aria-label="2. 資料を開く"><span></span></button>
+                <button type="button" data-dot aria-label="3. Markdown で書く"><span></span></button>
+                <button type="button" data-dot aria-label="4. ドラッグで並べ替える"><span></span></button>
+                <button type="button" data-dot aria-label="5. レイアウトを選ぶ"><span></span></button>
+                <button type="button" data-dot aria-label="6. マスターを管理する"><span></span></button>
+                <button type="button" data-dot aria-label="7. pptx に書き出す"><span></span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section id="features" class="border-b border-border">
+        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <div class="max-w-2xl">
+            <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">汎用性より、報告資料の作業効率</h2>
+            <p class="mt-3 text-muted-foreground">スライドツールに必要な機能を全部持つのではなく、報告資料に必要な判断だけをツールに固定しました。</p>
+          </div>
+          <div class="mt-10 grid gap-4 md:grid-cols-3">
+            <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
+              <div class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/60">
+                <i data-lucide="file-text" class="h-5 w-5"></i>
+              </div>
+              <h3 class="mt-4 text-base font-semibold">Markdown が唯一の正</h3>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">左ペインの並べ替えもレイアウト変更も、すべて Markdown の書き換えとして実装しています。ラウンドトリップは保証され、差分は Git で読めます。</p>
+            </div>
+            <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
+              <div class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/60">
+                <i data-lucide="layout-template" class="h-5 w-5"></i>
+              </div>
+              <h3 class="mt-4 text-base font-semibold">設定不要のレイアウト</h3>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">章番号・スライド番号・アジェンダ・ページ分割は毎回導出します。書式はレイアウト名を規約どおりに付けた pptx マスターに任せ、ツールは「どこに何を流し込むか」だけを決めます。</p>
+            </div>
+            <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
+              <div class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/60">
+                <i data-lucide="terminal" class="h-5 w-5"></i>
+              </div>
+              <h3 class="mt-4 text-base font-semibold">コンソールが組み込み</h3>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">中央下は本物のターミナルです。PATH にある Claude Code や Codex CLI、Gemini CLI などをそのフォルダで起動し、口語のメモから deck.md を書かせられます（エージェントは同梱していません）。エディタに未保存の変更が無ければ、エージェントが保存した内容はすぐプレビューに反映されます。</p>
+            </div>
+          </div>
+          <div class="mt-10 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span class="mr-1 font-medium text-foreground">構成</span>
+            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">Electron</span>
+            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">React 19</span>
+            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">CodeMirror 6 + Vim</span>
+            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">xterm.js</span>
+            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">python-pptx</span>
+            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">settings.json</span>
+          </div>
+        </div>
+      </section>
       <!-- Install -->
       <section id="install" class="border-b border-border">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
@@ -274,119 +430,6 @@ npm run dev</code></pre>
         </div>
       </section>
 
-      <!-- Preview -->
-      <section id="preview" class="border-b border-border">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <div class="max-w-2xl">
-            <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">起動から書き出しまで</h2>
-            <p class="mt-3 text-muted-foreground">資料を開き、書き、並べ替え、レイアウトとマスターを選んで、pptx を書き出すまでを 7 つの場面で紹介します。番号は書きません。ツールが振ります。</p>
-          </div>
-          <div id="tour" class="mt-8" role="region" aria-roledescription="カルーセル" aria-label="起動から書き出しまでの流れ">
-            <div class="rounded-xl border border-border bg-background p-2 shadow-sm">
-              <div class="overflow-hidden rounded-lg border border-border">
-                <div class="flex h-9 items-center gap-2 border-b border-border bg-muted/60 px-3">
-                  <span class="h-2.5 w-2.5 rounded-full bg-zinc-300"></span>
-                  <span class="h-2.5 w-2.5 rounded-full bg-zinc-300"></span>
-                  <span class="h-2.5 w-2.5 rounded-full bg-zinc-300"></span>
-                  <span class="ml-3 font-mono text-xs text-muted-foreground">mdslide — 四半期報告/deck.md</span>
-                </div>
-                <div class="relative aspect-[16/10] bg-muted/40">
-                  <div data-track class="flex h-full snap-x snap-mandatory overflow-x-auto scroll-smooth" tabindex="0" aria-label="スクリーンショット。左右の矢印キーかスワイプで切り替えます">
-                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="1 / 7">
-                      <img src="docs/media/tour/01-start.webp" width="1200" height="750" alt="mdslide の起動画面。資料を開くボタンと、最近開いた資料の一覧" class="h-full w-full object-cover object-top" />
-                      <figcaption class="sr-only" data-title="起動画面から始める" data-text="「Markdown を開く」で手元の資料を開き、「新しく作る」でフォルダを選んで空の資料を用意します。前回の資料は「最近開いたもの」からすぐに開けます。">起動画面から始める。「Markdown を開く」で手元の資料を開き、「新しく作る」でフォルダを選んで空の資料を用意します。前回の資料は「最近開いたもの」からすぐに開けます。</figcaption>
-                    </figure>
-                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="2 / 7">
-                      <img src="docs/media/tour/02-open.webp" width="1200" height="750" alt="資料を開いた画面。左にサムネイル、中央にマスターの装飾つきのプレビュー、右に Markdown のエディタ" class="h-full w-full object-cover object-top" loading="lazy" />
-                      <figcaption class="sr-only" data-title="資料を開く" data-text="左にスライドのサムネイル、中央にプレビュー、右に Markdown のエディタが並びます。プレビューは、取り込んだマスターのロゴや帯、フォントのまま描かれます。">資料を開く。左にスライドのサムネイル、中央にプレビュー、右に Markdown のエディタが並びます。プレビューは、取り込んだマスターのロゴや帯、フォントのまま描かれます。</figcaption>
-                    </figure>
-                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="3 / 7">
-                      <img src="docs/media/tour/03-write.webp" width="1200" height="750" alt="エディタに箇条書きを 1 行足した画面。プレビューとゲージが更新され、保存済みになっている" class="h-full w-full object-cover object-top" loading="lazy" />
-                      <figcaption class="sr-only" data-title="Markdown で書く" data-text="エディタで箇条書きを足すと、プレビューと本文量のゲージがその場で追従します。番号は書かなくてよく、保存も自動です。">Markdown で書く。エディタで箇条書きを足すと、プレビューと本文量のゲージがその場で追従します。番号は書かなくてよく、保存も自動です。</figcaption>
-                    </figure>
-                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="4 / 7">
-                      <img src="docs/media/tour/04-reorder.webp" width="1200" height="750" alt="サムネイルをドラッグしている画面。動かすスライドが薄くなり、落とす位置に線が出ている" class="h-full w-full object-cover object-top" loading="lazy" />
-                      <figcaption class="sr-only" data-title="ドラッグで並べ替える" data-text="サムネイルを掴むと、一緒に動くスライドが薄くなり、落とす位置に線が出ます。並べ替えは Markdown の書き換えとして残り、番号は振り直されます。">ドラッグで並べ替える。サムネイルを掴むと、一緒に動くスライドが薄くなり、落とす位置に線が出ます。並べ替えは Markdown の書き換えとして残り、番号は振り直されます。</figcaption>
-                    </figure>
-                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="5 / 7">
-                      <img src="docs/media/tour/05-layout.webp" width="1200" height="750" alt="画像のレイアウトを 1/2・左にした画面。図が左、本文が右に配置されている" class="h-full w-full object-cover object-top" loading="lazy" />
-                      <figcaption class="sr-only" data-title="レイアウトを選ぶ" data-text="プレビューの下で「画像」「1/2」「左」を選ぶと、見出しに {img=1/2 side=left} が書き込まれ、図が左、本文が右に並び替わります。">レイアウトを選ぶ。プレビューの下で「画像」「1/2」「左」を選ぶと、見出しに {img=1/2 side=left} が書き込まれ、図が左、本文が右に並び替わります。</figcaption>
-                    </figure>
-                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="6 / 7">
-                      <img src="docs/media/tour/06-master.webp" width="1200" height="750" alt="設定のマスター画面。保管フォルダにあるマスターの一覧と既定の選択" class="h-full w-full object-cover object-top" loading="lazy" />
-                      <figcaption class="sr-only" data-title="マスターを管理する" data-text="設定の「マスター」で pptx を取り込み、既定のマスターを選びます。必要なレイアウトが足りないときや、本文枠がヘッダ・フッタに重なるときは、ここで知らせます。">マスターを管理する。設定の「マスター」で pptx を取り込み、既定のマスターを選びます。必要なレイアウトが足りないときや、本文枠がヘッダ・フッタに重なるときは、ここで知らせます。</figcaption>
-                    </figure>
-                    <figure class="h-full w-full shrink-0 snap-center" role="group" aria-roledescription="場面" aria-label="7 / 7">
-                      <img src="docs/media/tour/07-export.webp" width="1200" height="750" alt="書き出しの画面。out/deck.pptx を生成したことが表示されている" class="h-full w-full object-cover object-top" loading="lazy" />
-                      <figcaption class="sr-only" data-title="pptx に書き出す" data-text="「書き出す」を押すと、python-pptx がマスターに流し込み、out/deck.pptx ができます。あとは PowerPoint で開いて仕上げます。">pptx に書き出す。「書き出す」を押すと、python-pptx がマスターに流し込み、out/deck.pptx ができます。あとは PowerPoint で開いて仕上げます。</figcaption>
-                    </figure>
-                  </div>
-                  <button type="button" data-prev aria-label="前の場面" class="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur transition-opacity hover:bg-accent disabled:pointer-events-none disabled:opacity-0"><i data-lucide="chevron-left" class="h-5 w-5"></i></button>
-                  <button type="button" data-next aria-label="次の場面" class="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur transition-opacity hover:bg-accent disabled:pointer-events-none disabled:opacity-0"><i data-lucide="chevron-right" class="h-5 w-5"></i></button>
-                </div>
-              </div>
-            </div>
-            <div class="mt-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div class="max-w-3xl" aria-live="polite">
-                <p class="font-mono text-xs text-muted-foreground"><span data-tour-index>1</span> / 7</p>
-                <h3 class="mt-1 text-lg font-semibold tracking-tight" data-tour-title>起動画面から始める</h3>
-                <p class="mt-2 text-sm leading-6 text-muted-foreground" data-tour-text>「Markdown を開く」で手元の資料を開き、「新しく作る」でフォルダを選んで空の資料を用意します。前回の資料は「最近開いたもの」からすぐに開けます。</p>
-              </div>
-              <div class="flex shrink-0 items-center md:pt-5" aria-label="場面を選ぶ">
-                <button type="button" data-dot aria-label="1. 起動画面から始める" aria-current="true"><span></span></button>
-                <button type="button" data-dot aria-label="2. 資料を開く"><span></span></button>
-                <button type="button" data-dot aria-label="3. Markdown で書く"><span></span></button>
-                <button type="button" data-dot aria-label="4. ドラッグで並べ替える"><span></span></button>
-                <button type="button" data-dot aria-label="5. レイアウトを選ぶ"><span></span></button>
-                <button type="button" data-dot aria-label="6. マスターを管理する"><span></span></button>
-                <button type="button" data-dot aria-label="7. pptx に書き出す"><span></span></button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Features -->
-      <section id="features" class="border-b border-border">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <div class="max-w-2xl">
-            <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">汎用性より、報告資料の作業効率</h2>
-            <p class="mt-3 text-muted-foreground">スライドツールに必要な機能を全部持つのではなく、報告資料に必要な判断だけをツールに固定しました。</p>
-          </div>
-          <div class="mt-10 grid gap-4 md:grid-cols-3">
-            <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
-              <div class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/60">
-                <i data-lucide="file-text" class="h-5 w-5"></i>
-              </div>
-              <h3 class="mt-4 text-base font-semibold">Markdown が唯一の正</h3>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">左ペインの並べ替えもレイアウト変更も、すべて Markdown の書き換えとして実装しています。ラウンドトリップは保証され、差分は Git で読めます。</p>
-            </div>
-            <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
-              <div class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/60">
-                <i data-lucide="layout-template" class="h-5 w-5"></i>
-              </div>
-              <h3 class="mt-4 text-base font-semibold">設定不要のレイアウト</h3>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">章番号・スライド番号・アジェンダ・ページ分割は毎回導出します。書式はレイアウト名を規約どおりに付けた pptx マスターに任せ、ツールは「どこに何を流し込むか」だけを決めます。</p>
-            </div>
-            <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
-              <div class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/60">
-                <i data-lucide="terminal" class="h-5 w-5"></i>
-              </div>
-              <h3 class="mt-4 text-base font-semibold">コンソールが組み込み</h3>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">中央下は本物のターミナルです。PATH にある Claude Code や Codex CLI、Gemini CLI などをそのフォルダで起動し、口語のメモから deck.md を書かせられます（エージェントは同梱していません）。エディタに未保存の変更が無ければ、エージェントが保存した内容はすぐプレビューに反映されます。</p>
-            </div>
-          </div>
-          <div class="mt-10 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span class="mr-1 font-medium text-foreground">構成</span>
-            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">Electron</span>
-            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">React 19</span>
-            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">CodeMirror 6 + Vim</span>
-            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">xterm.js</span>
-            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">python-pptx</span>
-            <span class="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono">settings.json</span>
-          </div>
-        </div>
-      </section>
     </main>
 
     <!-- Footer -->
