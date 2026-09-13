@@ -40,7 +40,7 @@
     "jszip": "3.10.1",
     "node-pty": "1.1.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react-dom": "19.3.0",
     "zustand": "5.0.15"
   },
   "devDependencies": {
@@ -52,7 +52,7 @@
     "@testing-library/user-event": "14.6.7",
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
+    "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.2.0",
     "@vitest/coverage-v8": "4.1.11",
     "electron": "44.1.1",
