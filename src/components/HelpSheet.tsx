@@ -15,7 +15,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         <h3>はじめの5分</h3>
         <ol>
           <li>設定（<kbd>{mod}</kbd> <kbd>,</kbd>）の「マスター」で、レイアウト名を <code>Cover / Agenda / Section / Body-Text / Body-2col</code> と付けた pptx を保管フォルダに取り込む。最初の 1 つは既定になる。資料ごとに変えるならツールバーのマスター選択で（資料フォルダに <code>master.pptx</code> を置いてもよい）。手元に無ければ同じ画面の「見本を取り込む」で規約どおりの見本が入る（PowerPoint で開いて直せば自分のマスターになる）。手持ちのテンプレートから作る手順と AI 用プロンプトは使い方ページの「マスターを用意する」にある</li>
-          <li>起動画面の「{isElectron ? "Markdown を開く" : "フォルダを開く"}」で資料を開く。「新しく作る」は資料のフォルダを選ぶ（その場で作れる）と、中に <code>deck.md</code> を空の枠（表紙・章・スライド 1 枚）で作る。フォルダを開いた場合はその中の <code>deck.md</code>（無ければ見本から作成）を使う</li>
+          <li>起動画面の「{isElectron ? "Markdown を開く" : "フォルダを開く"}」で資料を開く。{isElectron && <>「新しく作る」は資料のフォルダを選ぶ（その場で作れる）と、中に <code>deck.md</code> を空の枠（表紙・章・スライド 1 枚）で作る。</>}フォルダを開いた場合はその中の <code>deck.md</code>（無ければ見本から作成）を使う</li>
           <li>右のエディタで書く（既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替え可）。左のサムネイルはドラッグか <kbd>{alt}</kbd> <kbd>↑</kbd> <kbd>↓</kbd> で並べ替える。番号は自動</li>
           <li>「書き出す」で <code>out/deck.pptx</code>。Python と python-pptx が必要で、見つからなければ起動時に案内が出る（入れ方は設定の「書き出し」）</li>
         </ol>
@@ -47,7 +47,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
             <tr><td><code>---</code></td><td>本文内の明示的なページ分割</td></tr>
             <tr><td><code>![TODO 構成図]()</code></td><td>画像の仮置き。この行で画像を貼ると置き換わる</td></tr>
             <tr><td><code>&gt; note: 補足</code></td><td>スピーカーノート</td></tr>
-            <tr><td><code>| a | b |</code></td><td>表。パワポのネイティブ表になる</td></tr>
+            <tr><td><code>| a | b |</code></td><td>表。パワポのネイティブ表になる（2 カラムでは表にならない）</td></tr>
           </tbody>
         </table>
 
@@ -72,9 +72,9 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
 
         <h3>メモから資料へ</h3>
         <ol>
-          <li>「下書き」に口語でつらつら書く。ファイルはウィンドウのどこにドロップしても <code>notes/</code> に入る</li>
+          <li>「下書き」に口語でつらつら書く。ファイルはエディタ以外のどこにドロップしても <code>notes/</code> に入る（エディタに落とした画像は <code>images/</code>）</li>
           <li>コンソールでツールを起動し、「整形して deck.md に」を押す。AI が <code>deck.md</code> を書き、エディタに未保存の変更が無ければすぐ左と中央に反映される</li>
-          <li>「図を統一テーマで生成」で <code>![TODO ...]()</code> が <code>theme.json</code> の配色の PNG になる（<code>tools/mdslide_draw.py</code> のフロー・ベン図・柱・サイクル・マトリクス・年表）</li>
+          <li>「図を統一テーマで生成」で <code>![TODO ...]()</code> が <code>theme.json</code> の配色の PNG になる（<code>tools/mdslide_draw.py</code> のフロー・ベン図・柱・サイクル・マトリクス・年表。matplotlib が必要）</li>
           <li>気に入らなければ「前の版に戻す」。あとはエディタとプレビューで直す</li>
         </ol>
         <h3>コンソール（CLI エージェント）</h3>

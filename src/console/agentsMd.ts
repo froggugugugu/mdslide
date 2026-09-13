@@ -23,7 +23,7 @@ export function deckAgentsMd(deckFile = "deck.md"): string {
 | \`notes/\` | 口語のメモや元資料（txt / md / docx / pdf / 画像 / pptx）。整形の材料 | 読む |
 | \`theme.json\` | マスターの配色とフォント。図を描くときの色はここから | 読むだけ |
 | \`tools/mdslide_draw.py\` | theme.json に従う図の生成スクリプト | 使う |
-| \`master.pptx\` | 書式（任意。無ければ設定のマスター） | 触らない |
+| \`master.pptx\` | 書式（任意。frontmatter に \`master:\` が無いときに使われ、それも無ければ設定の既定） | 触らない |
 | \`deck.json\` \`out/\` \`.mdslide/\` | mdslide の生成物と履歴 | 触らない |
 
 ## ${deckFile} の規約
@@ -31,13 +31,13 @@ export function deckAgentsMd(deckFile = "deck.md"): string {
 - 先頭の frontmatter（すべて任意）: 表紙に載る \`title\` \`subtitle\` \`author\` \`date\`、\`agenda: once|per-section|none\`（既定 once）、\`numbering: chapter|flat|none\`（既定 chapter）、\`layout: text|2col\`（本文の既定）、\`master: 名前.pptx\`（人が選ぶ。触らない）、\`fontSize: 18\`（本文 pt）、\`imageMaxPx: 2000\`
 - \`# 章タイトル\` = 章（中表紙）。アジェンダの項目にもなる
 - \`## タイトル\` = 本文スライド。本文は箇条書きが基本（\`- \`、2 スペース字下げで階層）。インラインは \`**太字**\` とバッククォートのコードだけ
-- 見出しになるのは \`#\` と \`##\` だけ。\`###\` 以下は見出しにならず、本文に「###」ごと出るので使わない
+- 見出しになるのは \`#\` と \`##\` だけ。\`###\` 以下は見出しにならず、本文に「###」ごと出るので使わない。コードブロックの書式も無い（\`\`\` の行もそのまま出る）
 - 章番号・スライド番号・ページ数は書かない。mdslide が導出する
 - 本文内の \`---\` は明示的なページ分割。溢れたスライドは mdslide が自動で分割するが、まず 1 スライドの量を抑える（短い箇条書き 3〜6 行、多くても 12 行程度）
 - 見出し末尾の属性でレイアウトを指定する: \`{layout=2col}\`（最初の空行で左右に分かれる）、画像は \`{img=1/1|3/4|1/2 side=left|right}\`、文字サイズは \`{size=16}\`
 - 画像: \`![説明](images/name.png)\`。まだ無い図は \`![TODO 説明]()\` と書く（人が後で貼る）。1 スライドに図は 1 つ
 - \`> note: 本文\` はスピーカーノート（スライドには出ない）
-- Markdown の表（\`| a | b |\` と \`|---|---|\`）は pptx のネイティブ表になる
+- Markdown の表（\`| a | b |\` と \`|---|---|\`）は pptx のネイティブ表になる（2 カラムのスライドには置かない）
 - frontmatter と最初の見出しの間の行はメモ扱いで出力されない
 
 ## 材料（notes/）から整形するとき
@@ -48,8 +48,8 @@ export function deckAgentsMd(deckFile = "deck.md"): string {
 
 ## 図（images/）
 
-- 配色とフォントは \`theme.json\` に従う。\`palette\` 以外の色を使わない。背景は透明
-- まず \`python3 tools/mdslide_draw.py <flow|venn|pillars|cycle|matrix|timeline> images/名前.png ...\` で描けるか考える（\`--help\` で使い方）
+- 配色とフォントは \`theme.json\` に従う。色は \`palette\` と \`text\` \`muted\` \`background\` など theme.json にある値だけを使う。背景は透明
+- まず \`python3 tools/mdslide_draw.py <flow|venn|pillars|cycle|matrix|timeline> images/名前.png ...\` で描けるか考える（\`--help\` で使い方）。matplotlib が必要なので、import できなければ使う Python に matplotlib を入れてから実行する
 - 描けないものは theme.json の色だけを使った短い matplotlib / PIL スクリプトで PNG を出力（1600px 幅、16:9 か 4:3、文字は 22pt 以上）
 - ファイル名は内容が分かる英数字（\`images/flow-improvement.png\`）。${deckFile} からは \`![説明](images/名前.png)\` で参照
 - 図で説明できる内容は本文を減らす
