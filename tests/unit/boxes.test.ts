@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { findLayout, importMaster, type MasterProfile } from "../../src/master/importMaster";
+import { bodyPlaceholders, findLayout, importMaster, type MasterProfile } from "../../src/master/importMaster";
 import { bodyBoxFor, bodyOverlaps, contentBand, SAFE_GAP } from "../../src/model/boxes";
 import { lineHeightPt } from "../../src/model/fit";
 import { parseMarkdown } from "../../src/model/parser";
@@ -79,9 +79,29 @@ describe("the fit estimate splits where PowerPoint runs out of room", () => {
 });
 
 describe("bodyOverlaps: a warning for masters whose body box runs into the header or footer", () => {
-  it("flags only the masters that really overlap", async () => {
-    expect(bodyOverlaps(await deco())).toEqual({ header: false, footer: true });
-    expect(bodyOverlaps(await sample())).toEqual({ header: false, footer: false });
-    expect(bodyOverlaps(await importMaster(new Blob([readFileSync("examples/decorated-master.pptx")]), "d"))).toEqual({ header: false, footer: false });
+  it("flags only the masters that really overlap, and names the layouts", async () => {
+    const d = bodyOverlaps(await deco());
+    expect(d.header).toEqual([]);
+    expect(d.footer).toContain("Body-Text");
+    expect(bodyOverlaps(await sample())).toEqual({ header: [], footer: [] });
+    expect(bodyOverlaps(await importMaster(new Blob([readFileSync("examples/decorated-master.pptx")]), "d"))).toEqual({ header: [], footer: [] });
+  });
+
+  it("checks the agenda and section boxes against their own layout's header and footer", async () => {
+    const m = await sample();
+    const W = m.slideSize.w;
+    const band = { kind: "shape", rect: { x: 0, y: 0, w: W, h: 502920 } } as unknown as MasterProfile["master"]["decor"][number];
+    const moved = (role: string, rect: { x: number; y: number; w: number; h: number }, extra: Partial<MasterProfile["layouts"][number]> = {}) =>
+      m.layouts.map((l) => (l.role?.kind === role
+        ? { ...l, ...extra, placeholders: l.placeholders.map((p) => (bodyPlaceholders(l.placeholders)[0] === p ? { ...p, rect } : p)) }
+        : l));
+    // an agenda whose content box starts at the top, under a header band on the slide master (the decorated sample before ADR-0023)
+    const agendaUnderBand: MasterProfile = { ...m, master: { ...m.master, decor: [band] }, layouts: moved("agenda", { x: 3575050, y: 273050, w: 5111750, h: 5853113 }) };
+    expect(bodyOverlaps(agendaUnderBand)).toEqual({ header: ["Agenda"], footer: [] });
+    // a section body that runs past its own slide-number footer
+    expect(bodyOverlaps({ ...m, layouts: moved("section", { x: 838200, y: 5900000, w: 10515600, h: 800000 }) })).toEqual({ header: [], footer: ["Section"] });
+    // a section that hides the master's shapes is not measured against the master's header band
+    const hidden: MasterProfile = { ...m, master: { ...m.master, decor: [band] }, layouts: moved("section", { x: 838200, y: 100000, w: 10515600, h: 1000000 }, { showMasterShapes: false }) };
+    expect(bodyOverlaps(hidden).header).not.toContain("Section");
   });
 });

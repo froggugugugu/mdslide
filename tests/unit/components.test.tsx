@@ -322,7 +322,7 @@ describe("Settings: master tab", () => {
     const m = await importMaster(await decoratedMaster(), "deco.pptx");
     useDeckStore.setState({ masters: [{ ...m, id: "dir:deco.pptx", name: "deco.pptx" }] });
     render(<SettingsSheet tab="master" onTab={() => undefined} onClose={() => undefined} />);
-    expect(screen.getByText(/本文枠の下端がフッタと重なっています/)).toBeInTheDocument();
+    expect(screen.getByText(/本文枠の下端がフッタと重なっています（[^）]*Body-Text/)).toBeInTheDocument(); // names the layouts
     expect(screen.queryByText(/本文枠の上端がヘッダ/)).toBeNull();
   });
   it("reports invalid files", async () => {

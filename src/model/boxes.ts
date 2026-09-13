@@ -15,17 +15,17 @@ export interface BodyBox { widthPt: number; heightPt: number; text?: TextSpacing
 
 /**
  * Where body content may go vertically, in fractions of the slide width (like geometry Frames). The header and footer
- * are the Body-Text layout's shapes, pictures and date / footer / slide-number placeholders (plus the master's shapes,
+ * are the Body-Text layout's (or the given layout's) shapes, pictures and date / footer / slide-number placeholders (plus the master's shapes,
  * unless the layout hides them) that reach into the content columns and sit in the top / bottom third of the slide.
  * `headerBottom` / `footerTop` are their own edges; `top` / `bottom` keep SAFE_GAP clear of them. The person never
  * writes margins: they follow from the master (ADR-0018).
  */
 export interface ContentBand { top: number; bottom: number; headerBottom?: number; footerTop?: number }
 
-export function contentBand(master: MasterProfile | undefined): ContentBand | undefined {
+export function contentBand(master: MasterProfile | undefined, of?: MasterLayout): ContentBand | undefined {
   if (!master) return undefined;
   const { w, h } = master.slideSize;
-  const layout = findLayout(master, "body", "text");
+  const layout = of ?? findLayout(master, "body", "text");
   const obstacles: Rect[] = [
     ...(layout?.showMasterShapes === false ? [] : master.master.decor.map((d) => d.rect)),
     ...(layout?.decor ?? []).map((d) => d.rect),
@@ -94,19 +94,29 @@ export function bodyBoxFor(master: MasterProfile | undefined, layout: BodyLayout
   return { widthPt: content.w * W, heightPt: content.h * W };
 }
 
-/** Body-Text / Body-2col placeholders that run into the header or the footer: shown as a warning on the master. */
-export function bodyOverlaps(master: MasterProfile): { header: boolean; footer: boolean } {
-  const band = contentBand(master);
+/**
+ * Layouts whose body box runs into the header or the footer, by name: shown as warnings on the master (ADR-0025).
+ * Body-Text and Body-2col are measured against Body-Text's header and footer, the band the fit estimate uses; Agenda
+ * and Section against their own layout's. The cover is left out: full-bleed covers hide the bands on purpose.
+ */
+export function bodyOverlaps(master: MasterProfile): { header: string[]; footer: string[] } {
   const W = master.slideSize.w;
-  const rects = (["text", "2col"] as const).flatMap((k) => {
-    const l = master.layouts.find((x) => x.role?.kind === "body" && x.role.layout === k);
-    return l ? bodyPlaceholders(l.placeholders, { count: k === "2col" ? 2 : 1 }).map((p) => p.rect!) : [];
-  });
-  const headerBottom = band?.headerBottom, footerTop = band?.footerTop;
-  return {
-    header: headerBottom !== undefined && rects.some((r) => r.y < headerBottom * W - 1),
-    footer: footerTop !== undefined && rects.some((r) => r.y + r.h > footerTop * W + 1),
-  };
+  const find = (pred: (r: NonNullable<MasterLayout["role"]>) => boolean) => master.layouts.find((l) => l.role && pred(l.role));
+  const agenda = find((r) => r.kind === "agenda"), section = find((r) => r.kind === "section");
+  const checks: [MasterLayout | undefined, number, ContentBand | undefined][] = [
+    [find((r) => r.kind === "body" && r.layout === "text"), 1, contentBand(master)],
+    [find((r) => r.kind === "body" && r.layout === "2col"), 2, contentBand(master)],
+    [agenda, 1, contentBand(master, agenda)],
+    [section, 1, contentBand(master, section)],
+  ];
+  const out = { header: [] as string[], footer: [] as string[] };
+  for (const [layout, count, band] of checks) {
+    if (!layout || !band) continue;
+    const rects = bodyPlaceholders(layout.placeholders, { count }).map((p) => p.rect!);
+    if (band.headerBottom !== undefined && rects.some((r) => r.y < band.headerBottom! * W - 1)) out.header.push(layout.name);
+    if (band.footerTop !== undefined && rects.some((r) => r.y + r.h > band.footerTop! * W + 1)) out.footer.push(layout.name);
+  }
+  return out;
 }
 
 export function masterBodyFontPt(master: MasterProfile | undefined): number | undefined {

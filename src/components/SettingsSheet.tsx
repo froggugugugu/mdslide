@@ -184,8 +184,7 @@ function MasterTab() {
       <div className="mt-2 text-[12px]" style={{ color: "var(--ink-2)" }}>{m.layouts.filter((l) => l.role).map((l) => l.name).join(" · ") || "対応レイアウトなし"}</div>
       {m.missing.length > 0 && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>不足: {m.missing.join(", ")}</div>}
       {m.unmapped.length > 0 && <div className="mt-1 text-[12px]" style={{ color: "var(--ink-3)" }}>未使用: {m.unmapped.join(", ")}</div>}
-      {bodyOverlaps(m).footer && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>本文枠の下端がフッタと重なっています。自動分割はフッタの手前までで計算します</div>}
-      {bodyOverlaps(m).header && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>本文枠の上端がヘッダと重なっています。PowerPoint のスライドマスターで本文枠を下げてください</div>}
+      <OverlapWarnings master={m} />
     </>
   );
 
@@ -354,6 +353,17 @@ function ToolsTab() {
         </tbody>
       </table>
       <div className="mt-3"><button className="link" onClick={restoreDefaults}>プリセットを既定に戻す</button></div>
+    </>
+  );
+}
+
+/** Body boxes that run into the master's header or footer (ADR-0018, ADR-0025), with the layouts named. */
+function OverlapWarnings({ master }: { master: Parameters<typeof bodyOverlaps>[0] }) {
+  const { header, footer } = bodyOverlaps(master);
+  return (
+    <>
+      {footer.length > 0 && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>本文枠の下端がフッタと重なっています（{footer.join("・")}）。本文の自動分割はフッタの手前までで計算します</div>}
+      {header.length > 0 && <div className="mt-1 text-[12px]" style={{ color: "var(--warn)" }}>本文枠の上端がヘッダと重なっています（{header.join("・")}）。PowerPoint のスライドマスターで枠を下げてください</div>}
     </>
   );
 }
