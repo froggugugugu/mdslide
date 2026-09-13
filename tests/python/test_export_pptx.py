@@ -287,7 +287,9 @@ def test_text_goes_into_the_largest_body_boxes_like_the_preview(tmp_path, deck_j
 
 
 def test_images_outside_the_deck_folder_and_urls_are_not_embedded(tmp_path, master, deck_json):
-    """ADR-0026: only files inside --assets reach the pptx, so a deck someone sends cannot pull other files on this Mac in."""
+    """ADR-0026: only files inside --assets (and inline data:image, as the preview shows them) reach the pptx, so a deck
+    someone sends cannot pull other files on this Mac in."""
+    import base64, io
     from PIL import Image
     from pptx.enum.shapes import MSO_SHAPE_TYPE
     ws = tmp_path / "ws"
@@ -296,10 +298,13 @@ def test_images_outside_the_deck_folder_and_urls_are_not_embedded(tmp_path, mast
     secret = tmp_path / "secret.png"
     Image.new("RGB", (400, 300), (200, 0, 0)).save(secret)
     (ws / "images" / "link.png").symlink_to(secret)
-    srcs = ["images/ok.png", "./images/../images/ok.png", str(secret), "../secret.png", "images/link.png", "https://example.com/a.png"]
+    buf = io.BytesIO()
+    Image.new("RGB", (300, 200), (0, 0, 200)).save(buf, format="PNG")
+    inline = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    srcs = ["images/ok.png", "./images/../images/ok.png", inline, str(secret), "../secret.png", "images/link.png", "https://example.com/a.png"]
     slides = [slide("body", f"S{i}", layout="image", master_layout="Body-Text", body=["t"], images=[{"alt": "", "src": s}], geometry=geometry()) for i, s in enumerate(srcs)]
     r = run(deck_json(slides), master, tmp_path / "o.pptx", ws)
     assert r.returncode == 0, r.stderr
     pictures = [sum(1 for sh in s.shapes if sh.shape_type == MSO_SHAPE_TYPE.PICTURE) for s in Presentation(str(tmp_path / "o.pptx")).slides]
-    assert pictures == [1, 1, 0, 0, 0, 0]
+    assert pictures == [1, 1, 1, 0, 0, 0, 0]
     assert r.stderr.count("outside the deck folder") == 4

@@ -1,8 +1,8 @@
 /**
  * Where an image in deck.md may come from (ADR-0026). Only files inside the deck folder are read, so a deck someone
  * sends cannot make the preview fetch a URL (telling the sender it was opened) or put other files on this Mac into the
- * exported pptx. data:image URLs carry their own bytes and are shown as they are. tools/export_pptx.py applies the
- * same rule (asset_path).
+ * exported pptx. data:image URLs carry their own bytes and are used as they are. tools/export_pptx.py applies the
+ * same rule (asset_path, inline_image).
  */
 export type ImageSource =
   | { kind: "file"; path: string }

@@ -12,6 +12,9 @@ Contract: see src/export/exportJson.ts (ExportDeck, version 2).
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
+import io
 import json
 import re
 import sys
@@ -149,6 +152,18 @@ def fill_text(ph, lines: list[str]):
 
 
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+INLINE_IMAGE = re.compile(r"^data:image/[\w.+-]+;base64,", re.IGNORECASE)
+
+
+def inline_image(src: str) -> io.BytesIO | None:
+    """The bytes of a data:image/...;base64 reference. The preview shows these as they are, so the pptx gets them too."""
+    m = INLINE_IMAGE.match(src)
+    if not m:
+        return None
+    try:
+        return io.BytesIO(base64.b64decode(src[m.end():]))
+    except (binascii.Error, ValueError):
+        return None
 
 
 def asset_path(src: str, assets: Path) -> Path | None:
@@ -166,17 +181,17 @@ def fill_picture(ph, src: str, assets: Path):
     if not src:
         print("warning: image placeholder still empty (![...]())", file=sys.stderr)
         return
-    path = asset_path(src, assets)
-    if path is None:
-        print(f"warning: image outside the deck folder or a URL, placeholder left empty: {src}", file=sys.stderr)
+    image = inline_image(src) or asset_path(src, assets)
+    if image is None:
+        print(f"warning: image outside the deck folder or a URL, placeholder left empty: {src[:80]}", file=sys.stderr)
         return
-    if not path.exists():
-        print(f"warning: image not found, placeholder left empty: {path}", file=sys.stderr)
+    if isinstance(image, Path) and not image.exists():
+        print(f"warning: image not found, placeholder left empty: {image}", file=sys.stderr)
         return
     try:
-        ph.insert_picture(str(path))
+        ph.insert_picture(str(image) if isinstance(image, Path) else image)
     except Exception as e:  # SVG/EMF or non-picture placeholder
-        print(f"warning: could not insert {path}: {e}", file=sys.stderr)
+        print(f"warning: could not insert {src[:80]}: {e}", file=sys.stderr)
 
 
 # ---- fit estimate (mirrors src/model/fit.ts) ----
@@ -238,7 +253,7 @@ def check_fit(slide_title: str, ph, lines: list[str], font_pt: float | None, fit
         print(f"warning: '{slide_title}' body is estimated at {used:.1f} lines but the box fits {cap} at {font_pt:g}pt", file=sys.stderr)
 
 
-def image_size(path: Path) -> tuple[int, int] | None:
+def image_size(path: Path | io.BytesIO) -> tuple[int, int] | None:
     if PILImage is None:
         return None
     try:
@@ -262,22 +277,25 @@ def place_image_slide(slide, s: dict, bodies: list, assets: Path):
     g = s["geometry"]
     img = (s.get("images") or [{}])[0]
     src = img.get("src", "")
-    path = asset_path(src, assets) if src else None
+    image = (inline_image(src) or asset_path(src, assets)) if src else None
+    usable = image is not None and (not isinstance(image, Path) or image.exists())
     aspect = 16 / 9
-    if path and path.exists():
-        size = image_size(path)
+    if usable:
+        size = image_size(image)
         if size:
             aspect = size[0] / size[1]
     x, y, w, h = fit_rect(g["imageBox"], aspect, g["side"])
-    if path and path.exists():
+    if usable:
         try:
-            slide.shapes.add_picture(str(path), Emu(x), Emu(y), Emu(w), Emu(h))
+            if isinstance(image, io.BytesIO):
+                image.seek(0)
+            slide.shapes.add_picture(str(image) if isinstance(image, Path) else image, Emu(x), Emu(y), Emu(w), Emu(h))
         except Exception as e:
-            print(f"warning: could not insert {path}: {e}", file=sys.stderr)
-    elif src and path is None:
-        print(f"warning: image outside the deck folder or a URL, not embedded: {src} ('{s['title']}')", file=sys.stderr)
+            print(f"warning: could not insert {src[:80]}: {e}", file=sys.stderr)
+    elif src and image is None:
+        print(f"warning: image outside the deck folder or a URL, not embedded: {src[:80]} ('{s['title']}')", file=sys.stderr)
     elif src:
-        print(f"warning: image not found: {path}", file=sys.stderr)
+        print(f"warning: image not found: {image}", file=sys.stderr)
     else:
         print(f"warning: image placeholder still empty on '{s['title']}'", file=sys.stderr)
 
