@@ -10,11 +10,11 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
     <div className="scrim" onClick={onClose}>
       <div className="sheet help" onClick={(e) => e.stopPropagation()}>
         <h2>mdslide の使い方</h2>
-        <p>Markdown を書くとスライドになります。番号・並び・分割はツールが面倒を見ます。</p>
+        <p>Markdown を書くとスライドになります。番号・目次・分割はツールが面倒を見ます。</p>
 
         <h3>はじめの5分</h3>
         <ol>
-          <li>設定（<kbd>{mod}</kbd> <kbd>,</kbd>）の「マスター」で、レイアウト名を <code>Cover / Agenda / Section / Body-Text / Body-2col</code> と付けた pptx を保管フォルダに取り込む。最初の 1 つは既定になる。資料ごとに変えるならツールバーのマスター選択で（資料フォルダに <code>master.pptx</code> を置いてもよい）。見本の pptx と、手持ちのテンプレートから作る手順・AI 用プロンプトは使い方ページの「マスターを用意する」にある</li>
+          <li>設定（<kbd>{mod}</kbd> <kbd>,</kbd>）の「マスター」で、レイアウト名を <code>Cover / Agenda / Section / Body-Text / Body-2col</code> と付けた pptx を保管フォルダに取り込む。最初の 1 つは既定になる。資料ごとに変えるならツールバーのマスター選択で（資料フォルダに <code>master.pptx</code> を置いてもよい）。手元に無ければ同じ画面の「見本を取り込む」で規約どおりの見本が入る（PowerPoint で開いて直せば自分のマスターになる）。手持ちのテンプレートから作る手順と AI 用プロンプトは使い方ページの「マスターを用意する」にある</li>
           <li>起動画面の「{isElectron ? "Markdown を開く" : "フォルダを開く"}」で資料を開く。「新しく作る」は資料のフォルダを選ぶ（その場で作れる）と、中に <code>deck.md</code> を空の枠（表紙・章・スライド 1 枚）で作る。フォルダを開いた場合はその中の <code>deck.md</code>（無ければ見本から作成）を使う</li>
           <li>右のエディタで書く（既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替え可）。左のサムネイルはドラッグか <kbd>{alt}</kbd> <kbd>↑</kbd> <kbd>↓</kbd> で並べ替える。番号は自動</li>
           <li>「書き出す」で <code>out/deck.pptx</code>。Python と python-pptx が必要で、見つからなければ起動時に案内が出る（入れ方は設定の「書き出し」）</li>
@@ -54,9 +54,9 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         <h3>キー操作</h3>
         <table className="help-table">
           <tbody>
-            <tr><td><kbd>{mod}</kbd> <kbd>S</kbd> / <code>:w</code></td><td>保存（1.5秒後に自動保存もされる）</td></tr>
-            <tr><td><kbd>Ctrl</kbd> <kbd>Space</kbd></td><td>スニペット <code>:body :section :2col :img :table :note :split</code></td></tr>
-            <tr><td><kbd>]]</kbd> / <kbd>[[</kbd></td><td>次 / 前のスライド見出しへ（Normal）</td></tr>
+            <tr><td><kbd>{mod}</kbd> <kbd>S</kbd> / <code>:w</code></td><td>保存（エディタで。<code>:w</code> は Vim のとき。1.5秒後に自動保存もされる）</td></tr>
+            <tr><td><kbd>Ctrl</kbd> <kbd>Space</kbd></td><td>スニペット <code>:body :section :2col :img :imgfull :table :note :split</code></td></tr>
+            <tr><td><kbd>]]</kbd> / <kbd>[[</kbd></td><td>次 / 前のスライド見出しへ（Vim の Normal）</td></tr>
             <tr><td><kbd>↑</kbd> <kbd>↓</kbd>（<kbd>K</kbd> <kbd>J</kbd>）</td><td>左のサムネイル一覧で前 / 次のスライドを選ぶ（一覧をクリックしてから）</td></tr>
             <tr><td><kbd>{alt}</kbd> <kbd>↑</kbd> / <kbd>{alt}</kbd> <kbd>↓</kbd></td><td>選んだスライドを上 / 下へ移動。章は中身ごと動く</td></tr>
             <tr><td>区切り線をドラッグ</td><td>サムネイルとエディタの幅を変える（次回も同じ幅）</td></tr>
@@ -65,7 +65,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
             <tr><td><kbd>{mod}</kbd> <kbd>I</kbd></td><td>下書き。口語のメモを書く / ファイルをドロップ → notes/。ボタンで AI に「整形」「図生成」「描き直し」「要約」「章立て提案」を頼む</td></tr>
             <tr><td><kbd>{mod}</kbd> <kbd>J</kbd></td><td>コンソールの表示 / 非表示</td></tr>
             <tr><td>アイコンにポインタを重ねる</td><td>説明とショートカットが出る（Tab で移動したときも）</td></tr>
-            <tr><td><kbd>{mod}</kbd> <kbd>,</kbd></td><td>設定（外観・Vim・マスターの保管フォルダ・CLI ツール）。メニューの「設定…」からも</td></tr>
+            <tr><td><kbd>{mod}</kbd> <kbd>,</kbd></td><td>設定（外観・Vim・ペイン幅・マスターの保管フォルダ・書き出しに使う Python・CLI ツール）。メニューの「設定…」からも</td></tr>
             <tr><td><kbd>{mod}</kbd> <kbd>/</kbd></td><td>この画面</td></tr>
           </tbody>
         </table>
@@ -73,12 +73,12 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         <h3>メモから資料へ</h3>
         <ol>
           <li>「下書き」に口語でつらつら書く。ファイルはウィンドウのどこにドロップしても <code>notes/</code> に入る</li>
-          <li>コンソールでツールを起動し、「整形して deck.md に」を押す。AI が <code>deck.md</code> を書き、即座に左と中央に反映される</li>
+          <li>コンソールでツールを起動し、「整形して deck.md に」を押す。AI が <code>deck.md</code> を書き、エディタに未保存の変更が無ければすぐ左と中央に反映される</li>
           <li>「図を統一テーマで生成」で <code>![TODO ...]()</code> が <code>theme.json</code> の配色の PNG になる（<code>tools/mdslide_draw.py</code> のフロー・ベン図・柱・サイクル・マトリクス・年表）</li>
           <li>気に入らなければ「前の版に戻す」。あとはエディタとプレビューで直す</li>
         </ol>
         <h3>コンソール（CLI エージェント）</h3>
-        <p>中央下のコンソールは、このフォルダで開いた本物のターミナルです。バーで選んだツール（Claude Code / Codex / Gemini / Aider など。設定の「ツール」で追加・編集、自動起動の切り替え）がシェル起動時に自動で立ち上がるので、「2章にリスク一覧の表を足して」と打つだけで <code>deck.md</code> が編集され、即座に反映されます。フォルダには規約を書いた <code>AGENTS.md</code> と、それを読み込む <code>CLAUDE.md</code>（中身は <code>@AGENTS.md</code> の 1 行）が自動で置かれます。</p>
+        <p>中央下のコンソールは、このフォルダで開いた本物のターミナルです。バーで選んだツール（Claude Code / Codex / Gemini / Aider など。設定の「ツール」で追加・編集、自動起動の切り替え）がシェル起動時に自動で立ち上がるので、「2章にリスク一覧の表を足して」と打つだけで <code>deck.md</code> が編集され、エディタに未保存の変更が無ければすぐ反映されます。フォルダには規約を書いた <code>AGENTS.md</code> と、それを読み込む <code>CLAUDE.md</code>（中身は <code>@AGENTS.md</code> の 1 行）が自動で置かれます。</p>
 
         <div className="mt-4 flex justify-end"><button className="btn primary" onClick={onClose}>閉じる</button></div>
       </div>
