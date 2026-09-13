@@ -520,6 +520,23 @@ export function findLayout(master: MasterProfile, kind: SlideKind, layout?: Mast
   return undefined;
 }
 
+/**
+ * The body boxes of a layout. The preview, the fit estimate and the exporter fill the same ones (tools/export_pptx.py
+ * body_placeholders follows this rule): body / obj placeholders with geometry, largest first with the XML order breaking
+ * ties, so a caption or a column heading never takes the text meant for the content box. Two columns are the two
+ * largest, left one first. A cover takes its subtitle first; elsewhere a subtitle is used only when nothing else exists.
+ */
+export function bodyPlaceholders(placeholders: Placeholder[], opts: { cover?: boolean; count?: number } = {}): Placeholder[] {
+  const count = opts.count ?? 1;
+  const bySize = (types: string[]) => placeholders.filter((p) => types.includes(p.type) && p.rect)
+    .map((p, i) => ({ p, i, area: p.rect!.w * p.rect!.h }))
+    .sort((a, b) => b.area - a.area || a.i - b.i)
+    .map((x) => x.p);
+  const bodies = bySize(["body", "obj"]), subtitles = bySize(["subTitle"]);
+  const chosen = (opts.cover ? [...subtitles, ...bodies] : bodies.length ? bodies : subtitles).slice(0, count);
+  return count > 1 ? chosen.sort((a, b) => a.rect!.x - b.rect!.x) : chosen;
+}
+
 /** Estimate how many body lines fit in a body placeholder at a given point size. */
 export function lineCapacity(rect: Rect | null, fontPt = 18, lineSpacing = 1.3): number | undefined {
   if (!rect) return undefined;

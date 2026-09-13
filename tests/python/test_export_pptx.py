@@ -250,3 +250,37 @@ def test_overflow_warning_uses_the_apps_estimate_when_deck_json_has_one(tmp_path
     assert r.returncode == 0, r.stderr
     assert "'Tight' body is estimated at 20.4 lines but the box fits 12 at 18pt" in r.stderr
     assert "'Roomy'" not in r.stderr
+
+
+def office_master(tmp_path, names):
+    """python-pptx's default template (the Office layouts) with some layouts renamed by the convention."""
+    prs = Presentation()
+    for layout in prs.slide_layouts:
+        if layout.name in names:
+            layout.name = names[layout.name]
+    path = tmp_path / "office-master.pptx"
+    prs.save(str(path))
+    return path
+
+
+def filled_text(slide_):
+    from pptx.enum.shapes import PP_PLACEHOLDER
+    footer = (PP_PLACEHOLDER.DATE, PP_PLACEHOLDER.FOOTER, PP_PLACEHOLDER.SLIDE_NUMBER)
+    return {ph.placeholder_format.idx: ph.text_frame.text for ph in slide_.placeholders
+            if ph.has_text_frame and ph.text_frame.text.strip() and ph.placeholder_format.type not in footer}
+
+
+def test_text_goes_into_the_largest_body_boxes_like_the_preview(tmp_path, deck_json):
+    """Content with Caption as Agenda and Comparison as Body-2col: the caption and the column headings are smaller body
+    boxes, so the agenda and the columns belong in the content boxes (src/master/importMaster.ts bodyPlaceholders)."""
+    master = office_master(tmp_path, {"Title Slide": "Cover", "Title and Content": "Body-Text", "Section Header": "Section",
+                                      "Content with Caption": "Agenda", "Comparison": "Body-2col"})
+    deck = deck_json([
+        slide("agenda", "Agenda", master_layout="Agenda", agenda={"items": [{"number": "1", "title": "背景"}, {"number": "2", "title": "計画"}]}),
+        slide("body", "比較", layout="2col", master_layout="Body-2col", body=["- 左", "", "- 右"]),
+    ])
+    r = run(deck, master, tmp_path / "o.pptx", tmp_path)
+    assert r.returncode == 0, r.stderr
+    agenda, cols = Presentation(str(tmp_path / "o.pptx")).slides
+    assert filled_text(agenda) == {0: "Agenda", 1: "1. 背景\n2. 計画"}
+    assert filled_text(cols) == {0: "比較", 2: "左", 4: "右"}

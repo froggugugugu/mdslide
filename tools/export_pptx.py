@@ -7,7 +7,7 @@ Usage:
 The master's theme, fonts, colors, and logos are preserved because slides are added
 on top of the master's own slideLayouts. Existing slides in the master are removed.
 
-Contract: see src/export/exportJson.ts (ExportDeck, version 1).
+Contract: see src/export/exportJson.ts (ExportDeck, version 2).
 """
 from __future__ import annotations
 
@@ -111,6 +111,22 @@ def add_runs(paragraph, text: str):
             run.text, run.font.name = part[1:-1], "Consolas"
         else:
             run.text = part
+
+
+def body_placeholders(slide, cover=False, count=1):
+    """The body boxes to fill, chosen like bodyPlaceholders in src/master/importMaster.ts so the export matches the
+    preview: body / object placeholders, largest first (placeholder order breaks ties), the two largest left to right
+    for two columns. A cover takes its subtitle first; other layouts use a subtitle only when they have no body box."""
+    phs = list(slide.placeholders)
+
+    def by_size(types):
+        found = [(i, ph) for i, ph in enumerate(phs) if ph.placeholder_format.type in types and ph.width and ph.height]
+        return [ph for _, ph in sorted(found, key=lambda t: (-(t[1].width * t[1].height), t[0]))]
+
+    bodies = by_size((PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT))
+    subtitles = by_size((PP_PLACEHOLDER.SUBTITLE,))
+    chosen = (subtitles + bodies if cover else bodies or subtitles)[:count]
+    return sorted(chosen, key=lambda ph: ph.left) if count > 1 else chosen
 
 
 def fill_text(ph, lines: list[str]):
@@ -348,7 +364,7 @@ def main():
         titles = ph.get("title", []) + ph.get("center_title", [])
         if titles:
             titles[0].text_frame.text = s["title"]
-        bodies = ph.get("body", []) + ph.get("object", []) + ph.get("subtitle", [])
+        bodies = body_placeholders(slide, cover=s["kind"] == "cover", count=2 if s["layout"] == "2col" else 1)
         pics = ph.get("picture", [])
 
         if s["kind"] == "agenda" and s.get("agenda"):

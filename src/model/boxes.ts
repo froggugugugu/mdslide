@@ -1,5 +1,5 @@
 import { contentArea, DEFAULT_TITLE, GAP, MARGIN, placeImage, type Frame } from "../layouts/geometry";
-import { findLayout, type MasterLayout, type MasterProfile, type Rect } from "../master/importMaster";
+import { bodyPlaceholders, findLayout, type MasterLayout, type MasterProfile, type Rect } from "../master/importMaster";
 import type { TextSpacing } from "./fit";
 import type { BodyLayout } from "./types";
 
@@ -46,8 +46,9 @@ export function contentBand(master: MasterProfile | undefined): ContentBand | un
   };
 }
 
-const bodyRectOf = (l: MasterLayout | undefined): Rect | undefined =>
-  l?.placeholders.find((p) => (p.type === "body" || p.type === "obj") && p.rect)?.rect ?? undefined;
+/** The body box of a layout (for two columns, the left one): the placeholder the preview and the exporter fill. */
+const bodyRectOf = (l: MasterLayout | undefined, columns = 1): Rect | undefined =>
+  (l ? bodyPlaceholders(l.placeholders, { count: columns })[0]?.rect : undefined) ?? undefined;
 
 /**
  * Where the body text goes, in points, for a given layout. Text and 2col slides use the master's body placeholder,
@@ -84,7 +85,7 @@ export function bodyBoxFor(master: MasterProfile | undefined, layout: BodyLayout
   }
   if (layout.kind === "2col") {
     const l2 = master ? findLayout(master, "body", "2col") : undefined;
-    const b = bodyRectOf(l2);
+    const b = bodyRectOf(l2, 2);
     if (b) return inset(clipped(b), l2);
     return { widthPt: ((content.w - GAP) / 2) * W, heightPt: content.h * W };
   }
@@ -97,9 +98,10 @@ export function bodyBoxFor(master: MasterProfile | undefined, layout: BodyLayout
 export function bodyOverlaps(master: MasterProfile): { header: boolean; footer: boolean } {
   const band = contentBand(master);
   const W = master.slideSize.w;
-  const rects = (["text", "2col"] as const)
-    .map((k) => master.layouts.find((l) => l.role?.kind === "body" && l.role.layout === k))
-    .flatMap((l) => (l ? l.placeholders.filter((p) => (p.type === "body" || p.type === "obj") && p.rect).map((p) => p.rect!) : []));
+  const rects = (["text", "2col"] as const).flatMap((k) => {
+    const l = master.layouts.find((x) => x.role?.kind === "body" && x.role.layout === k);
+    return l ? bodyPlaceholders(l.placeholders, { count: k === "2col" ? 2 : 1 }).map((p) => p.rect!) : [];
+  });
   const headerBottom = band?.headerBottom, footerTop = band?.footerTop;
   return {
     header: headerBottom !== undefined && rects.some((r) => r.y < headerBottom * W - 1),

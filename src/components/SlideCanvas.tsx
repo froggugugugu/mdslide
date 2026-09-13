@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { RenderedSlide } from "../model/types";
 import { BODY_PRESETS, KIND_PRESETS, type PresetLayout, type Region } from "../layouts/presets";
-import { findLayout, type Decor, type MasterProfile, type PlaceholderStyle, type Rect } from "../master/importMaster";
+import { bodyPlaceholders, findLayout, type Decor, type MasterProfile, type Placeholder, type PlaceholderStyle, type Rect } from "../master/importMaster";
 import { useDeckStore } from "../store/deckStore";
 import { contentArea, placeImage, toCss, type Frame } from "../layouts/geometry";
 import { contentBand } from "../model/boxes";
@@ -41,20 +41,21 @@ interface Props {
 }
 
 function regionsFor(slide: RenderedSlide, master?: MasterProfile): PresetLayout {
-  const preset = slide.kind === "body" ? BODY_PRESETS[slide.layout.kind === "2col" ? "2col" : "text"] : KIND_PRESETS[slide.kind];
+  const is2col = slide.kind === "body" && slide.layout.kind === "2col";
+  const preset = slide.kind === "body" ? BODY_PRESETS[is2col ? "2col" : "text"] : KIND_PRESETS[slide.kind];
   if (!master) return preset;
-  const layout = findLayout(master, slide.kind, slide.layout.kind === "2col" ? "2col" : "text");
+  const layout = findLayout(master, slide.kind, is2col ? "2col" : "text");
   if (!layout) return preset;
   const { w, h } = master.slideSize;
-  const toRegion = (type: string[], nth = 0): Region | undefined => {
-    const ph = layout.placeholders.filter((p) => type.includes(p.type) && p.rect)[nth];
-    return ph?.rect ? { x: ph.rect.x / w, y: ph.rect.y / h, w: ph.rect.w / w, h: ph.rect.h / h } : undefined;
-  };
+  const toRegion = (ph?: Placeholder): Region | undefined =>
+    ph?.rect ? { x: ph.rect.x / w, y: ph.rect.y / h, w: ph.rect.w / w, h: ph.rect.h / h } : undefined;
+  // The boxes the exporter fills (ADR-0023). A layout with one body box takes both columns, as the pptx does.
+  const bodies = bodyPlaceholders(layout.placeholders, { cover: slide.kind === "cover", count: is2col ? 2 : 1 });
   return {
-    title: toRegion(["title", "ctrTitle"]) ?? preset.title,
-    body: toRegion(["body", "subTitle", "obj"]) ?? preset.body,
-    body2: toRegion(["body", "obj"], 1) ?? preset.body2,
-    image: toRegion(["pic"]) ?? preset.image,
+    title: toRegion(layout.placeholders.find((p) => (p.type === "title" || p.type === "ctrTitle") && p.rect)) ?? preset.title,
+    body: toRegion(bodies[0]) ?? preset.body,
+    body2: is2col && bodies.length < 2 ? undefined : toRegion(bodies[1]) ?? preset.body2,
+    image: toRegion(layout.placeholders.find((p) => p.type === "pic" && p.rect)) ?? preset.image,
   };
 }
 
@@ -132,7 +133,7 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
   const slideWidthPt = (master?.slideSize.w ?? 12192000) / 12700;
   const ptPx = (pt: number) => (pt / slideWidthPt) * width;
   const bodyPx = slide.fontPt ? ptPx(slide.fontPt) : unit * 1.6;
-  const isSplitBody = slide.kind === "body" && slide.layout.kind === "2col";
+  const isSplitBody = slide.kind === "body" && slide.layout.kind === "2col" && !!regions.body2;
   const [col1, col2] = isSplitBody ? splitColumns(slide.body) : [slide.body, []];
   const imageLayout = slide.kind === "body" && slide.layout.kind === "image" ? slide.layout : null;
   const imageSrc = slide.images[0]?.src ?? "";
@@ -165,7 +166,8 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
     ? { left: `${(r.x / master.slideSize.w) * 100}%`, top: `${(r.y / master.slideSize.h) * 100}%`, width: `${(r.w / master.slideSize.w) * 100}%`, height: `${(r.h / master.slideSize.h) * 100}%` }
     : {};
   const phStyle = (types: string[]) => layout?.placeholders.find((p) => types.includes(p.type))?.style;
-  const titlePh = phStyle(["title", "ctrTitle"]), bodyPh = phStyle(["body", "subTitle", "obj"]);
+  const titlePh = phStyle(["title", "ctrTitle"]);
+  const bodyPh = layout ? bodyPlaceholders(layout.placeholders, { cover: slide.kind === "cover" })[0]?.style : undefined; // the box the text goes into
   const titleColor = titlePh?.color ?? master?.master.titleColor;
   const bodyColor = bodyPh?.color ?? master?.master.bodyColor;
   const footers = (layout?.placeholders ?? []).filter((p) => (p.type === "dt" || p.type === "ftr" || p.type === "sldNum") && p.rect)
