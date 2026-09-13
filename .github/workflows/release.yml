@@ -42,7 +42,14 @@ jobs:
         run: |
           res="release/mac-arm64/mdslide.app/Contents/Resources"
           for f in LICENSE.electron.txt LICENSES.chromium.html LICENSE.mdslide.txt THIRD_PARTY_NOTICES.md; do test -s "$res/licenses/$f"; done
-          node -e 'require("@electron/fuses").getCurrentFuseWire(process.argv[1]).then((w) => { const f = require("@electron/fuses").FuseV1Options; if (w[f.RunAsNode] !== 48 || w[f.OnlyLoadAppFromAsar] !== 49) { console.error(w); process.exit(1); } })' "release/mac-arm64/mdslide.app"
+          node -e '
+            const { getCurrentFuseWire, FuseV1Options: F } = require("@electron/fuses");
+            const off = 48, on = 49; // "0" / "1" in the fuse wire; the same values electron-builder.yml asks for
+            const want = { RunAsNode: off, EnableCookieEncryption: on, EnableNodeOptionsEnvironmentVariable: off, EnableNodeCliInspectArguments: off, EnableEmbeddedAsarIntegrityValidation: on, OnlyLoadAppFromAsar: on, GrantFileProtocolExtraPrivileges: on };
+            getCurrentFuseWire(process.argv[1]).then((w) => {
+              const wrong = Object.entries(want).filter(([name, v]) => w[F[name]] !== v).map(([name]) => name);
+              if (wrong.length) { console.error("fuses not as configured:", wrong); process.exit(1); }
+            });' "release/mac-arm64/mdslide.app"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mac
