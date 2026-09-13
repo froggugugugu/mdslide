@@ -152,7 +152,7 @@ export function App() {
         if (r.ok) void workspace?.backend.showItem?.(OUTPUT_FILE);
         else if (r.python) void usePythonStore.getState().run(); // refresh what the settings show
       } else {
-        setExportNote(`deck.json を書き出しました。 python3 tools/export_pptx.py deck.json --master master.pptx -o out/deck.pptx --assets . を ${workspace?.name} で実行してください。`);
+        setExportNote("deck.json を書き出しました。pptx にするには、設定の「書き出し」にあるコマンドを実行してください。");
       }
     } else {
       download(`${deck.meta.title || "deck"}.json`, json);

@@ -266,8 +266,8 @@ function ExportTab() {
     return (
       <>
         <h2>書き出し</h2>
-        <p>ブラウザ版では pptx を直接書き出せません。「書き出す」で deck.json を保存したあと、Python と python-pptx が入った環境で次を実行します。</p>
-        {command("書き出しのコマンド", ["python3 tools/export_pptx.py deck.json --master master.pptx -o out/deck.pptx --assets ."])}
+        <p>ブラウザ版では pptx を直接書き出せません。「書き出す」で deck.json を保存したあと、Python と python-pptx が入った環境で、mdslide のリポジトリから次を実行します（山括弧の部分は置き換えます）。</p>
+        {command("書き出しのコマンド", ["python3 tools/export_pptx.py <資料フォルダ>/deck.json --master <マスターの pptx> -o <資料フォルダ>/out/deck.pptx --assets <資料フォルダ>"])}
       </>
     );
   }

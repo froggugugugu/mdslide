@@ -42,7 +42,7 @@ export function StartScreen() {
             </ul>
           </section>
         )}
-        <p className="start-hint">「新しく作る」は資料のフォルダを選ぶ（その場で作れます）と、その中に <code>deck.md</code> を表紙・章・スライド 1 枚だけの空の枠で作ります。フォルダを開いた場合は、その中の <code>deck.md</code>（無ければ見本から作成）を使います。</p>
+        <p className="start-hint">{isElectron && <>「新しく作る」は資料のフォルダを選ぶ（その場で作れます）と、その中に <code>deck.md</code> を表紙・章・スライド 1 枚だけの空の枠で作ります。</>}フォルダを開いた場合は、その中の <code>deck.md</code>（無ければ見本から作成）を使います。</p>
       </div>
     </div>
   );

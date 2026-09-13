@@ -87,7 +87,7 @@ export function ThumbnailPane() {
             onDragStart={onDragStart(s)} onDragOver={onDragOver(s)} onDragEnd={endDrag}
             onClick={() => select(s.id)}
             onContextMenu={(e) => { e.preventDefault(); select(s.id); void copyText(slideRef(s, deckFile)); }}
-            title={`右クリックで ${slideRef(s, deckFile)} をコピー`}>
+            data-tip={`右クリックで ${slideRef(s, deckFile)} をコピー`}>
             {line === "top" && <div className="drop-line" style={{ top: 0 }} />}
             <div className={`nav-item ${selected ? "selected" : ""} ${isSection ? "section" : ""} ${moving?.has(s.id) ? "dragging" : ""}`}
               style={{ paddingLeft: continuation ? 24 : undefined }}>
