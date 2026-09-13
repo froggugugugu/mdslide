@@ -87,12 +87,10 @@ describe("InboxDrawer", () => {
     expect(screen.queryByRole("button", { name: "notes/scan.pdf を開く" })).toBeNull(); // not text: listed, not editable
     expect(screen.getByText("scan.pdf")).toBeInTheDocument();
   });
-  it("closes with the button and ⌘I", async () => {
+  it("closes with its button (⌘I is the app's shortcut, tested with App in terminalPane.test.tsx)", async () => {
     useDeckStore.setState({ workspace: null });
     render(<InboxDrawer />);
     await userEvent.click(screen.getByRole("button", { name: "下書きを閉じる" }));
     expect(useInboxStore.getState().open).toBe(false);
-    fireEvent.keyDown(window, { key: "i", metaKey: true });
-    expect(useInboxStore.getState().open).toBe(true);
   });
 });
