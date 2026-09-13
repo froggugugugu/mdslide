@@ -17,6 +17,10 @@ set -euo pipefail
 
 REPO="froggugugugu/mdslide"
 WORK=""
+# https only, TLS 1.2 or later, redirects included (ADR-0027).
+CURL=(curl --proto '=https' --tlsv1.2)
+# Exact versions, wheels only: pip runs no build script from a source package (ADR-0027). Pillow 12 needs Python 3.10.
+PY_PACKAGES=(python-pptx==1.0.2 lxml==6.1.3 XlsxWriter==3.2.9 typing_extensions==4.16.0 "pillow==12.3.0; python_version >= '3.10'" "pillow==11.3.0; python_version < '3.10'")
 
 say() { printf '%s\n' "$*"; }
 fail() { printf 'mdslide: %s\n' "$*" >&2; exit 1; }
@@ -38,8 +42,23 @@ is_running() {
 # releases/latest redirects to releases/tag/v<version>.
 latest_version() {
   local url
-  url="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest")" || return 1
+  url="$("${CURL[@]}" -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest")" || return 1
   printf '%s\n' "${url##*/v}"
+}
+
+# The sha256 GitHub recorded for asset $2 of release v$1. Releases are immutable (ADR-0027), so this is the hash of
+# the file that was published; a download that differs is not installed.
+release_digest() {
+  local json="$WORK/release.json" i=0 name
+  "${CURL[@]}" -fsSL -H 'Accept: application/vnd.github+json' -o "$json" "https://api.github.com/repos/$REPO/releases/tags/v$1" || return 1
+  while name="$(plutil -extract "assets.$i.name" raw -o - "$json" 2>/dev/null)"; do
+    if [ "$name" = "$2" ]; then
+      plutil -extract "assets.$i.digest" raw -o - "$json" 2>/dev/null
+      return
+    fi
+    i=$((i + 1))
+  done
+  return 1
 }
 
 setup_python() {
@@ -60,8 +79,11 @@ setup_python() {
     say "python-pptx には Python 3.9 以上が要ります（${py}）。python-pptx は入れませんでした。"
     return 0
   fi
+  if ! "$py" -c 'import sys; sys.exit(sys.version_info < (3, 10))' >/dev/null 2>&1; then
+    say "Python 3.9 では、画像を読む Pillow の修正を含む版（12 以降）が使えないため、11.3.0 を入れます。Python 3.10 以上を入れてから、もう一度実行することを勧めます。"
+  fi
   say "python-pptx を $venv に入れています..."
-  if "$py" -m venv "$venv" && "$venv/bin/python3" -m pip install --quiet --disable-pip-version-check python-pptx; then
+  if "$py" -m venv "$venv" && "$venv/bin/python3" -m pip install --quiet --disable-pip-version-check --only-binary=:all: "${PY_PACKAGES[@]}"; then
     say "python-pptx を入れました。"
   else
     say "python-pptx を入れられませんでした。mdslide の設定の「書き出し」に入れ方があります。"
@@ -96,8 +118,13 @@ main() {
     esac
     zip="$WORK/mdslide-$version-arm64-mac.zip"
     say "mdslide $version をダウンロードしています..."
-    curl -fL --progress-bar -o "$zip" "https://github.com/$REPO/releases/download/v$version/mdslide-$version-arm64-mac.zip" \
+    "${CURL[@]}" -fL --progress-bar -o "$zip" "https://github.com/$REPO/releases/download/v$version/mdslide-$version-arm64-mac.zip" \
       || fail "mdslide $version をダウンロードできませんでした。"
+    local want sum
+    want="$(release_digest "$version" "mdslide-$version-arm64-mac.zip")" \
+      || fail "ダウンロードを照合する sha256 を GitHub から取れませんでした。入れませんでした。"
+    sum="$(shasum -a 256 "$zip")"
+    [ "$want" = "sha256:${sum%% *}" ] || fail "ダウンロードしたファイルが公開されたものと一致しません（sha256）。入れませんでした。"
   fi
 
   # --noqtn: a zip downloaded with a browser must not pass its quarantine mark on to the app.

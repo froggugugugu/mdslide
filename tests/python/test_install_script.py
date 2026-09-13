@@ -1,5 +1,7 @@
 """scripts/install.sh on a Mac: puts the app from a release zip in place without the quarantine mark, refuses one whose
 signature does not verify, and leaves a venv that already has python-pptx alone. Runs against a small ad-hoc signed bundle."""
+import hashlib
+import json
 import os
 import plistlib
 import shutil
@@ -90,3 +92,49 @@ def test_leaves_a_venv_that_already_has_python_pptx(tmp_path):
     r = install(tmp_path, app_zip(tmp_path))
     assert r.returncode == 0, r.stderr
     assert "python-pptx は入っています" in r.stdout
+
+
+def release(zip_path, digest=None):
+    """The part of the GitHub API's release JSON the installer reads: asset names and the sha256 GitHub recorded."""
+    real = "sha256:" + hashlib.sha256(zip_path.read_bytes()).hexdigest()
+    return {"assets": [{"name": "mdslide-9.9.9-arm64.dmg", "digest": "sha256:" + "0" * 64}, {"name": zip_path.name, "digest": digest or real}]}
+
+
+def fake_download(tmp_path, release_json):
+    """A curl on PATH serving the release from files; it insists on https only, like the real installer asks."""
+    (tmp_path / "release.json").write_text(json.dumps(release_json))
+    bin_dir = tmp_path / "fakebin"
+    bin_dir.mkdir()
+    tool = bin_dir / "curl"
+    tool.write_text(f"""#!{sys.executable}
+import os, shutil, sys
+args = sys.argv[1:]
+if "--proto" not in args or args[args.index("--proto") + 1] != "=https":
+    sys.exit("fake: --proto =https is missing")
+url = [a for a in args if a.startswith("https://")][-1]
+if url.endswith("/releases/latest"):
+    sys.stdout.write("https://github.com/froggugugugu/mdslide/releases/tag/v9.9.9")
+    sys.exit(0)
+src = os.path.join({str(tmp_path)!r}, "release.json" if "/releases/tags/" in url else url.rsplit("/", 1)[-1])
+if not os.path.exists(src):
+    sys.exit(22)
+shutil.copy(src, args[args.index("-o") + 1])
+""")
+    tool.chmod(0o755)
+    return f"{bin_dir}:{os.environ['PATH']}"
+
+
+def test_downloads_the_latest_release_over_https_and_checks_its_digest(tmp_path):
+    z = app_zip(tmp_path)
+    r = install(tmp_path, MDSLIDE_SKIP_PYTHON="1", PATH=fake_download(tmp_path, release(z)))
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (tmp_path / "Applications" / "mdslide.app" / "Contents" / "Info.plist").exists()
+
+
+def test_refuses_a_download_that_is_not_the_published_file(tmp_path):
+    z = app_zip(tmp_path)
+    r = install(tmp_path, MDSLIDE_SKIP_PYTHON="1", PATH=fake_download(tmp_path, release(z, digest="sha256:" + "1" * 64)))
+    assert r.returncode != 0
+    assert "一致しません" in r.stderr
+    assert not (tmp_path / "Applications" / "mdslide.app").exists()
+
