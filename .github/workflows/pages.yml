@@ -7,11 +7,10 @@ on:
 # Publishes the site to GitHub Pages with Jekyll: the landing page (.github/pages/index.html, a single static file)
 # at the root, and the usage docs (README.md → README.html, docs/, LICENSE, CLAUDE.md) next to it.
 # Pages must be enabled once in the repository settings (Source: GitHub Actions); GITHUB_TOKEN cannot create the site.
-# Actions are pinned to commit SHAs (version in the comment; Dependabot keeps both in sync).
+# Actions are pinned to commit SHAs (version in the comment; Dependabot keeps both in sync); runner images are pinned too.
+# Only deploy can write to Pages: build runs the repository's content through Jekyll with read access (ADR-0027).
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -19,18 +18,23 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: read   # configure-pages reads the site's settings
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
       - name: Assemble the site source
         run: |
           mkdir -p _pages
-          cp LICENSE CLAUDE.md _pages/
+          cp LICENSE CLAUDE.md SECURITY.md THIRD_PARTY_NOTICES.md _pages/
           # jekyll-optional-front-matter leaves README.md unrendered by default; with front matter it becomes README.html.
           { printf -- '---\ntitle: mdslide の使い方\n---\n\n'; cat README.md; } > _pages/README.md
           cp -R docs _pages/docs
           mkdir -p _pages/examples && cp examples/sample-master.pptx _pages/examples/   # downloadable from the landing page
           cp .github/pages/_config.yml .github/pages/index.html _pages/
+          cp -R .github/pages/assets _pages/assets   # the page's scripts, served from the site itself (ADR-0027)
           cp scripts/install.sh _pages/   # the installer, served at https://froggugugugu.github.io/mdslide/install.sh (ADR-0022)
           { echo "# ADR 一覧"; echo; for f in docs/adr/*.md; do echo "- [$(sed -n '1s/^# //p' "$f")]($(basename "$f"))"; done; } > _pages/docs/adr/index.md
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
@@ -40,7 +44,11 @@ jobs:
         with: { path: ./_site }
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+      actions: read
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

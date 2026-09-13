@@ -4,20 +4,23 @@ on:
     branches: [main]
   pull_request:
 
-# Least privilege for GITHUB_TOKEN. Actions are pinned to commit SHAs (version in the comment; Dependabot keeps both in sync).
+# Least privilege for GITHUB_TOKEN, and checkout does not leave it in .git/config for later steps.
+# Actions are pinned to commit SHAs (version in the comment; Dependabot keeps both in sync); runner images are pinned too.
+# npm ci runs no install scripts of dependencies; where the app runs, node-pty is rebuilt for Electron explicitly (ADR-0027).
 permissions:
   contents: read
 
 jobs:
   unit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with: { node-version: 24, cache: npm }
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with: { python-version: "3.12", cache: pip }
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: pip install -r requirements-dev.txt && python -m playwright install --with-deps chromium
       - run: npm run typecheck
       - run: npm run test:coverage
@@ -27,14 +30,15 @@ jobs:
         if: always()
         with: { name: coverage, path: coverage/ }
   electron-mac:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with: { node-version: 24, cache: npm }
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with: { python-version: "3.12", cache: pip }
-      - run: npm ci
+      - run: npm ci --ignore-scripts && npm run rebuild
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest tests/python/test_install_script.py -q   # macOS only (ditto, codesign, xattr); skipped on the Linux job
       - run: npm run test:e2e:electron
