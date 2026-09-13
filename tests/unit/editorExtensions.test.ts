@@ -1,8 +1,10 @@
 import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, runScopeHandlers } from "@codemirror/view";
+import { markdown } from "@codemirror/lang-markdown";
+import { basicSetup } from "codemirror";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { imageBaseName, imageDropPaste, insertImage, jumpHeading, registerVimMotions, snippetSource } from "../../src/components/editorExtensions";
+import { appShortcuts, imageBaseName, imageDropPaste, insertImage, jumpHeading, registerVimMotions, snippetSource } from "../../src/components/editorExtensions";
 import { useDeckStore } from "../../src/store/deckStore";
 
 const DOC = `---\ntitle: T\n---\n\n# 章\n\n## 2.x 図の説明 {img=1/2}\n\n- a\n\n![TODO 構成図]()\n\n## 次\n`;
@@ -105,5 +107,35 @@ describe("heading motions", () => {
   });
   it("registers vim mappings once", () => {
     expect(() => { registerVimMotions(); registerVimMotions(); }).not.toThrow();
+  });
+});
+
+describe("appShortcuts: ⌘/ (help) and ⌘I (drafts) belong to the app, not to CodeMirror", () => {
+  const DOC = "## a\n- b **c**";
+  const press = (view: EditorView, key: string) => {
+    const mac = /Mac/.test(navigator.platform);
+    return runScopeHandlers(view, new KeyboardEvent("keydown", { key, metaKey: mac, ctrlKey: !mac }), "editor");
+  };
+  const editor = (extensions: unknown[]) => new EditorView({
+    state: EditorState.create({ doc: DOC, selection: { anchor: 12 }, extensions: [...extensions, basicSetup, markdown()] as never }),
+    parent: document.body,
+  });
+
+  it("without them the editor comments the line out and selects the syntax around the cursor", () => {
+    const view = editor([]);
+    press(view, "i");
+    expect(view.state.selection.main.empty).toBe(false);
+    press(view, "/");
+    expect(view.state.doc.toString()).toContain("<!--");
+    view.destroy();
+  });
+
+  it("with them the document and the selection stay as they were", () => {
+    const view = editor([appShortcuts]);
+    press(view, "/");
+    press(view, "i");
+    expect(view.state.doc.toString()).toBe(DOC);
+    expect(view.state.selection.main.empty).toBe(true);
+    view.destroy();
   });
 });

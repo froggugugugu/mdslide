@@ -158,6 +158,12 @@ describe("App: first-run help, console toggle, shortcuts, splitter", () => {
     expect(screen.getByText("mdslide の使い方")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "/", ctrlKey: true });
     expect(screen.queryByText("mdslide の使い方")).not.toBeInTheDocument();
+    const { useInboxStore } = await import("../../src/console/inboxStore");
+    useInboxStore.setState({ open: false });
+    fireEvent.keyDown(window, { key: "i", metaKey: true });
+    expect(useInboxStore.getState().open).toBe(true);  // opens the drafts drawer while it is closed
+    fireEvent.keyDown(window, { key: "i", metaKey: true });
+    expect(useInboxStore.getState().open).toBe(false); // one toggle per press while it is open
     const sep = screen.getByRole("separator", { name: "コンソールの高さ" });
     fireEvent.mouseDown(sep, { clientY: 500 });
     fireEvent.mouseMove(window, { clientY: 400 });

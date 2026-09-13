@@ -37,11 +37,12 @@ export function App() {
   const setConsoleHeight = useTerminalStore((s) => s.setHeight);
   const closeHelp = () => { settings.update((v) => { v.help.seen = true; }); setShowHelp(false); };
 
-  // Global shortcuts: ⌘J console, ⌘/ help, ⌘, settings. The Electron app menu reaches the same two sheets by IPC.
+  // Global shortcuts: ⌘J console, ⌘I drafts, ⌘/ help, ⌘, settings. The Electron app menu reaches the two sheets by IPC.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       if (e.key === "j" || e.key === "J") { e.preventDefault(); toggleConsole(); }
+      if (e.key === "i" || e.key === "I") { e.preventDefault(); toggleInbox(); }
       if (e.key === "/") { e.preventDefault(); setShowHelp((v) => !v); }
       if (e.key === ",") { e.preventDefault(); openSettings(); }
     };
@@ -49,7 +50,7 @@ export function App() {
     const offSettings = window.mdslide?.onOpenSettings?.(() => openSettings());
     const offHelp = window.mdslide?.onOpenHelp?.(() => setShowHelp(true));
     return () => { window.removeEventListener("keydown", onKey); offSettings?.(); offHelp?.(); };
-  }, [toggleConsole, openSettings]);
+  }, [toggleConsole, toggleInbox, openSettings]);
 
   const startResize = (e: React.MouseEvent) => {
     const startY = e.clientY, startH = consoleHeight;

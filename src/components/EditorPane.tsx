@@ -23,7 +23,7 @@ const highlight = HighlightStyle.define([
 import { vim } from "@replit/codemirror-vim";
 import { settings } from "../settings/settings";
 import { useDeckStore } from "../store/deckStore";
-import { imageDropPaste, registerVimMotions, saveKeymap, snippets } from "./editorExtensions";
+import { imageDropPaste, registerVimMotions, saveKeymap, appShortcuts, snippets } from "./editorExtensions";
 import { guides, setGuides } from "./editorGuides";
 
 /** Vim is a setting (editor.vim); the compartment swaps it in and out without rebuilding the editor. */
@@ -53,6 +53,7 @@ export function EditorPane() {
         basicSetup,
         markdown(),
         saveKeymap,
+        appShortcuts,
         snippets,
         imageDropPaste,
         guides,

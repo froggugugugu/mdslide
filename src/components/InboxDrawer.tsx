@@ -43,11 +43,6 @@ export function InboxDrawer() {
 
   useEffect(() => { attachInboxFs(fs); if (fs) void refresh(fs); }, [fs, refresh]);
   useEffect(() => { setSelected((cur) => new Set([...cur].filter((n) => notes.includes(n)))); }, [notes]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && (e.key === "i" || e.key === "I")) { e.preventDefault(); toggle(); } };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [toggle]);
 
   const pick = (n: string) => setSelected((cur) => { const s = new Set(cur); if (s.has(n)) s.delete(n); else s.add(n); return s; });
   const chosenNotes = () => (selected.size ? [...selected] : notes.filter((n) => !n.endsWith(".keep")));

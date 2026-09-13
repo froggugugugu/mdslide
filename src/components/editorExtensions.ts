@@ -80,8 +80,8 @@ const SNIPPETS = [
   snippetCompletion("## ${タイトル}\n\n- ${}\n", { label: ":body", detail: "本文スライド" }),
   snippetCompletion("# ${章タイトル}\n\n", { label: ":section", detail: "章（中表紙）" }),
   snippetCompletion("## ${タイトル} {layout=2col}\n\n- ${左}\n\n- ${右}\n", { label: ":2col", detail: "2カラム" }),
-  snippetCompletion("## ${タイトル} {layout=img-right}\n\n- ${}\n\n![TODO ${図の説明}]()\n", { label: ":img", detail: "画像右（後で貼り付け）" }),
-  snippetCompletion("## ${タイトル} {layout=img-full}\n\n![TODO ${図の説明}]()\n", { label: ":imgfull", detail: "画像全面" }),
+  snippetCompletion("## ${タイトル} {img=1/2 side=right}\n\n- ${}\n\n![TODO ${図の説明}]()\n", { label: ":img", detail: "画像右 1/2（後で貼り付け）" }),
+  snippetCompletion("## ${タイトル} {img=1/1}\n\n![TODO ${図の説明}]()\n", { label: ":imgfull", detail: "画像全幅" }),
   snippetCompletion("| ${項目} | ${値} |\n|---|---|\n| ${} |  |\n", { label: ":table", detail: "表" }),
   snippetCompletion("> note: ${}\n", { label: ":note", detail: "スピーカーノート" }),
   snippetCompletion("---\n\n", { label: ":split", detail: "明示的なページ分割" }),
@@ -125,3 +125,6 @@ export function registerVimMotions() {
 }
 
 export const saveKeymap = Prec.highest(keymap.of([{ key: "Mod-s", run: () => { void useDeckStore.getState().save(true); return true; } }]));
+
+/** ⌘/ (help) and ⌘I (drafts) are the app's shortcuts (App.tsx): keep CodeMirror's toggleComment and selectParentSyntax off them. */
+export const appShortcuts = Prec.highest(keymap.of([{ key: "Mod-/", run: () => true }, { key: "Mod-i", run: () => true }]));
