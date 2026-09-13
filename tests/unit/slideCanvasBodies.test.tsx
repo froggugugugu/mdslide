@@ -38,3 +38,19 @@ describe("SlideCanvas draws text into the boxes the exporter fills (ADR-0023)", 
     expect(one[1]).toContain("右");
   });
 });
+
+describe("SlideCanvas loads only images inside the deck folder (ADR-0026)", () => {
+  it("does not load a URL or a path outside the folder and says why; inline data: images show as they are", () => {
+    const md = "# 章\n\n## Web\n\n![](https://example.com/a.png)\n\n## Out\n\n![](../secret.png)\n\n## Inline\n\n![](data:image/png;base64,AAAA)\n";
+    const slides = renderDeck(parseMarkdown(md)).filter((s) => s.kind === "body");
+    const shown = (i: number) => {
+      const r = render(<SlideCanvas slide={slides[i]} />);
+      const out = { text: r.container.textContent ?? "", img: r.container.querySelector("img")?.getAttribute("src") ?? null };
+      r.unmount();
+      return out;
+    };
+    expect(shown(0)).toEqual({ text: expect.stringContaining("外部の画像は表示しません: https://example.com/a.png"), img: null });
+    expect(shown(1)).toEqual({ text: expect.stringContaining("フォルダの外の画像は使えません: ../secret.png"), img: null });
+    expect(shown(2).img).toBe("data:image/png;base64,AAAA");
+  });
+});

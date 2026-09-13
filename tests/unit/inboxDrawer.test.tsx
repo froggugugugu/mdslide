@@ -30,7 +30,7 @@ describe("InboxDrawer", () => {
     files.set("deck.md", "# before\n");
     files.set("notes/old.txt", "x");
     const written: string[] = [];
-    useTerminalStore.setState({ ptyId: 1, bridge: { write: async (_id: number, d: string) => { written.push(d); } } as never });
+    useTerminalStore.setState({ ptyId: 1, bridge: { write: async (_id: number, d: string) => { written.push(d); }, foreground: async () => ({ name: "claude", shell: "zsh" }) } as never });
     useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: fs as never }, notice: null });
     useDeckStore.getState().setMarkdown("# before\n\n## S\n\n- a\n");
     render(<InboxDrawer />);
@@ -92,5 +92,26 @@ describe("InboxDrawer", () => {
     render(<InboxDrawer />);
     await userEvent.click(screen.getByRole("button", { name: "下書きを閉じる" }));
     expect(useInboxStore.getState().open).toBe(false);
+  });
+  it("never types into a bare shell, and leaves out note names a shell would act on (ADR-0026)", async () => {
+    const { files, fs } = memFs();
+    files.set("deck.md", "# d\n");
+    files.set("notes/ok.md", "x");
+    files.set("notes/$(touch pwned).md", "x");
+    const written: string[] = [];
+    let fg = { name: "zsh", shell: "zsh" };
+    useTerminalStore.setState({ ptyId: 1, bridge: { write: async (_id: number, d: string) => { written.push(d); }, foreground: async () => fg } as never });
+    useDeckStore.setState({ workspace: { name: "w", path: "/w", deckFile: "deck.md", backend: fs as never }, notice: null });
+    render(<InboxDrawer />);
+    expect(await screen.findByText("ok.md")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "要約" }));
+    await waitFor(() => expect(useDeckStore.getState().notice).toMatch(/送りませんでした/));
+    expect(written).toEqual([]);
+    fg = { name: "claude", shell: "zsh" };
+    await userEvent.click(screen.getByRole("button", { name: "要約" }));
+    await waitFor(() => expect(written).toHaveLength(1));
+    expect(written[0]).toContain("@notes/ok.md");
+    expect(written[0]).not.toContain("pwned");
+    expect(useDeckStore.getState().notice).toMatch(/渡しませんでした: \$\(touch pwned\)\.md/);
   });
 });

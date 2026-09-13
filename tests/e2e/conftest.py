@@ -84,6 +84,29 @@ def display():
     proc.terminate()
 
 
+FAKE_CLAUDE = '''#!PYTHON
+import glob, subprocess, sys
+print("FAKE CLAUDE READY", flush=True)
+for line in sys.stdin:
+    line = line.rstrip("\\n")
+    print(f"claude got: {line}", flush=True)
+    if "notes/" in line:
+        text = "---\\ntitle: 整形済み\\n---\\n\\n# 背景\\n\\n## メモから {img=1/2 side=right}\\n\\n"
+        for name in sorted(glob.glob("notes/*.md")):
+            text += "".join("- " + l if l.endswith("\\n") else "- " + l + "\\n" for l in open(name, encoding="utf8"))
+        with open("deck.md", "w", encoding="utf8") as f:
+            f.write(text)
+        # Same interpreter as pytest: a login shell on macOS reorders PATH (path_helper) and python3 may lack matplotlib.
+        drawn = subprocess.run([sys.executable, "tools/mdslide_draw.py", "flow", "images/flow.png", "課題", "分析", "施策"], capture_output=True).returncode == 0
+        if drawn:
+            with open("deck.md", "a", encoding="utf8") as f:
+                f.write("\\n![流れ](images/flow.png)\\n")
+    else:
+        with open("deck.md", "a", encoding="utf8") as f:
+            f.write(f"\\n## {line}\\n\\n- Claude Code added\\n")
+'''
+
+
 @pytest.fixture
 def electron_app(tmp_path, display):
     """Launch the built Electron app on a fresh workspace folder; yields (page, workspace_dir)."""
@@ -94,16 +117,8 @@ def electron_app(tmp_path, display):
     # A fake `claude` on PATH so the auto-started session is deterministic; the real one needs auth.
     fake_bin = tmp_path / "bin"; fake_bin.mkdir()
     # It echoes what it gets; a prompt mentioning notes/ rewrites deck.md from notes/*.md and draws one figure with the real tool.
-    (fake_bin / "claude").write_text(
-        "#!/bin/sh\necho 'FAKE CLAUDE READY'\nwhile read line; do\n"
-        "  echo \"claude got: $line\"\n"
-        "  case \"$line\" in\n"
-        "    *notes/*) printf -- '---\\ntitle: 整形済み\\n---\\n\\n# 背景\\n\\n## メモから {img=1/2 side=right}\\n\\n' > deck.md; "
-        "for f in notes/*.md; do sed 's/^/- /' \"$f\" >> deck.md; done; "
-        # Same interpreter as pytest: a login shell on macOS reorders PATH (path_helper) and `python3` may become the system one without matplotlib.
-        f"{sys.executable} tools/mdslide_draw.py flow images/flow.png 課題 分析 施策 >/dev/null 2>&1 && printf '\\n![流れ](images/flow.png)\\n' >> deck.md ;;\n"
-        "    *) printf '\\n## %s\\n\\n- Claude Code added\\n' \"$line\" >> deck.md ;;\n"
-        "  esac\ndone\n", encoding="utf8")
+    # Python, not sh: the drawer only types prompts into a tool, and macOS's /bin/sh runs as bash, the console's own shell (ADR-0026).
+    (fake_bin / "claude").write_text(FAKE_CLAUDE.replace("PYTHON", sys.executable), encoding="utf8")
     (fake_bin / "claude").chmod(0o755)
     cfg = tmp_path / "config" / "settings.json"  # isolated settings file per test
     cfg.parent.mkdir(); cfg.write_text('{"version": 1}\n', encoding="utf8")  # present: skips migration of the shared userData

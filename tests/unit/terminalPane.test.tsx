@@ -37,6 +37,7 @@ function fakePty() {
     written: [],
     spawn: vi.fn(async () => 3), write: vi.fn(async (_id, d) => { b.written.push(d); }), resize: vi.fn(async () => undefined), kill: vi.fn(async () => undefined),
     onData: (cb) => { data.push(cb); return () => undefined; }, onExit: (cb) => { exit.push(cb); return () => undefined; },
+    foreground: vi.fn(async () => ({ name: "claude", shell: "zsh" })),
     emitData: (d) => data.forEach((f) => f(3, d)), emitExit: (c) => exit.forEach((f) => f(3, c)),
   };
   return b;

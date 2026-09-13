@@ -1,7 +1,7 @@
 // Fallback pty host: runs under the system `node` when node-pty could not be loaded inside Electron
 // (typically because `electron-rebuild` has not run). Protocol: newline-delimited JSON on stdin/stdout.
-//   in : {type:"spawn",id,cwd,cols,rows,shell,args,env} | {type:"write",id,data} | {type:"resize",id,cols,rows} | {type:"kill",id}
-//   out: {type:"data",id,data} | {type:"exit",id,code} | {type:"error",message}
+//   in : {type:"spawn",id,cwd,cols,rows,shell,args,env} | {type:"write",id,data} | {type:"resize",id,cols,rows} | {type:"kill",id} | {type:"process",id,req}
+//   out: {type:"data",id,data} | {type:"exit",id,code} | {type:"process",id,req,name} | {type:"error",message}
 const pty = require("node-pty");
 const readline = require("node:readline");
 
@@ -20,5 +20,10 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
   } else if (m.type === "write") sessions.get(m.id)?.write(m.data);
   else if (m.type === "resize") sessions.get(m.id)?.resize(m.cols, m.rows);
   else if (m.type === "kill") sessions.get(m.id)?.kill();
+  else if (m.type === "process") {
+    let name = null;
+    try { name = sessions.get(m.id)?.process || null; } catch { /* session gone */ }
+    send({ type: "process", id: m.id, req: m.req, name });
+  }
 });
 process.stdin.on("end", () => { for (const p of sessions.values()) p.kill(); process.exit(0); });

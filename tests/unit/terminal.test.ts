@@ -35,6 +35,7 @@ function fakePty() {
     kill: vi.fn(async () => undefined),
     onData: (cb) => { listeners.data.push(cb); return () => undefined; },
     onExit: (cb) => { listeners.exit.push(cb); return () => undefined; },
+    foreground: vi.fn(async (): Promise<{ name: string | null; shell: string } | null> => ({ name: "claude", shell: "zsh" })),
   };
   return b;
 }
@@ -87,6 +88,29 @@ describe("terminalStore", () => {
     expect(b.kill).toHaveBeenCalledWith(7);
     expect(useTerminalStore.getState().ptyId).toBeNull();
     expect(useTerminalStore.getState().status).toBe("stopped");
+  });
+  it("tells a tool in the foreground from the bare shell, so prompts never go to the shell (ADR-0026)", async () => {
+    const b = fakePty();
+    expect(await useTerminalStore.getState().toolInForeground()).toBe(false); // nothing running
+    await useTerminalStore.getState().start(b, "/w", 80, 24);
+    expect(await useTerminalStore.getState().toolInForeground()).toBe(true);
+    expect(b.foreground).toHaveBeenCalledWith(7);
+    const cases: [{ name: string | null; shell: string } | null, boolean][] = [
+      [{ name: "zsh", shell: "zsh" }, false],
+      [{ name: "-zsh", shell: "/bin/zsh" }, false],
+      [{ name: "bash", shell: "zsh" }, false], // another shell started inside
+      [{ name: "sh", shell: "sh" }, false], // the console's own shell is sh
+      [{ name: "sh", shell: "bash" }, true], // a tool written as an sh script
+      [{ name: "node", shell: "zsh" }, true],
+      [{ name: null, shell: "zsh" }, false],
+      [null, false],
+    ];
+    for (const [fg, tool] of cases) {
+      vi.mocked(b.foreground).mockResolvedValueOnce(fg);
+      expect(await useTerminalStore.getState().toolInForeground(), JSON.stringify(fg)).toBe(tool);
+    }
+    vi.mocked(b.foreground).mockRejectedValueOnce(new Error("session gone"));
+    expect(await useTerminalStore.getState().toolInForeground()).toBe(false);
   });
   it("persists open state and height", () => {
     const s = useTerminalStore.getState();

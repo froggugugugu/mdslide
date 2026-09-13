@@ -74,6 +74,7 @@ describe("workspace (electron backend)", () => {
       onChanged: vi.fn(() => () => undefined),
       runExport: vi.fn(async () => ({ code: 0, stdout: "ok", stderr: "" })),
       showItem: vi.fn(async () => undefined), openPath: vi.fn(async () => ""),
+      ptyForeground: vi.fn(async () => ({ name: "claude", shell: "zsh" })),
     };
     (window as unknown as { mdslide: typeof api }).mdslide = api;
     const m = await load();
@@ -94,6 +95,8 @@ describe("workspace (electron backend)", () => {
     expect(api.unwatch).toHaveBeenCalled();
     await ws.backend.runExport!("deck.json", "master.pptx", "out/deck.pptx");
     expect(api.runExport).toHaveBeenCalledWith("/Users/me/deck", "/Users/me/deck/deck.json", "/Users/me/deck/master.pptx", "/Users/me/deck/out/deck.pptx");
+    expect(await ws.backend.pty!.foreground(3)).toEqual({ name: "claude", shell: "zsh" }); // pty:foreground (ADR-0026)
+    expect(api.ptyForeground).toHaveBeenCalledWith(3);
     const picked = (await m.pickWorkspace())!;
     expect(picked.path).toBe("/Users/me/other");
     const { settings } = await import("../../src/settings/settings");

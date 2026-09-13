@@ -284,3 +284,22 @@ def test_text_goes_into_the_largest_body_boxes_like_the_preview(tmp_path, deck_j
     agenda, cols = Presentation(str(tmp_path / "o.pptx")).slides
     assert filled_text(agenda) == {0: "Agenda", 1: "1. 背景\n2. 計画"}
     assert filled_text(cols) == {0: "比較", 2: "左", 4: "右"}
+
+
+def test_images_outside_the_deck_folder_and_urls_are_not_embedded(tmp_path, master, deck_json):
+    """ADR-0026: only files inside --assets reach the pptx, so a deck someone sends cannot pull other files on this Mac in."""
+    from PIL import Image
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+    ws = tmp_path / "ws"
+    (ws / "images").mkdir(parents=True)
+    Image.new("RGB", (400, 300), (10, 100, 80)).save(ws / "images" / "ok.png")
+    secret = tmp_path / "secret.png"
+    Image.new("RGB", (400, 300), (200, 0, 0)).save(secret)
+    (ws / "images" / "link.png").symlink_to(secret)
+    srcs = ["images/ok.png", "./images/../images/ok.png", str(secret), "../secret.png", "images/link.png", "https://example.com/a.png"]
+    slides = [slide("body", f"S{i}", layout="image", master_layout="Body-Text", body=["t"], images=[{"alt": "", "src": s}], geometry=geometry()) for i, s in enumerate(srcs)]
+    r = run(deck_json(slides), master, tmp_path / "o.pptx", ws)
+    assert r.returncode == 0, r.stderr
+    pictures = [sum(1 for sh in s.shapes if sh.shape_type == MSO_SHAPE_TYPE.PICTURE) for s in Presentation(str(tmp_path / "o.pptx")).slides]
+    assert pictures == [1, 1, 0, 0, 0, 0]
+    assert r.stderr.count("outside the deck folder") == 4

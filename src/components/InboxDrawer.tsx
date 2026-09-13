@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { attachInboxFs, isTextNote, useInboxStore } from "../console/inboxStore";
-import { PROMPTS, buildPrompt } from "../console/prompts";
+import { PROMPTS, buildPrompt, safeForPrompt } from "../console/prompts";
 import { useTerminalStore } from "../console/terminalStore";
 import { useToolsStore } from "../console/toolsStore";
 import { useDeckStore } from "../store/deckStore";
@@ -33,6 +33,7 @@ export function InboxDrawer() {
   const loadFromDisk = useDeckStore((s) => s.loadFromDisk);
   const termWrite = useTerminalStore((s) => s.write);
   const termRunning = useTerminalStore((s) => s.ptyId !== null);
+  const toolInForeground = useTerminalStore((s) => s.toolInForeground);
   const tool = useToolsStore((s) => s.tools.find((t) => t.id === s.selectedId)?.name ?? "CLI");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -51,12 +52,18 @@ export function InboxDrawer() {
   const send = async (id: string) => {
     if (!fs || !workspace) return;
     if (!termRunning) { setNotice("コンソールでツールを起動してから実行してください。"); return; }
+    // The console is a real terminal: a prompt typed into the bare shell, or a name with $( ) in it, would run as a command (ADR-0026).
+    if (!safeForPrompt(deckFile)) { setNotice(`${deckFile} の名前に $ や ; などの記号があるため送れません。名前を変えてから実行してください。`); return; }
+    if (!(await toolInForeground())) { setNotice("コンソールでツールが動いていないため送りませんでした（シェルに送ると命令として実行されます）。ツールを起動してから実行してください。"); return; }
     setBusy(id);
     try {
       await flush(fs);
       await snapshotDeck(fs, undefined, deckFile);
-      const text = buildPrompt(id, chosenNotes(), current ? slideRef(current, deckFile) : null, deckFile);
+      const picked = chosenNotes();
+      const skipped = picked.filter((n) => !safeForPrompt(n));
+      const text = buildPrompt(id, picked.filter(safeForPrompt), current ? slideRef(current, deckFile) : null, deckFile);
       await termWrite(text + "\r");
+      if (skipped.length) setNotice(`$ や ; などの記号を含む名前のファイルは渡しませんでした: ${skipped.map((n) => n.replace("notes/", "")).join("、")}`);
     } finally { setBusy(null); }
   };
   const undo = async () => {

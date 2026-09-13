@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { imageSource } from "../model/imageSrc";
 import type { RenderedSlide } from "../model/types";
 import { BODY_PRESETS, KIND_PRESETS, type PresetLayout, type Region } from "../layouts/presets";
 import { bodyPlaceholders, findLayout, type Decor, type MasterProfile, type Placeholder, type PlaceholderStyle, type Rect } from "../master/importMaster";
@@ -7,27 +8,34 @@ import { contentArea, placeImage, toCss, type Frame } from "../layouts/geometry"
 import { contentBand } from "../model/boxes";
 import { lineHeightPt, paragraphGapPt } from "../model/fit";
 
-/** Resolve a markdown image path to something an <img> can show. */
+/** Resolve a markdown image path to something an <img> can show. Only files in the deck folder and data:image URLs load (ADR-0026). */
 function useImageSrc(src: string): string | null {
   const resolved = useDeckStore((s) => s.imageUrls[src]);
   const resolve = useDeckStore((s) => s.resolveImage);
   useEffect(() => { if (src) resolve(src); }, [src, resolve]);
   if (!src) return null;
-  if (/^(https?:|data:|blob:)/.test(src)) return src;
+  if (imageSource(src).kind === "data") return src;
   return resolved ?? null;
+}
+
+/** Why a reference is not shown: a URL, or a path outside the deck folder. null when it may load. */
+function blockedCaption(src: string): string | null {
+  const { kind } = imageSource(src);
+  return kind === "external" ? `外部の画像は表示しません: ${src}` : kind === "outside" ? `フォルダの外の画像は使えません: ${src}` : null;
 }
 
 function SlideImage({ alt, src, captionSize }: { alt: string; src: string; captionSize: number }) {
   const url = useImageSrc(src);
   const setImageDims = useDeckStore((s) => s.setImageDims);
   const missing = !src;
+  const blocked = src ? blockedCaption(src) : null;
   const [failed, setFailed] = useState(false);
   return (
     <>
       {url && !failed ? <img src={url} alt={alt} onError={() => setFailed(true)}
         onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth) setImageDims(src, im.naturalWidth, im.naturalHeight); }} /> : null}
-      <span style={{ position: "absolute", bottom: "0.4em", fontSize: captionSize, color: missing || failed ? "var(--warn)" : "inherit" }}>
-        {missing ? `未挿入: ${alt.replace(/^TODO\s*/i, "") || "画像"}` : failed || (url === null && src) ? `見つかりません: ${src}` : alt || src}
+      <span style={{ position: "absolute", bottom: "0.4em", fontSize: captionSize, color: missing || failed || blocked ? "var(--warn)" : "inherit" }}>
+        {missing ? `未挿入: ${alt.replace(/^TODO\s*/i, "") || "画像"}` : blocked ?? (failed || (url === null && src) ? `見つかりません: ${src}` : alt || src)}
       </span>
     </>
   );

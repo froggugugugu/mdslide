@@ -10,6 +10,15 @@ export interface PtyBridge {
   kill(id: number): Promise<void>;
   onData(cb: (id: number, data: string) => void): () => void;
   onExit(cb: (id: number, code: number) => void): () => void;
+  /** The process in the foreground and the shell the session started with (null when the session is gone). */
+  foreground(id: number): Promise<{ name: string | null; shell: string } | null>;
+}
+
+const SHELLS = new Set(["zsh", "bash", "fish", "tcsh", "csh", "ksh", "nu", "pwsh"]);
+/** The console's own shell, or another interactive shell started in it. A tool (claude, or a script it runs under sh) is not. */
+export function isShellProcess(name: string, shell: string): boolean {
+  const base = (s: string) => (s.split("/").pop() ?? s).replace(/^-/, "").toLowerCase();
+  return base(name) === base(shell) || SHELLS.has(base(name));
 }
 
 interface TerminalState {
@@ -29,6 +38,8 @@ interface TerminalState {
   write: (data: string) => Promise<void>;
   resize: (cols: number, rows: number) => Promise<void>;
   stop: () => Promise<void>;
+  /** A tool, not the shell itself, has the terminal. Text typed into a bare shell would run as commands (ADR-0026). */
+  toolInForeground: () => Promise<boolean>;
   /** Run the selected tool (or a specific one) in the shell. */
   runTool: (id?: string) => Promise<void>;
   setOnData: (cb: ((data: string) => void) | null) => void;
@@ -60,6 +71,12 @@ export const useTerminalStore = create<TerminalState>((set, get) => {
   write: async (data) => { const { bridge, ptyId } = get(); if (bridge && ptyId !== null) await bridge.write(ptyId, data); },
   resize: async (cols, rows) => { const { bridge, ptyId } = get(); if (bridge && ptyId !== null) await bridge.resize(ptyId, cols, rows); },
   stop: async () => { const { bridge, ptyId } = get(); if (bridge && ptyId !== null) await bridge.kill(ptyId); set({ ptyId: null, status: "stopped" }); },
+  toolInForeground: async () => {
+    const { bridge, ptyId } = get();
+    if (!bridge || ptyId === null) return false;
+    const fg = await bridge.foreground(ptyId).catch(() => null);
+    return !!fg?.name && !isShellProcess(fg.name, fg.shell);
+  },
   runTool: async (id) => {
     const tools = useToolsStore.getState();
     const t = id ? tools.tools.find((x) => x.id === id) ?? tools.selected() : tools.selected();

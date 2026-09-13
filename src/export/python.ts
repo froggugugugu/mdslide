@@ -35,7 +35,7 @@ export function installCommands(check: PythonCheck | null): { tools: string; ven
   const q = (p: string) => (p.startsWith("~") ? p : quote(p));
   return {
     tools: "xcode-select --install",
-    venv: [`python3 -m venv ${q(venv)}`, `${q(`${venv}/bin/python`)} -m pip install python-pptx`],
-    user: "python3 -m pip install --user python-pptx",
+    venv: [`python3 -m venv ${q(venv)}`, `${q(`${venv}/bin/python`)} -m pip install python-pptx==1.0.2`],
+    user: "python3 -m pip install --user python-pptx==1.0.2",
   };
 }

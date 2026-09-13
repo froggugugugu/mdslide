@@ -148,11 +148,28 @@ def fill_text(ph, lines: list[str]):
         tf.paragraphs[0].text = ""
 
 
+URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+
+
+def asset_path(src: str, assets: Path) -> Path | None:
+    """The file an image reference names, only when it lies inside the deck folder (ADR-0026; src/model/imageSrc.ts has
+    the same rule). URLs, absolute paths, and paths or links leading out of the folder give None, so a deck someone
+    sends cannot pull other files on this Mac into the pptx."""
+    if not src or URL_SCHEME.match(src) or src.startswith(("/", "\\")):
+        return None
+    root = assets.resolve()
+    path = (root / src).resolve()
+    return path if root in path.parents else None
+
+
 def fill_picture(ph, src: str, assets: Path):
     if not src:
         print("warning: image placeholder still empty (![...]())", file=sys.stderr)
         return
-    path = (assets / src) if not Path(src).is_absolute() else Path(src)
+    path = asset_path(src, assets)
+    if path is None:
+        print(f"warning: image outside the deck folder or a URL, placeholder left empty: {src}", file=sys.stderr)
+        return
     if not path.exists():
         print(f"warning: image not found, placeholder left empty: {path}", file=sys.stderr)
         return
@@ -245,7 +262,7 @@ def place_image_slide(slide, s: dict, bodies: list, assets: Path):
     g = s["geometry"]
     img = (s.get("images") or [{}])[0]
     src = img.get("src", "")
-    path = (assets / src) if src and not Path(src).is_absolute() else Path(src) if src else None
+    path = asset_path(src, assets) if src else None
     aspect = 16 / 9
     if path and path.exists():
         size = image_size(path)
@@ -257,6 +274,8 @@ def place_image_slide(slide, s: dict, bodies: list, assets: Path):
             slide.shapes.add_picture(str(path), Emu(x), Emu(y), Emu(w), Emu(h))
         except Exception as e:
             print(f"warning: could not insert {path}: {e}", file=sys.stderr)
+    elif src and path is None:
+        print(f"warning: image outside the deck folder or a URL, not embedded: {src} ('{s['title']}')", file=sys.stderr)
     elif src:
         print(f"warning: image not found: {path}", file=sys.stderr)
     else:

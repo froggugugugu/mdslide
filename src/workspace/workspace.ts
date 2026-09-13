@@ -36,7 +36,7 @@ export interface Backend {
     resize(id: number, cols: number, rows: number): Promise<void>;
     kill(id: number): Promise<void>;
     onData(cb: (id: number, data: string) => void): () => void;
-    onExit(cb: (id: number, code: number) => void): () => void;
+    onExit(cb: (id: number, code: number) => void): () => void; foreground(id: number): Promise<{ name: string | null; shell: string } | null>;
   };
 }
 
@@ -75,7 +75,7 @@ function electronBackend(root: string): Backend {
     watch: async (cb) => { await api.watch(root); const off = api.onChanged(cb); return () => { off(); void api.unwatch(); }; },
     runExport: (deckJson, master, output) => api.runExport(root, abs(deckJson), master.startsWith("/") ? master : abs(master), abs(output)),
     showItem: (rel) => api.showItem(abs(rel)),
-    pty: { spawn: (o) => api.ptySpawn(o), write: (id, d) => api.ptyWrite(id, d), resize: (id, c, r) => api.ptyResize(id, c, r), kill: (id) => api.ptyKill(id), onData: (cb) => api.onPtyData(cb), onExit: (cb) => api.onPtyExit(cb) },
+    pty: { spawn: (o) => api.ptySpawn(o), write: (id, d) => api.ptyWrite(id, d), resize: (id, c, r) => api.ptyResize(id, c, r), kill: (id) => api.ptyKill(id), onData: (cb) => api.onPtyData(cb), onExit: (cb) => api.onPtyExit(cb), foreground: (id) => api.ptyForeground(id) },
   };
 }
 

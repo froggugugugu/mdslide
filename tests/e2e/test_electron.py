@@ -13,6 +13,15 @@ def dismiss_help(pg):
         pg.get_by_role("button", name="閉じる").click()
 
 
+def wait_js(pg, expression, timeout_ms=10000):
+    """Poll a page condition from Python: the app's CSP forbids eval, which Playwright's in-page waiting uses (ADR-0026)."""
+    for _ in range(max(1, timeout_ms // 100)):
+        if pg.evaluate(expression):
+            return
+        pg.wait_for_timeout(100)
+    raise AssertionError(f"timed out after {timeout_ms} ms: {expression[:100]}")
+
+
 def wait_until(pg, pred, timeout_ms=15000):
     """Poll a Python-side condition (disk state) instead of sleeping a fixed time: CI runners are slower than a laptop."""
     for _ in range(max(1, timeout_ms // 250)):
@@ -66,6 +75,20 @@ def test_workspace_from_argv_paste_watch_and_pptx_export(electron_app):
     pics = [sh for sh in img_slide.shapes if sh.shape_type == 13]
     assert len(pics) == 1 and abs(pics[0].width / pics[0].height - 600 / 900) < 0.01
     assert pics[0].left < prs.slide_width / 2  # side=left
+
+    # ADR-0026: the file IPC reaches only the opened folders, the page has a CSP, and it cannot open windows or navigate away
+    outside = ws.parent / "outside.txt"
+    outside.write_text("secret", encoding="utf8")
+    assert pg.evaluate("(p) => window.mdslide.readText(p)", str(outside)) is None
+    refused = pg.evaluate("(p) => window.mdslide.writeText(p, 'x').then(() => 'written', (e) => String(e))", str(ws.parent / "evil.txt"))
+    assert "開いたフォルダの外" in refused and not (ws.parent / "evil.txt").exists()
+    assert pg.evaluate("(p) => window.mdslide.readText(p)", str(ws / "images" / ".." / ".." / "outside.txt")) is None
+    assert "script-src 'self'" in pg.evaluate("() => document.querySelector('meta[http-equiv=\"Content-Security-Policy\"]').content")
+    assert pg.evaluate("() => window.open('https://example.com/') === null")
+    url = pg.url
+    pg.evaluate("() => { location.href = 'https://example.com/'; }")
+    pg.wait_for_timeout(800)
+    assert pg.url == url
     assert pg.errors == []
 
 
@@ -79,10 +102,10 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     assert "deck.md" in (ws / "AGENTS.md").read_text(encoding="utf8")           # conventions for any agent
     assert (ws / "CLAUDE.md").read_text(encoding="utf8") == "@AGENTS.md\n"       # Claude Code imports the same file
     # the shell starts in the deck folder and `claude` is launched automatically
-    pg.wait_for_function(f"({TERM_TEXT})().includes('FAKE CLAUDE READY')", timeout=15000)
+    wait_js(pg, f"({TERM_TEXT})().includes('FAKE CLAUDE READY')", 15000)
     pg.locator(".terminal-host").click()
     pg.keyboard.type("Risk list"); pg.keyboard.press("Enter")
-    pg.wait_for_function(f"({TERM_TEXT})().includes('claude got: Risk list')", timeout=10000)
+    wait_js(pg, f"({TERM_TEXT})().includes('claude got: Risk list')", 10000)
     assert "## Risk list" in (ws / "deck.md").read_text(encoding="utf8")
     pg.wait_for_timeout(1500)  # chokidar -> reload
     assert pg.locator(".nav-item .label", has_text="Risk list").count() == 1
@@ -91,7 +114,7 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     pg.keyboard.press("Control+d")
     pg.wait_for_timeout(500)
     pg.keyboard.type(f'echo CWD-$([ "$PWD" = "{ws}" ] && echo MATCH || echo MISMATCH)'); pg.keyboard.press("Enter")
-    pg.wait_for_function(f"({TERM_TEXT})().includes('CWD-MATCH')", timeout=10000)
+    wait_js(pg, f"({TERM_TEXT})().includes('CWD-MATCH')", 10000)
     pg.screenshot(path=str(ws.parent / "console.png"))  # kept as a test artifact
     # tool settings: add a custom tool, select it, launch it from the bar
     pg.get_by_role("button", name="ツール設定").click()
@@ -102,7 +125,7 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     pg.get_by_role("radio", name="Echo を選択").check()
     pg.get_by_role("button", name="閉じる").click()
     pg.get_by_role("button", name="起動").click()
-    pg.wait_for_function(f"({TERM_TEXT})().includes('CUSTOM-TOOL-OK')", timeout=10000)
+    wait_js(pg, f"({TERM_TEXT})().includes('CUSTOM-TOOL-OK')", 10000)
     pg.get_by_role("combobox", name="起動するツール").select_option("gemini")
     # settings live in a JSON file (MDSLIDE_CONFIG), written atomically after a short debounce
     import json, time
@@ -120,7 +143,7 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     data["tools"]["selectedId"] = "aider"
     cfg.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf8")
     pg.evaluate("()=>window.dispatchEvent(new Event('focus'))")
-    pg.wait_for_function("()=>document.querySelector('select[aria-label=\"起動するツール\"]').value==='aider'", timeout=5000)
+    wait_js(pg, "()=>document.querySelector('select[aria-label=\"起動するツール\"]').value==='aider'", 5000)
     # ⌘J hides and shows the console
     pg.keyboard.press("Meta+J"); pg.wait_for_timeout(200)
     assert pg.get_by_test_id("console").count() == 0
@@ -132,11 +155,11 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     pg.keyboard.press("Meta+,")
     pg.get_by_role("dialog", name="設定").wait_for(timeout=5000)
     pg.get_by_role("button", name="ダーク").click()
-    pg.wait_for_function("()=>matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme==='dark'", timeout=5000)
+    wait_js(pg, "()=>matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme==='dark'", 5000)
     pg.get_by_role("button", name="ライト").click()
-    pg.wait_for_function("()=>!matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme==='light'", timeout=5000)
+    wait_js(pg, "()=>!matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme==='light'", 5000)
     pg.get_by_role("button", name="自動").click()
-    pg.wait_for_function("()=>document.documentElement.dataset.theme===undefined", timeout=5000)
+    wait_js(pg, "()=>document.documentElement.dataset.theme===undefined", 5000)
     wait_until(pg, lambda: json.loads(cfg.read_text(encoding="utf8")).get("appearance", {}).get("theme") == "auto")
     pg.get_by_role("button", name="閉じる").click()
     assert pg.get_by_role("dialog", name="設定").count() == 0
@@ -147,17 +170,17 @@ def test_inbox_to_deck_with_figures_and_undo(electron_app):
     pg, ws = electron_app
     dismiss_help(pg)
     assert (ws / "theme.json").exists() and (ws / "tools" / "mdslide_draw.py").exists()
-    pg.wait_for_function(f"({TERM_TEXT})().includes('FAKE CLAUDE READY')", timeout=15000)
+    wait_js(pg, f"({TERM_TEXT})().includes('FAKE CLAUDE READY')", 15000)
     before = (ws / "deck.md").read_text(encoding="utf8")
     pg.get_by_role("button", name="下書き").click()
     box = pg.get_by_role("textbox", name="メモ")
     box.click(); box.fill("今期はデプロイ頻度を上げたい。理由は障害対応が属人化しているから。")
     box.blur()
-    pg.wait_for_function("()=>document.querySelectorAll('.inbox-notes .name').length>=1", timeout=5000)
+    wait_js(pg, "()=>document.querySelectorAll('.inbox-notes .name').length>=1", 5000)
     assert [p.suffix for p in (ws / "notes").iterdir() if p.suffix] == [".md"]
     pg.get_by_role("button", name="整形して deck.md に").click()
-    pg.wait_for_function(f"({TERM_TEXT})().includes('claude got:')", timeout=10000)
-    pg.wait_for_function("()=>[...document.querySelectorAll('.nav-item .label')].some(e=>e.textContent.includes('メモから'))", timeout=15000)
+    wait_js(pg, f"({TERM_TEXT})().includes('claude got:')", 10000)
+    wait_js(pg, "()=>[...document.querySelectorAll('.nav-item .label')].some(e=>e.textContent.includes('メモから'))", 15000)
     import time as _t
     for _ in range(60):  # the fake tool draws the figure after rewriting deck.md
         text = (ws / "deck.md").read_text(encoding="utf8")
@@ -168,10 +191,10 @@ def test_inbox_to_deck_with_figures_and_undo(electron_app):
     assert (ws / "images" / "flow.png").exists()
     # the preview shows the generated figure
     pg.locator(".nav-item", has_text="メモから").first.click()
-    pg.wait_for_function("()=>{const i=document.querySelector('.slide-frame img');return i&&i.naturalWidth>0}", timeout=10000)
+    wait_js(pg, "()=>{const i=document.querySelector('.slide-frame img');return i&&i.naturalWidth>0}", 10000)
     pg.screenshot(path=str(ws.parent / "inbox.png"))
     # undo restores the previous deck
     pg.get_by_role("button", name="前の版に戻す").click()
-    pg.wait_for_function("()=>![...document.querySelectorAll('.nav-item .label')].some(e=>e.textContent.includes('メモから'))", timeout=10000)
+    wait_js(pg, "()=>![...document.querySelectorAll('.nav-item .label')].some(e=>e.textContent.includes('メモから'))", 10000)
     assert (ws / "deck.md").read_text(encoding="utf8") == before
     assert pg.errors == []

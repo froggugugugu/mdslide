@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PROMPTS, buildPrompt } from "../../src/console/prompts";
+import { PROMPTS, buildPrompt, safeForPrompt } from "../../src/console/prompts";
 import { isTextNote, noteFileName, useInboxStore } from "../../src/console/inboxStore";
 import { restoreLatestSnapshot, snapshotDeck } from "../../src/workspace/history";
 
@@ -40,6 +40,12 @@ describe("prompt templates", () => {
     const t = buildPrompt("format", ["notes/a.md"], "plan.md:3", "plan.md");
     expect(t).toContain("plan.md をスライド資料として整形");
     expect(t).not.toContain("deck.md");
+  });
+  it("marks names a shell would act on as unsafe to type into the console (ADR-0026)", () => {
+    for (const n of ["notes/a.md", "notes/報告書 (1).docx", "notes/v2-final_[draft].txt", "plan.md"]) expect(safeForPrompt(n), n).toBe(true);
+    for (const n of ["notes/$(id).md", "notes/`id`.md", "notes/a;b.md", "notes/a|b.md", "notes/a&b.md", "notes/a>b.md", "notes/a\\b.md", "notes/!!.md", "notes/a\nb.md"]) {
+      expect(safeForPrompt(n), n).toBe(false);
+    }
   });
 });
 

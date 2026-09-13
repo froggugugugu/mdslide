@@ -39,7 +39,7 @@ describe("Settings: 書き出し", () => {
     sheet();
     expect(await screen.findByText("python-pptx が入っていません。Python 3.9.6 は見つかりました")).toBeInTheDocument();
     const venvCmd = screen.getByLabelText("専用の環境に入れるコマンド");
-    expect(venvCmd.textContent).toBe(`python3 -m venv ${VENV}\n${VENV}/bin/python -m pip install python-pptx`);
+    expect(venvCmd.textContent).toBe(`python3 -m venv ${VENV}\n${VENV}/bin/python -m pip install python-pptx==1.0.2`);
     expect(screen.queryByLabelText("Command Line Tools のコマンド")).toBeNull(); // Python itself is there
     await userEvent.click(screen.getAllByRole("button", { name: "コピー" })[0]);
     expect(written.at(-1)).toBe(venvCmd.textContent);
@@ -55,7 +55,7 @@ describe("Settings: 書き出し", () => {
     sheet();
     expect(await screen.findByText("Python を使うには Command Line Tools が必要です")).toBeInTheDocument();
     expect(screen.getByLabelText("Command Line Tools のコマンド").textContent).toBe("xcode-select --install");
-    expect(screen.getByLabelText("専用の環境に入れるコマンド").textContent).toContain('"/Users/me/Library/Application Support/mdslide/venv/bin/python" -m pip install python-pptx');
+    expect(screen.getByLabelText("専用の環境に入れるコマンド").textContent).toContain('"/Users/me/Library/Application Support/mdslide/venv/bin/python" -m pip install python-pptx==1.0.2');
   });
 
   it("stores an explicit Python path, empty meaning automatic", async () => {
@@ -69,6 +69,6 @@ describe("Settings: 書き出し", () => {
   });
 
   it("builds commands from the default place before the first check", () => {
-    expect(installCommands(null).venv).toEqual(["python3 -m venv ~/.config/mdslide/venv", "~/.config/mdslide/venv/bin/python -m pip install python-pptx"]);
+    expect(installCommands(null).venv).toEqual(["python3 -m venv ~/.config/mdslide/venv", "~/.config/mdslide/venv/bin/python -m pip install python-pptx==1.0.2"]);
   });
 });

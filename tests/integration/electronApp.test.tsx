@@ -107,7 +107,7 @@ describe("App in Electron", () => {
     await userEvent.click(screen.getByRole("button", { name: "入れ方を見る" }));
     expect(screen.getByRole("dialog", { name: "設定" })).toBeInTheDocument();
     expect(screen.getByText("python-pptx が入っていません。Python 3.9.6 は見つかりました")).toBeInTheDocument();
-    expect(screen.getByLabelText("専用の環境に入れるコマンド").textContent).toContain("/w/.config/mdslide/venv/bin/python -m pip install python-pptx");
+    expect(screen.getByLabelText("専用の環境に入れるコマンド").textContent).toContain("/w/.config/mdslide/venv/bin/python -m pip install python-pptx==1.0.2");
   });
 
   it("opens the settings and help sheets when the app menu sends app:open-settings / app:open-help", async () => {

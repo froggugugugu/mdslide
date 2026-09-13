@@ -300,6 +300,14 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     expect(useDeckStore.getState().imageUrls["images/nope.png"]).toBeNull(); // not found stays null
     useDeckStore.getState().resolveImage("https://x/y.png");
     expect("https://x/y.png" in useDeckStore.getState().imageUrls).toBe(false);
+    // outside the deck folder: never read; a path inside is read after normalizing (ADR-0026)
+    for (const src of ["../secret.png", "/Users/me/secret.png"]) {
+      useDeckStore.getState().resolveImage(src);
+      expect(src in useDeckStore.getState().imageUrls).toBe(false);
+    }
+    useDeckStore.getState().resolveImage("./images/../images/2-1-図.png");
+    await vi.advanceTimersByTimeAsync(10);
+    expect(useDeckStore.getState().imageUrls["./images/../images/2-1-図.png"]).toBe("blob:mock");
     useDeckStore.getState().onFileChanged(rel);
     expect(rel in useDeckStore.getState().imageUrls).toBe(false);
   });

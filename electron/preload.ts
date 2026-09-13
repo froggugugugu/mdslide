@@ -35,6 +35,8 @@ const api = {
   ptyResize: (id: number, cols: number, rows: number): Promise<void> => ipcRenderer.invoke("pty:resize", id, cols, rows),
   ptyKill: (id: number): Promise<void> => ipcRenderer.invoke("pty:kill", id),
   ptyBackend: (): Promise<"native" | "host"> => ipcRenderer.invoke("pty:backend"),
+  /** The process in the foreground of a console session and the shell it started with; null when the session is gone. */
+  ptyForeground: (id: number): Promise<{ name: string | null; shell: string } | null> => ipcRenderer.invoke("pty:foreground", id),
   onPtyData: (cb: (id: number, data: string) => void): (() => void) => {
     const h = (_e: unknown, m: { id: number; data: string }) => cb(m.id, m.data);
     ipcRenderer.on("pty:data", h); return () => ipcRenderer.removeListener("pty:data", h);

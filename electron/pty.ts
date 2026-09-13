@@ -9,7 +9,13 @@ import readline from "node:readline";
  * Fallback: node-pty inside a system `node` host process (electron/ptyHost.cjs), so the terminal still works when
  * the native module was built for a different ABI.
  */
-export interface PtySession { write(d: string): void; resize(c: number, r: number): void; kill(): void }
+export interface PtySession {
+  write(d: string): void;
+  resize(c: number, r: number): void;
+  kill(): void;
+  /** Name of the process in the foreground (the shell, or a tool started in it); null when unknown. */
+  foreground(): Promise<string | null>;
+}
 export interface PtyEvents { onData(id: number, d: string): void; onExit(id: number, code: number): void }
 
 export function defaultShell(): { shell: string; args: string[] } {
@@ -36,6 +42,8 @@ let seq = 0;
 const sessions = new Map<number, PtySession>();
 let host: ChildProcess | null = null;
 let hostEvents: PtyEvents | null = null;
+let requestSeq = 0;
+const pendingForeground = new Map<number, (name: string | null) => void>();
 
 function ensureHost(events: PtyEvents, hostScript: string, nodeBin: string): ChildProcess {
   if (host && host.exitCode === null) { hostEvents = events; return host; }
@@ -44,14 +52,21 @@ function ensureHost(events: PtyEvents, hostScript: string, nodeBin: string): Chi
   host = spawn(nodeBin, [hostScript], { stdio: ["pipe", "pipe", "pipe"], env: { ...process.env, NODE_PATH: path.dirname(ptyDir) } });
   hostEvents = events;
   readline.createInterface({ input: host.stdout! }).on("line", (line) => {
-    let m: { type: string; id: number; data?: string; code?: number; message?: string };
+    let m: { type: string; id: number; data?: string; code?: number; message?: string; req?: number; name?: string | null };
     try { m = JSON.parse(line); } catch { return; }
     if (m.type === "data") hostEvents?.onData(m.id, m.data ?? "");
     else if (m.type === "exit") { sessions.delete(m.id); hostEvents?.onExit(m.id, m.code ?? -1); }
+    else if (m.type === "process") { pendingForeground.get(m.req ?? -1)?.(m.name ?? null); pendingForeground.delete(m.req ?? -1); }
     else if (m.type === "error") hostEvents?.onData(m.id ?? 0, `\r\n[pty] ${m.message}\r\n`);
   });
   host.stderr!.on("data", (d) => hostEvents?.onData(0, `\r\n[pty host] ${d}`));
-  host.on("exit", () => { for (const id of sessions.keys()) hostEvents?.onExit(id, -1); sessions.clear(); host = null; });
+  host.on("exit", () => {
+    for (const id of sessions.keys()) hostEvents?.onExit(id, -1);
+    sessions.clear();
+    for (const resolve of pendingForeground.values()) resolve(null);
+    pendingForeground.clear();
+    host = null;
+  });
   return host;
 }
 
@@ -66,7 +81,10 @@ export function spawnPty(o: SpawnOptions): number {
     const p = native.spawn(shell, args, { name: "xterm-256color", cwd: o.cwd, cols: o.cols, rows: o.rows, env: shellEnv() as Record<string, string> });
     p.onData((d) => o.events.onData(id, d));
     p.onExit(({ exitCode }) => { sessions.delete(id); o.events.onExit(id, exitCode); });
-    sessions.set(id, { write: (d) => p.write(d), resize: (c, r) => p.resize(c, r), kill: () => p.kill() });
+    sessions.set(id, {
+      write: (d) => p.write(d), resize: (c, r) => p.resize(c, r), kill: () => p.kill(),
+      foreground: async () => { try { return p.process || null; } catch { return null; } },
+    });
     return id;
   }
   const h = ensureHost(o.events, o.hostScript, o.nodeBin ?? "node");
@@ -76,6 +94,12 @@ export function spawnPty(o: SpawnOptions): number {
     write: (d) => sendMsg({ type: "write", id, data: d }),
     resize: (c, r) => sendMsg({ type: "resize", id, cols: c, rows: r }),
     kill: () => sendMsg({ type: "kill", id }),
+    foreground: () => new Promise((resolve) => {
+      const req = ++requestSeq;
+      const timer = setTimeout(() => { pendingForeground.delete(req); resolve(null); }, 1000);
+      pendingForeground.set(req, (name) => { clearTimeout(timer); resolve(name); });
+      sendMsg({ type: "process", id, req });
+    }),
   });
   return id;
 }

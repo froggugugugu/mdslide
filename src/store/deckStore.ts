@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { imageSource } from "../model/imageSrc";
 import { moveBlock, parseMarkdown, serializeDeck, withAttr, withMeta } from "../model/parser";
 import { renderDeck } from "../model/render";
 import type { BodyLayout, Deck, DeckMeta, RenderedSlide } from "../model/types";
@@ -380,9 +381,10 @@ export const useDeckStore = create<DeckState>((set, get) => {
   },
   resolveImage: async (src) => {
     const { workspace, imageUrls } = get();
-    if (!workspace || src in imageUrls || /^(https?:|data:|blob:)/.test(src)) return;
+    const source = imageSource(src);
+    if (!workspace || src in imageUrls || source.kind !== "file") return; // URLs, data: and paths outside the folder are never read (ADR-0026)
     set({ imageUrls: { ...imageUrls, [src]: null } }); // mark as loading
-    const url = await imageUrl(workspace, src).catch(() => null); // unreadable counts as not found; never leak a rejection into React effects
+    const url = await imageUrl(workspace, source.path).catch(() => null); // unreadable counts as not found; never leak a rejection into React effects
     set({ imageUrls: { ...get().imageUrls, [src]: url } });
   },
   exportDeckJson: async (json) => {
