@@ -14,7 +14,7 @@
 4. 新しいウィンドウは開かない。今のページ以外への遷移と、webview の追加は止める。
 5. main のファイル系 IPC（読み書き・一覧・削除・監視・書き出し・端末の起動・Finder で表示・開く）は、許したパスの中だけを扱う（`electron/paths.ts`）。許すのは、ダイアログで選んだフォルダ（Markdown を選んだときはその親）、起動引数のフォルダ、起動時の settings.json にある最近の資料と `masters.dir`、既定のマスター保管フォルダ、settings.json 自体。シンボリックリンクは解決してから比べ、行き先の無いリンクは許さない。`shell.openPath` は json・md・pptx だけを開く。
 6. 配布版は `ELECTRON_RENDERER_URL` を読まない。electron-builder で fuses を設定する（RunAsNode、NODE_OPTIONS、--inspect を無効にし、app.asar だけをその整合性を確かめて読み、Cookie を暗号化する）。画面は file:// のページなので、GrantFileProtocolExtraPrivileges は既定のままにする。
-7. deck.md の画像は、資料フォルダの中の相対パスだけを読む（`src/model/imageSrc.ts`、`tools/export_pptx.py` の `asset_path`）。URL、絶対パス、フォルダの外に出る `../`、外を指すリンクは、プレビューに表示せずに理由を出し、書き出しにも入れない。`data:image/` はプレビューにだけ出す。
+7. deck.md の画像は、資料フォルダの中の相対パスだけを読む（`src/model/imageSrc.ts`、`tools/export_pptx.py` の `asset_path`）。URL、絶対パス、フォルダの外に出る `../`、外を指すリンクは、プレビューに表示せずに理由を出し、書き出しにも入れない。`data:image/` の埋め込みは中身を持っているので、そのまま使う（書き出しは base64 のもの）。
 
 ## 結果
 - 定型プロンプトがシェルの命令として実行されることはなくなる。
