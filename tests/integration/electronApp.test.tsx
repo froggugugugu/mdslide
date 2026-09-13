@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -7,8 +7,11 @@ const files = new Map<string, string>();
 const api = vi.hoisted(() => {
   const files = new Map<string, string>();
   const listeners: ((rel: string) => void)[] = [];
+  const menu = { settings: [] as (() => void)[], help: [] as (() => void)[] }; // app menu items → app:open-settings / app:open-help
   const api = {
-    platform: "darwin", files, listeners,
+    platform: "darwin", files, listeners, menu,
+    onOpenSettings: (cb: () => void) => { menu.settings.push(cb); return () => undefined; },
+    onOpenHelp: (cb: () => void) => { menu.help.push(cb); return () => undefined; },
     initialWorkspace: vi.fn(async (): Promise<{ root: string; deckFile: string | null } | null> => ({ root: "/w/deck", deckFile: null })),
     settingsPath: async () => "/w/.config/mdslide/settings.json",
     settingsRead: async () => files.get("settings.json") ?? null,
@@ -105,6 +108,21 @@ describe("App in Electron", () => {
     expect(screen.getByRole("dialog", { name: "設定" })).toBeInTheDocument();
     expect(screen.getByText("python-pptx が入っていません。Python 3.9.6 は見つかりました")).toBeInTheDocument();
     expect(screen.getByLabelText("専用の環境に入れるコマンド").textContent).toContain("/w/.config/mdslide/venv/bin/python -m pip install python-pptx");
+  });
+
+  it("opens the settings and help sheets when the app menu sends app:open-settings / app:open-help", async () => {
+    api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
+    render(<App />);
+    await screen.findByRole("button", { name: "deck/deck.md" }, { timeout: 4000 });
+    const left = screen.queryByRole("dialog", { name: "設定" }); // the sheet's store outlives the previous test's render
+    if (left) await userEvent.click(within(left).getByRole("button", { name: "閉じる" }));
+    expect(screen.queryByRole("dialog", { name: "設定" })).toBeNull();
+    act(() => api.menu.settings.at(-1)!());
+    const sheet = await screen.findByRole("dialog", { name: "設定" });
+    await userEvent.click(within(sheet).getByRole("button", { name: "閉じる" }));
+    expect(screen.queryByText("mdslide の使い方")).toBeNull();
+    act(() => api.menu.help.at(-1)!());
+    expect(await screen.findByText("mdslide の使い方")).toBeInTheDocument();
   });
 
   it("shows the start screen when nothing is restored, and opens a Markdown file as the workspace", async () => {
