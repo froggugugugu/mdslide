@@ -10,6 +10,7 @@ What it adds to examples/sample-master.pptx (layout names stay Cover / Agenda / 
   - Cover: a full-bleed generated hero image as the background, three picture tiles, a large logo, white title and
     subtitle at the bottom left; the master's bands are hidden (showMasterSp="0")
   - Section: a picture band down the left, the title moved to the right
+  - Body-2col: the two columns start and end where the master's body does
 All images are drawn with Pillow (gradients, shapes, silhouettes): nothing is downloaded, nothing is licensed."""
 import copy
 import math
@@ -287,6 +288,10 @@ def main():
             for ph in placeholders_of(layout.shapes, PP_PLACEHOLDER.BODY):
                 ph.left, ph.top, ph.width, ph.height = Inches(4.8), Inches(4.3), Inches(8), Inches(1.2)
                 set_lvl1(ph, rgb=(110, 120, 140), size_pt=16, align="l")
+        elif layout.name == "Body-2col":
+            body = next(iter(placeholders_of(master.shapes, PP_PLACEHOLDER.BODY)))
+            for ph in placeholders_of(layout.shapes, PP_PLACEHOLDER.OBJECT):
+                ph.top, ph.height = body.top, body.height
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(OUT))

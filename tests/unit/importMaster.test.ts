@@ -32,7 +32,7 @@ describe("importMaster", () => {
     const names = m.layouts.filter((l) => l.role).map((l) => l.name).sort();
     expect(names).toEqual(["Agenda", "Body-2col", "Body-Text", "Cover", "Section"]);
     expect(m.missing).toEqual([]);
-    expect(m.unmapped).toContain("Comparison");
+    expect(m.unmapped).toEqual(["Blank"]); // the sample keeps one unused layout (scripts/make_sample_master.py)
     const body = findLayout(m, "body", "text")!;
     const title = body.placeholders.find((p) => p.type === "title")!;
     expect(title.rect).not.toBeNull();       // inherited from the slide master
