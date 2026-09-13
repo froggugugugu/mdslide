@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>mdslide — Markdown を書けば、パワポができます</title>
-    <meta name="description" content="Markdown を唯一の正として、報告用の PowerPoint 資料を作る macOS アプリです。番号・並び・分割はツールが計算し、書式は手持ちのマスターをそのまま使います。隣のコンソールでは Claude Code が deck.md を編集します。" />
+    <meta name="description" content="Markdown を唯一の正として、報告用の PowerPoint 資料を作る macOS アプリです。番号・目次・分割はツールが計算し、書式は手持ちのマスターをそのまま使います。隣のコンソールでは Claude Code が deck.md を編集します。" />
     <meta property="og:title" content="mdslide — Markdown を書けば、パワポができます" />
     <meta property="og:description" content="Markdown を唯一の正として、報告用の PowerPoint 資料を作る macOS アプリです。" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="docs/media/icon.png" />
+    <meta property="og:image" content="https://froggugugugu.github.io/mdslide/docs/media/icon.png" />
     <link rel="icon" href="docs/media/icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -102,7 +102,7 @@
             Markdown を書けば、<br class="hidden sm:block" />パワポができます。
           </h1>
           <p class="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-            番号・並び・ページ分割はツールが毎回計算し、書式は手持ちの PowerPoint マスターをそのまま使います。左でドラッグ、右で書き、隣のコンソールでは Claude Code が <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">deck.md</code> を直接編集します。報告資料のための、エンジニアのためのスライドエディタです。
+            番号・目次・ページ分割はツールが毎回計算し、書式は手持ちの PowerPoint マスターをそのまま使います。左でドラッグ、右で書き、隣のコンソールでは Claude Code が <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">deck.md</code> を直接編集します。報告資料のための、エンジニアのためのスライドエディタです。
           </p>
           <div class="mt-8 flex flex-wrap items-center gap-3">
             <a href="#install" class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
@@ -127,7 +127,7 @@
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <div class="max-w-2xl">
             <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">インストール</h2>
-            <p class="mt-3 text-muted-foreground">配布版は、ターミナルに 1 行貼るだけで入ります。pptx の書き出しに使う python-pptx も一緒に入ります。</p>
+            <p class="mt-3 text-muted-foreground">配布版は、ターミナルに 1 行貼るだけで入ります。Python 3 があれば、pptx の書き出しに使う python-pptx も一緒に入ります。</p>
           </div>
           <div class="mt-8 grid gap-6 lg:grid-cols-2">
             <div>
@@ -145,7 +145,8 @@
                 </div>
                 <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6"><code>curl -fsSL https://froggugugugu.github.io/mdslide/install.sh | bash</code></pre>
               </div>
-              <p class="mt-2 text-xs text-muted-foreground">最新版を「アプリケーション」に入れ、python-pptx を mdslide 専用の環境に入れて、mdslide を開きます。中身は GitHub の <code class="font-mono">scripts/install.sh</code> で読めます。ブラウザで dmg をダウンロードして入れる場合は、開く前に <code class="font-mono">xattr -dr com.apple.quarantine /Applications/mdslide.app</code> を実行してください。実行しないと「壊れているため開けません」と表示されます。</p>
+              <p class="mt-2 text-xs text-muted-foreground">最新版を「アプリケーション」（書き込めなければ <code class="font-mono">~/Applications</code>）に入れ、python-pptx を mdslide 専用の環境に入れて、mdslide を開きます。Python 3 が無いときは python-pptx を飛ばすので、<code class="font-mono">xcode-select --install</code> のあとにもう一度実行してください。中身は GitHub の <code class="font-mono">scripts/install.sh</code> で読めます。</p>
+              <p class="mt-2 text-xs text-muted-foreground">ブラウザで <a href="https://github.com/froggugugugu/mdslide/releases/latest" class="underline decoration-border underline-offset-4 transition-colors hover:text-foreground" target="_blank" rel="noopener">Releases</a> の dmg から入れる場合は、「アプリケーション」に入れたあと、開く前に <code class="font-mono">xattr -dr com.apple.quarantine /Applications/mdslide.app</code> を実行してください。実行しないと「壊れているため開けません」と表示されます（アプリは壊れていません。「ゴミ箱に入れる」は押さずに閉じてください）。この場合 python-pptx は入らないので、アプリが起動時に出す案内に沿って入れてください。</p>
             </div>
             <div>
               <div class="mb-2 flex items-center gap-2 text-sm font-medium">
@@ -161,10 +162,12 @@
                   </button>
                 </div>
                 <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6"><code>git clone https://github.com/froggugugugu/mdslide.git &amp;&amp; cd mdslide
-npm ci &amp;&amp; python3 -m pip install -r requirements.txt
+npm ci
+python3.12 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt
 npm run dev</code></pre>
               </div>
-              <p class="mt-2 text-xs text-muted-foreground">Node 24.15 以上と Xcode Command Line Tools が必要です。<code class="font-mono">npm ci</code> が Electron 用に node-pty を再ビルドします。</p>
+              <p class="mt-2 text-xs text-muted-foreground">Node 24.15 以上、Python 3.12、Xcode Command Line Tools が必要です（Command Line Tools の Python 3.9 には、requirements.txt の matplotlib と pillow が入りません）。<code class="font-mono">npm ci</code> が Electron 用に node-pty を再ビルドします。Intel の Mac はこの方法で動かしてください。</p>
             </div>
           </div>
         </div>
@@ -175,7 +178,7 @@ npm run dev</code></pre>
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <div class="max-w-2xl">
             <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">マスターを用意する</h2>
-            <p class="mt-3 text-muted-foreground">書式はすべて pptx のスライドマスターから取ります。mdslide が見るのはレイアウトの名前だけです。<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">Cover / Agenda / Section / Body-Text / Body-2col</code> の 5 つを揃えれば、フォント・配色・ロゴは手持ちのまま使えます。</p>
+            <p class="mt-3 text-muted-foreground">書式はすべて pptx のスライドマスターから取ります。どのレイアウトを何に使うかは名前で決まり、枠の位置・フォント・配色・ロゴはマスターから読み取ります（プレビューにも出ます）。<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">Cover / Agenda / Section / Body-Text / Body-2col</code> の 5 つを揃えれば、フォント・配色・ロゴは手持ちのまま使えます。</p>
           </div>
           <div class="mt-8 grid gap-6 lg:grid-cols-2">
             <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
@@ -183,7 +186,7 @@ npm run dev</code></pre>
                 <i data-lucide="file-down" class="h-4 w-4 text-muted-foreground"></i>
                 まずは見本で試す
               </div>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">Office 標準テーマのレイアウトを規約どおりに名前を変えただけの、16:9 の見本です。アプリにも同梱されていて、設定（⌘,）のマスターで「見本を取り込む」を押せば保管フォルダに入ります。PowerPoint で開いて配色やロゴを直し、上書き保存すれば自分のマスターになります。</p>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">Office の既定テンプレートから作った 16:9 の見本で、5 つのレイアウトに必要な枠だけを置いています。アプリにも同梱されていて、設定（⌘,）のマスターで「見本を取り込む」を押せば保管フォルダに入り、既定のマスターがまだ無ければ既定になります。PowerPoint で開いて配色やロゴを直し、上書き保存すれば自分のマスターになります。ダウンロードした場合は、資料フォルダに <code class="font-mono text-foreground">master.pptx</code> という名前で置いても使えます。</p>
               <a href="examples/sample-master.pptx" download class="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
                 <i data-lucide="download" class="h-4 w-4"></i>
                 sample-master.pptx
@@ -197,14 +200,14 @@ npm run dev</code></pre>
                   </tr>
                 </thead>
                 <tbody class="text-muted-foreground">
-                  <tr class="border-b border-border"><td class="py-2 pr-3 font-mono text-foreground">Cover</td><td class="py-2 pr-3">表紙</td><td class="py-2">タイトル、サブタイトル</td></tr>
-                  <tr class="border-b border-border"><td class="py-2 pr-3 font-mono text-foreground">Agenda</td><td class="py-2 pr-3">目次</td><td class="py-2">タイトル、本文 1 つ</td></tr>
+                  <tr class="border-b border-border"><td class="py-2 pr-3 font-mono text-foreground">Cover</td><td class="py-2 pr-3">表紙</td><td class="py-2">タイトル（ctrTitle か title）、サブタイトル（subTitle か body）</td></tr>
+                  <tr class="border-b border-border"><td class="py-2 pr-3 font-mono text-foreground">Agenda</td><td class="py-2 pr-3">目次</td><td class="py-2">タイトル、本文（body か obj）1 つ</td></tr>
                   <tr class="border-b border-border"><td class="py-2 pr-3 font-mono text-foreground">Section</td><td class="py-2 pr-3">章の中表紙</td><td class="py-2">タイトル（本文は任意）</td></tr>
-                  <tr class="border-b border-border"><td class="py-2 pr-3 font-mono text-foreground">Body-Text</td><td class="py-2 pr-3">本文</td><td class="py-2">タイトル、本文 1 つ（枠は広めに）</td></tr>
-                  <tr><td class="py-2 pr-3 font-mono text-foreground">Body-2col</td><td class="py-2 pr-3">2 段組み（任意）</td><td class="py-2">タイトル、本文 2 つ</td></tr>
+                  <tr class="border-b border-border"><td class="py-2 pr-3 font-mono text-foreground">Body-Text</td><td class="py-2 pr-3">本文</td><td class="py-2">タイトル、本文（body か obj）1 つ（枠は広めに）</td></tr>
+                  <tr><td class="py-2 pr-3 font-mono text-foreground">Body-2col</td><td class="py-2 pr-3">2 段組み（任意）</td><td class="py-2">タイトル、本文（body か obj）2 つを左右に</td></tr>
                 </tbody>
               </table>
-              <p class="mt-3 text-xs leading-5 text-muted-foreground">Body-2col 以外は必須です。画像用のレイアウトは要りません（ツールが Body-Text の上に配置します）。名前の大文字小文字と空白は区別しません。</p>
+              <p class="mt-3 text-xs leading-5 text-muted-foreground">Body-2col 以外は必須です（Body-2col が無ければ、2 段を Body-Text の本文枠にまとめます）。画像用のレイアウトは要りません（ツールが Body-Text の上に配置します）。名前は大文字小文字と空白を区別せず、先頭が合えば通ります（Title Slide / 表紙 は Cover、TOC / 目次 は Agenda、Chapter / 中表紙 / 章 / Section Header は Section）。本文の枠は役割ごとに決まった数だけ置いてください。多いときは面積の大きい枠を本文に使います。本文枠はヘッダやフッタと重ならない位置に置きます。日付・フッター・スライド番号のプレースホルダーは、書き出しでスライドに複製されます。</p>
             </div>
             <div class="rounded-lg border border-border bg-background p-6 shadow-sm">
               <div class="flex items-center gap-2 text-sm font-medium">
@@ -213,15 +216,15 @@ npm run dev</code></pre>
               </div>
               <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
                 <li>PowerPoint で「表示」→「スライドマスター」を開きます。左に並ぶのがレイアウトです。</li>
-                <li>表紙に使うレイアウトを右クリック →「レイアウト名の変更」で <code class="font-mono text-foreground">Cover</code> に。同じ要領で <code class="font-mono text-foreground">Agenda</code> <code class="font-mono text-foreground">Section</code> <code class="font-mono text-foreground">Body-Text</code> <code class="font-mono text-foreground">Body-2col</code> を揃えます。無いものは「レイアウトの複製」で作ります。</li>
-                <li>通常のスライドを全部削除して <code class="font-mono text-foreground">master.pptx</code> として保存し、取り込みます。「不足」が出なければ完成です。</li>
+                <li>表紙に使うレイアウトを右クリック →「レイアウト名の変更」で <code class="font-mono text-foreground">Cover</code> に。同じ要領で <code class="font-mono text-foreground">Agenda</code> <code class="font-mono text-foreground">Section</code> <code class="font-mono text-foreground">Body-Text</code> <code class="font-mono text-foreground">Body-2col</code> を揃えます。無いものは「レイアウトの複製」で作り、「プレースホルダーの挿入」→「コンテンツ」で本文枠を置きます（Agenda は Body-Text の複製で十分です）。</li>
+                <li>通常のスライドを全部削除して <code class="font-mono text-foreground">master.pptx</code> として保存し、資料フォルダに置くか、設定のマスターで取り込みます。「不足」が出なければ完成です。</li>
               </ol>
               <p class="mt-3 text-xs leading-5 text-muted-foreground">いま使っているスライドを土台にすると書式がそのまま残ります。「見本を取り込む」で保管フォルダ（既定 <code class="font-mono">~/.config/mdslide/masters/</code>）に入った見本を横に開き、レイアウト名と枠の構成を見比べながら名前を合わせてください。詳しい手順はガイドにあります。</p>
               <div class="mt-5 flex items-center gap-2 text-sm font-medium">
                 <i data-lucide="bot" class="h-4 w-4 text-muted-foreground"></i>
                 AI に頼む場合のプロンプト
               </div>
-              <p class="mt-1 text-xs leading-5 text-muted-foreground">Claude Code や ChatGPT にテンプレートの pptx を渡して、そのまま貼り付けます。1 行目のファイル名だけ書き換えてください。</p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">Claude Code や ChatGPT にテンプレートの pptx を渡して、そのまま貼り付けます。1 行目のファイル名だけ書き換えてください。python-pptx が使える環境ならスクリプトで、使えなければ PowerPoint での手順を返します。</p>
               <div data-code class="group relative mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-50 shadow-sm">
                 <div class="flex h-9 items-center justify-between border-b border-zinc-800 px-3">
                   <span class="font-mono text-xs text-zinc-400">Prompt</span>
@@ -242,17 +245,18 @@ npm run dev</code></pre>
 - Section: 章の中表紙。タイトル 1 つ（本文は無くてもよい）
 - Body-Text: 本文。タイトル 1 つと本文（body か obj）1 つ。本文枠はできるだけ広く
 - Body-2col: 2 段組み。タイトル 1 つと本文（body か obj）2 つを左右に
-- 画像用のレイアウトは不要です（ツールが Body-Text の上に画像を配置します）。日付・フッター・スライド番号のプレースホルダーはあってもかまいません。
+- 本文の枠は、役割ごとに上の数だけにしてください（説明用や小見出しの枠が残っていると、mdslide は面積の大きい枠を本文に使います）。
+- 画像用のレイアウトは不要です（ツールが Body-Text の上に画像を配置します）。日付・フッター・スライド番号のプレースホルダーは、元ファイルにあれば各レイアウトに残してください（mdslide が書き出しでスライドに複製します）。
 
 作業
 1. 元ファイルのスライドマスターにあるレイアウトを一覧し、役割の近いもの（例: Title Slide → Cover、Title and Content → Body-Text、Two Content → Body-2col、Section Header → Section）を選んで上の名前に変更してください。
 2. 該当するものが無い役割は、近いレイアウトを複製して作ってください。Agenda は Body-Text の複製でかまいません。
-3. 上の 5 つ以外のレイアウトは残してもかまいません（mdslide は無視します）。
+3. 上の 5 つ以外のレイアウトは残してもかまいません。ただし名前が Title Slide、Section、Chapter、TOC、表紙、目次、中表紙、章 で始まるものは同じ役割として扱われ、先にあるほうが使われるので、名前を変えてください。
 4. 通常のスライド（ページ）はすべて削除し、マスターとレイアウトだけのファイルにしてください。
 5. master.pptx として保存し、最後に各レイアウトの名前とプレースホルダー（種類・idx・位置）を一覧で出力してください。
 
 進め方
-- python-pptx が使えるならスクリプトで行い、そのスクリプトも示してください。python-pptx はレイアウトの名前変更とスライドの削除はできますが、レイアウトの複製は XML 操作が必要です。難しければ、PowerPoint の「表示 &gt; スライドマスター」で行う手順（右クリック &gt; レイアウト名の変更、レイアウトの複製、プレースホルダーの挿入）を代わりに示してください。</code></pre>
+- python-pptx が使えるならスクリプトで行い、そのスクリプトも示してください。python-pptx でできるのはレイアウトの名前変更と、使わないレイアウトの削除（prs.slide_layouts.remove）までです。スライドの削除（prs.slides._sldIdLst から外して prs.part.drop_rel する）とレイアウトの複製は XML 操作が必要です。難しければ、PowerPoint の「表示 &gt; スライドマスター」で行う手順（右クリック &gt; レイアウト名の変更、レイアウトの複製、プレースホルダーの挿入）を代わりに示してください。</code></pre>
               </div>
             </div>
           </div>
@@ -318,7 +322,7 @@ npm run dev</code></pre>
                 <i data-lucide="terminal" class="h-5 w-5"></i>
               </div>
               <h3 class="mt-4 text-base font-semibold">コンソールが組み込み</h3>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">中央下は本物のターミナルです。Claude Code や Codex CLI をそのフォルダで起動し、口語のメモから deck.md を書かせられます。保存された瞬間にプレビューへ反映されます。</p>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">中央下は本物のターミナルです。PATH にある Claude Code や Codex CLI、Gemini CLI などをそのフォルダで起動し、口語のメモから deck.md を書かせられます（エージェントは同梱していません）。エディタに未保存の変更が無ければ、エージェントが保存した内容はすぐプレビューに反映されます。</p>
             </div>
           </div>
           <div class="mt-10 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -349,7 +353,7 @@ npm run dev</code></pre>
       </div>
     </footer>
 
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/lucide@1.45.0/dist/umd/lucide.min.js"></script>
     <script>
       lucide.createIcons();
       // コードブロックのコピー: クリップボードへ書き、1.6 秒だけアイコンをチェックに変える。

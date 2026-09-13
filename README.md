@@ -8,7 +8,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 - **書くのは Markdown だけ**。章番号・スライド番号・ページ分割は、ツールが毎回計算して付ける
 - **見た目は手持ちの PowerPoint マスターがそのまま**。フォント・配色・ロゴは pptx 側の責務で、ツールは「どのレイアウトに何を流し込むか」だけを決める
-- **AI エージェントと同じフォルダで作業できる**。コンソールで動く Claude Code などが Markdown を書き換えると、すぐに反映される
+- **AI エージェントと同じフォルダで作業できる**。コンソールで動く Claude Code などが Markdown を書き換えると、エディタに未保存の変更が無ければすぐに反映される
 
 ## コンセプト
 
@@ -26,11 +26,11 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 1. ターミナルで `curl -fsSL https://froggugugugu.github.io/mdslide/install.sh | bash` を実行する(Apple silicon 向け)。mdslide が「アプリケーション」に入り、pptx の書き出しに使う python-pptx も専用の環境に入る。dmg から手で入れる方法は下の「インストール」
 2. 起動画面で「新しく作る」を押し、資料のフォルダを選ぶ(ダイアログで新しく作ってもよい)。その中に `deck.md` が表紙・章・スライド 1 枚だけの空の枠でできる。題はフォルダ名(見本を触りたければ「サンプルを見る」)
-3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本の `examples/sample-master.pptx` をそのまま使ってもよい。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
+3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本でよければ、同じ画面の「見本を取り込む」で `sample-master.pptx`(リポジトリの `examples/sample-master.pptx` と同じもの)が保管フォルダに入る。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
 4. 右ペインで書く(既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替えられる)。左ペインでドラッグか ⌥↑↓ で並べ替える。番号は自動で振り直される
 5. 「書き出す」で `out/deck.pptx` ができる。PowerPoint で開いて仕上げる
 
-2 回目からは起動画面の「最近開いたもの」から続きができる。
+2 回目からは前回の資料がそのまま開く。別の資料は、ツールバーのファイル名のボタン(Markdown ファイルを開く)から開く。前回のファイルが無ければ起動画面になり、「最近開いたもの」から選べる。使い方は ⌘/ で開く(初回の起動では自動で開く)。
 
 ### AI エージェントに任せる
 
@@ -45,10 +45,10 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 | 項目 | 要件 |
 | --- | --- |
-| OS | macOS(Electron)。Linux / Windows は未検証 |
+| OS | macOS(Electron)。配布版(Releases の dmg / zip とインストール用コマンド)は Apple silicon 向けで、Intel の Mac はソースから動かす。Linux / Windows は未検証 |
 | Node.js | 24.15 以上(ソースから動かす場合。`.node-version` / `.nvmrc` を置いてあるので fnm / nvm / asdf はそのまま切り替わる) |
 | Python | pptx の書き出しに Python 3.9 以上と python-pptx。図の生成を AI に任せるなら 3.12 と `requirements.txt` |
-| AI エージェント | 任意。PATH 上の `claude` `codex` `gemini` `aider` `copilot` `cursor-agent` `opencode` を検出して起動する |
+| AI エージェント | 任意。設定の「ツール」で選んだコマンドをコンソールのシェルで実行する。プリセットは `claude` `codex` `gemini` `aider` `copilot` `cursor-agent` `opencode`(既定は `claude` を自動起動)で、自分のコマンドも足せる。コマンドは PATH に入れておく |
 
 ブラウザ版(`npm run dev:web`)は開発と E2E テストのためのもの。Chromium 限定で、pptx 生成とコンソールは使えない。
 
@@ -88,11 +88,12 @@ python3 -m venv ~/.config/mdslide/venv
 
 Python 自体が無ければ、先に `xcode-select --install` を実行する(Command Line Tools に Python 3 が入っている)。Python の場所は設定の「書き出し」で指定することもできる。
 
-ソースから動かす場合。Node は 24.15 以上(`.npmrc` の `engine-strict` により、古い Node では `npm ci` が最初に止まる)。node-pty のビルドに Xcode Command Line Tools(`xcode-select --install`)が要る。
+ソースから動かす場合。Node は 24.15 以上(`.npmrc` の `engine-strict` により、古い Node では `npm ci` が最初に止まる)。node-pty のビルドに Xcode Command Line Tools(`xcode-select --install`)が要る。Python は 3.12(`requirements.txt` の matplotlib と pillow は、Command Line Tools の Python 3.9 には入らない)。Intel の Mac はこの方法で動かす。
 
 ```bash
-npm ci                                       # Electron と node-pty の再ビルドを含む
-python3 -m pip install -r requirements.txt   # 開発する場合は requirements-dev.txt
+npm ci                                                 # Electron と node-pty の再ビルドを含む
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt                        # 開発する場合は requirements-dev.txt
 npm run dev
 ```
 
@@ -110,7 +111,7 @@ title: 資料タイトル
 subtitle: 副題
 agenda: once            # once | per-section | none
 numbering: chapter      # chapter (1, 1.1) | flat | none
-master: corporate.pptx  # 保管フォルダのマスター。省略時はフォルダの master.pptx
+master: corporate.pptx  # 保管フォルダのマスター。省略時はフォルダの master.pptx、無ければ設定の既定。none で使わない
 ---
 
 # 章タイトル                      → 中表紙。アジェンダの項目にもなる
@@ -149,7 +150,7 @@ master: corporate.pptx  # 保管フォルダのマスター。省略時はフォ
 
 ## ワークスペースの構成
 
-開いた Markdown の親フォルダが作業の単位になる。名前は自由で、フォルダを開いたときだけ `deck.md` が使われる。
+開いた Markdown の親フォルダが作業の単位になる。Markdown を開いたときはその名前のまま使い、フォルダを開いたときと「新しく作る」では `deck.md` になる。
 
 ```text
 my-deck/
@@ -159,20 +160,21 @@ my-deck/
 ├── deck.json            # 書き出しの中間形式(契約 v2)
 ├── out/deck.pptx        # 生成結果
 ├── notes/               # 下書き・素材
-├── theme.json           # マスターから抽出した配色とフォント
-├── tools/mdslide_draw.py
-├── AGENTS.md            # エージェント向けの規約(初回のみ生成、編集可)
+├── theme.json           # マスターから抽出した配色とフォント(アプリが書き直す。手で編集しない)
+├── tools/mdslide_draw.py # 図の生成ヘルパー(アプリの版で上書きされる)
+├── AGENTS.md            # エージェント向けの規約(無いときだけ生成、編集可)
 ├── CLAUDE.md            # @AGENTS.md の 1 行。Claude Code は同じ規約を読む
-└── .mdslide/history/    # deck.md のスナップショット
+└── .mdslide/history/    # AI に指示を送る直前の Markdown のスナップショット(「前の版に戻す」で戻る)
 ```
 
 ## 設定
 
-設定は 1 ファイル `~/.config/mdslide/settings.json`(`XDG_CONFIG_HOME` 準拠、`MDSLIDE_CONFIG` で場所を変更できる)に置く。手で編集した内容はウィンドウにフォーカスが戻ったときに反映される。マスターの保管フォルダ(`masters.dir`)、既定のマスター(`masters.default`)、Vim キーバインド(`editor.vim`)、エディタ幅(`editor.width`)もここにある。
+設定は 1 ファイル `~/.config/mdslide/settings.json`(`XDG_CONFIG_HOME` 準拠、`MDSLIDE_CONFIG` で場所を変更できる)に置く。手で編集した内容はウィンドウにフォーカスが戻ったときに反映される。マスターの保管フォルダ(`masters.dir`)、既定のマスター(`masters.default`)、Vim キーバインド(`editor.vim`)、エディタ幅(`editor.width`)、書き出しに使う Python の場所(`export.python`)もここにある。保管フォルダの既定は設定ファイルと同じフォルダの `masters/`、アプリが最初に探す Python は同じフォルダの `venv/`。
 
 | 環境変数 | 用途 |
 | --- | --- |
 | `MDSLIDE_CONFIG` | 設定ファイルのパス |
+| `MDSLIDE_WORKSPACE` | 起動時に開くフォルダか Markdown ファイル(起動引数でも渡せる) |
 | `MDSLIDE_PYTHON` | pptx の書き出しに使う Python。指定するとそれだけを使い、自動では探さない |
 | `MDSLIDE_NODE` | node-pty を読み込めない環境で端末を中継する Node(既定 `node`) |
 
@@ -184,23 +186,23 @@ npm run dev:web              # ブラウザ版 http://localhost:5173
 npm run typecheck            # tsc(src+tests / electron)
 npm test                     # vitest(単体 + 内部結合)
 npm run test:coverage        # 閾値 lines 80% / branches 70%
-npm run test:py              # pytest(deck.json → pptx、図生成)
+npm run test:py              # pytest(deck.json → pptx、図生成、インストール用スクリプト)
 npm run test:e2e             # Web E2E(headless Chromium)
 npm run test:e2e:electron    # Electron E2E(実アプリを起動。要ディスプレイ)
-npm run test:all             # 上記すべて。PR の条件
+npm run test:all             # typecheck / test:coverage / test:py / test:e2e。PR の条件(Electron E2E は CI の macOS ジョブで回る)
 ```
 
 | 層 | 場所 | 保証すること |
 | --- | --- | --- |
 | 単体 | `tests/unit/` | parser / render / fit / geometry / importMaster / workspace / 各コンポーネント |
 | 内部結合 | `tests/integration/` | store を通した Markdown → スライド → 保存、フォルダ監視と競合 |
-| Python | `tests/python/` | deck.json → pptx。レイアウト解決、画像内接、表、ノート、警告 |
+| Python | `tests/python/` | deck.json → pptx(レイアウト解決、画像内接、表、ノート、警告)、図の生成ヘルパー、`scripts/install.sh`(macOS のみ) |
 | E2E | `tests/e2e/` | ユーザーが実際に行う一連の操作。Web は OPFS、Electron は CDP |
 
-リリースは `package.json` の `version` を上げてタグを push する。`release.yml` が macOS ランナーで dmg / zip をビルドし、Releases に添付する。使い方ページ(GitHub Pages)は main への push で `pages.yml` が更新する。
+リリースは `package.json` の `version` を上げ、同じ版のタグを push する(タグと `version` が違えば `release.yml` が止まる)。`release.yml` が macOS ランナーで dmg / zip をビルドし、署名とインストール用コマンドでの入れ方を確かめてから Releases に添付する。使い方ページ(GitHub Pages)とインストール用コマンドは、main への push で `pages.yml` が更新する。
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+v="v$(node -p "require('./package.json').version")" && git tag "$v" && git push origin "$v"
 ```
 
 設計の要点は次のとおり。詳細は [CLAUDE.md](CLAUDE.md) と [docs/adr/](docs/adr/)。
@@ -217,7 +219,7 @@ git tag v0.1.0 && git push origin v0.1.0
 
 - **npm**: `package.json` は完全一致のバージョン(`.npmrc` の `save-exact`)。`package-lock.json` をコミットし、セットアップも CI も `npm ci`
 - **Python**: `requirements.txt`(実行時)と `requirements-dev.txt`(テスト)で `==` 固定
-- **GitHub Actions**: タグではなくコミット SHA で固定(コメントにバージョンを併記)。ワークフローの `GITHUB_TOKEN` は読み取り専用
+- **GitHub Actions**: タグではなくコミット SHA で固定(コメントにバージョンを併記)。ワークフローの `GITHUB_TOKEN` は最小権限で、書き込めるのは Releases を作る `release.yml`(contents)と Pages を公開する `pages.yml`(pages / id-token)だけ
 - **更新**: Dependabot が週次で PR を出す。CI が緑のものだけ取り込む
 - **Electron 本体**: バイナリの取得時に `@electron/get` が `SHASUMS256.txt` で検証する
 - **コンソールで起動する CLI**: PATH 上のものをそのまま使う。このリポジトリは AI エージェントを同梱しない
@@ -234,7 +236,7 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ## クレジット
 
-このプロジェクトは [project-blueprints](https://github.com/froggugugugu/project-blueprints) を利用して開発している。Claude Code のルール・スキル・エージェント・品質ゲートといった開発の枠組みはそこから来ており、このリポジトリには mdslide 固有の規約(`CLAUDE.md`、`.claude/rules/`)だけを含めている。
+このプロジェクトは [project-blueprints](https://github.com/froggugugugu/project-blueprints) を利用して開発している。Claude Code のルール・スキル・エージェント・品質ゲートといった開発の枠組みはそこから来ており、このリポジトリには mdslide 固有の規約(`CLAUDE.md`)だけを含めている。
 
 ## ライセンス
 
