@@ -18,7 +18,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
    プレビューはマスターの装飾（背景・画像・単色図形・固定文字・フッター類）とテーマのフォント・文字色も描く（`importMaster` の `decor` / `style`、ADR-0017）。グラデーション・効果・SmartArt は近似か省略で、忠実な描画は PowerPoint 側。書き出しは日付・フッター・スライド番号のプレースホルダーをレイアウトから複製する。
    本文量の見積もりはマスターの行間・段落前後の間隔・内側余白を使い、本文はマスターのヘッダとフッタの手前に収める（`contentBand`、ADR-0018）。余白を利用者に書かせない。
 4. **入口は Markdown ファイル、単位はフォルダ、本体は Electron**（ADR-0013）
-   開いた `.md` の親フォルダがワークスペース。ファイル名は `Workspace.deckFile`（既定 `deck.md`。フォルダを開いたとき・「新しく作る」でフォルダを選んだときはこの名前。ADR-0015）で、`deck.md` をコードに直書きしない。
+   開いた `.md` の親フォルダがワークスペース。ファイル名は `Workspace.deckFile`（既定 `deck.md`。「資料を開く」「新しい資料を作る」でフォルダを選んだときはこの名前で、無ければ空の枠から作る。ADR-0015 / ADR-0029）で、`deck.md` をコードに直書きしない。
    `images/` / `master.pptx` / `deck.json` / `out/deck.pptx` / `notes/` はその隣に置く。
    起動直後は起動画面（`StartScreen`）。サンプルは「サンプルを見る」でだけ表示し、黙って出さない。
    ファイル I/O は `src/workspace/workspace.ts` の `Backend` インターフェースに閉じ込める。
@@ -45,11 +45,11 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 ## 構成
 
 ```
-src/model/      imageSrc.ts (画像参照の判定。フォルダの中の相対パスだけ読む。ADR-0026)  imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。行の高さと段落間隔はマスターから。書き出しの警告は deck.json の fit を使い、Python 側 display_lines は予備として対で保つ)  boxes.ts (レイアウトごとの本文枠 pt。内側余白と行間・段落間隔、ヘッダ・フッタを避ける contentBand、重なりの警告 bodyOverlaps)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  dnd.ts (ドロップ先の判定。章は章の間にだけ落ちる)  template.ts (「新しく作る」の空の枠。ADR-0015)  types.ts
+src/model/      imageSrc.ts (画像参照の判定。フォルダの中の相対パスだけ読む。ADR-0026)  imageProcess.ts (貼り付け画像の縮小・形式判定。Chromium の OffscreenCanvas 前提、無ければ原本)  fit.ts (表示行モデル。行の高さと段落間隔はマスターから。書き出しの警告は deck.json の fit を使い、Python 側 display_lines は予備として対で保つ)  boxes.ts (レイアウトごとの本文枠 pt。内側余白と行間・段落間隔、ヘッダ・フッタを避ける contentBand、重なりの警告 bodyOverlaps)  refs.ts (Claude Code 向け参照 deck.md:行 / 画像パス)  parser.ts (parse/serialize/move/withAttr)  render.ts (numbering, agenda, auto-split)  dnd.ts (ドロップ先の判定。章は章の間にだけ落ちる)  template.ts (資料のファイルが無いときの空の枠。「新しい資料を作る」と、資料の無いフォルダを開いたとき。ADR-0015 / ADR-0029)  types.ts
 src/master/     importMaster.ts (pptx zip → layouts/placeholders、本文の枠の選び方 bodyPlaceholders、マスターとレイアウトの装飾 decor・背景・プレースホルダーの見た目 style、テーマ色の解決 parseColor)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)  sampleMaster.ts (examples/sample-master.pptx をバンドルし、設定の「見本を取り込む」で保管フォルダへ)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
 src/sample.ts   「サンプルを見る」の組み込みサンプル（E2E が章・スライド名を前提にする）
-src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: Markdown を開く・新しく作る・フォルダ・最近・サンプル) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・書き出し・ツール。開くのは useSettingsSheet。ADR-0014 / ADR-0019) / Icon (単色ラインアイコン) / Tooltips (data-tip のホバー説明)
+src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: 新しい資料を作る・資料を開く・最近・サンプル。ADR-0029) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・書き出し・ツール。開くのは useSettingsSheet。ADR-0014 / ADR-0019) / Icon (単色ラインアイコン) / Tooltips (data-tip のホバー説明)
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)  python.ts (起動時の Python 確認の状態と、入れ方のコマンド)
 src/layouts/    geometry.ts (画像/本文の配置計算)  presets.ts (マスター無し時の既定枠)
 src/settings/   settings.ts (settings.json の読み書き。設定は必ずここを通す。ADR-0010)
