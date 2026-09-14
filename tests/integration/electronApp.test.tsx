@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -7,11 +7,14 @@ const files = new Map<string, string>();
 const api = vi.hoisted(() => {
   const files = new Map<string, string>();
   const listeners: ((rel: string) => void)[] = [];
-  const menu = { settings: [] as (() => void)[], help: [] as (() => void)[] }; // app menu items → app:open-settings / app:open-help
+  // app menu items → app:open-settings / app:open-help / app:new-deck / app:open-deck
+  const menu = { settings: [] as (() => void)[], help: [] as (() => void)[], newDeck: [] as (() => void)[], openDeck: [] as (() => void)[] };
   const api = {
     platform: "darwin", files, listeners, menu,
     onOpenSettings: (cb: () => void) => { menu.settings.push(cb); return () => undefined; },
     onOpenHelp: (cb: () => void) => { menu.help.push(cb); return () => undefined; },
+    onNewDeck: (cb: () => void) => { menu.newDeck.push(cb); return () => undefined; },
+    onOpenDeck: (cb: () => void) => { menu.openDeck.push(cb); return () => undefined; },
     initialWorkspace: vi.fn(async (): Promise<{ root: string; deckFile: string | null } | null> => ({ root: "/w/deck", deckFile: null })),
     settingsPath: async () => "/w/.config/mdslide/settings.json",
     settingsRead: async () => files.get("settings.json") ?? null,
@@ -192,5 +195,34 @@ describe("App in Electron", () => {
     expect(written).toContain("# 章タイトル");
     expect(written).not.toContain("パイプライン改善");
     expect(useDeckStore.getState().markdown).toBe(written);
+  });
+
+  it("while a deck is open, the ファイル menu (app:new-deck / app:open-deck) and ⌘N / ⌘O create and open decks", async () => {
+    api.files.clear();
+    api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
+    useDeckStore.setState({ workspace: null, started: false });
+    render(<App />);
+    await screen.findByRole("button", { name: "deck/deck.md" }, { timeout: 4000 }); // a deck is open (argv)
+    api.openFolder.mockResolvedValueOnce("/w/next");
+    act(() => api.menu.newDeck.at(-1)!());
+    await screen.findByRole("button", { name: "next/deck.md" }, { timeout: 4000 });
+    expect(api.openFolder).toHaveBeenLastCalledWith(expect.objectContaining({ buttonLabel: "ここに作る" }));
+    expect(api.files.get("/w/next/deck.md")).toContain("title: next\n");
+    api.files.set("/w/plans/q3.md", "---\ntitle: Q3\n---\n\n## Plan\n");
+    api.openDeck.mockResolvedValueOnce({ root: "/w/plans", deckFile: "q3.md" });
+    act(() => api.menu.openDeck.at(-1)!());
+    await screen.findByRole("button", { name: "plans/q3.md" }, { timeout: 4000 });
+    // the keys: ⌘ on the Mac; Ctrl-N / Ctrl-O stay with the editor (Vim moves and jumps with them)
+    const opens = api.openDeck.mock.calls.length, creates = api.openFolder.mock.calls.length;
+    fireEvent.keyDown(window, { key: "o", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "n", ctrlKey: true });
+    expect(api.openDeck.mock.calls.length).toBe(opens);
+    expect(api.openFolder.mock.calls.length).toBe(creates);
+    api.openDeck.mockResolvedValueOnce(null); api.openFolder.mockResolvedValueOnce(null); // cancelled: the deck stays open
+    fireEvent.keyDown(window, { key: "o", metaKey: true });
+    fireEvent.keyDown(window, { key: "n", metaKey: true });
+    await waitFor(() => expect(api.openDeck.mock.calls.length).toBe(opens + 1));
+    await waitFor(() => expect(api.openFolder.mock.calls.length).toBe(creates + 1));
+    expect(screen.getByRole("button", { name: "plans/q3.md" })).toBeInTheDocument();
   });
 });

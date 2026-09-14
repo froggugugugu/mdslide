@@ -56,6 +56,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         <h3>キー操作</h3>
         <table className="help-table">
           <tbody>
+            {isElectron && <tr><td><kbd>{mod}</kbd> <kbd>N</kbd> / <kbd>{mod}</kbd> <kbd>O</kbd></td><td>新しい資料を作る / 資料を開く（フォルダか Markdown ファイル）。作業中もメニューの「ファイル」から</td></tr>}
             <tr><td><kbd>{mod}</kbd> <kbd>S</kbd> / <code>:w</code></td><td>保存（エディタで。<code>:w</code> は Vim のとき。1.5秒後に自動保存もされる）</td></tr>
             <tr><td><kbd>Ctrl</kbd> <kbd>Space</kbd></td><td>スニペット <code>:body :section :2col :img :imgfull :table :note :split</code></td></tr>
             <tr><td><kbd>]]</kbd> / <kbd>[[</kbd></td><td>次 / 前のスライド見出しへ（Vim の Normal）</td></tr>

@@ -42,8 +42,9 @@ app.on("web-contents-created", (_e, contents) => {
 });
 
 /**
- * Application menu: the standard roles plus the two sheets the renderer owns (設定… ⌘, and 使い方 ⌘/).
- * The renderer handles those keys itself and prevents the default, so the accelerators here are for discoverability and the mouse.
+ * Application menu: the standard roles plus what the renderer owns: 新しい資料を作る… ⌘N and 資料を開く… ⌘O (ファイル), 設定… ⌘,
+ * and 使い方 ⌘/. The renderer handles those keys itself and prevents the default, so the accelerators here are for
+ * discoverability and the mouse.
  */
 function buildMenu() {
   const tell = (channel: string) => () => (BrowserWindow.getFocusedWindow() ?? win)?.webContents.send(channel);
@@ -53,7 +54,16 @@ function buildMenu() {
     label: app.name,
     submenu: [{ role: "about" }, { type: "separator" }, settingsItem, { type: "separator" }, { role: "services" }, { type: "separator" }, { role: "hide" }, { role: "hideOthers" }, { role: "unhide" }, { type: "separator" }, { role: "quit" }],
   };
-  const fileMenu: MenuItemConstructorOptions = { label: "ファイル", submenu: [...(mac ? [] : [settingsItem, { type: "separator" } as MenuItemConstructorOptions]), { role: "close" }] };
+  const fileMenu: MenuItemConstructorOptions = {
+    label: "ファイル",
+    submenu: [
+      { label: "新しい資料を作る…", accelerator: "CmdOrCtrl+N", click: tell("app:new-deck") },
+      { label: "資料を開く…", accelerator: "CmdOrCtrl+O", click: tell("app:open-deck") },
+      { type: "separator" },
+      ...(mac ? [] : [settingsItem, { type: "separator" } as MenuItemConstructorOptions]),
+      { role: "close" },
+    ],
+  };
   const helpMenu: MenuItemConstructorOptions = { role: "help", submenu: [{ label: "mdslide の使い方", accelerator: "CmdOrCtrl+/", click: tell("app:open-help") }] };
   Menu.setApplicationMenu(Menu.buildFromTemplate([...(mac ? [appMenu] : []), fileMenu, { role: "editMenu" }, { role: "viewMenu" }, { role: "windowMenu" }, helpMenu]));
 }

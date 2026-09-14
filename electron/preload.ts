@@ -61,6 +61,15 @@ const api = {
     const h = () => cb();
     ipcRenderer.on("app:open-help", h); return () => ipcRenderer.removeListener("app:open-help", h);
   },
+  /** The ファイル menu asks for 新しい資料を作る… (⌘N) / 資料を開く… (⌘O), the same actions as the start screen. */
+  onNewDeck: (cb: () => void): (() => void) => {
+    const h = () => cb();
+    ipcRenderer.on("app:new-deck", h); return () => ipcRenderer.removeListener("app:new-deck", h);
+  },
+  onOpenDeck: (cb: () => void): (() => void) => {
+    const h = () => cb();
+    ipcRenderer.on("app:open-deck", h); return () => ipcRenderer.removeListener("app:open-deck", h);
+  },
   platform: process.platform,
 };
 contextBridge.exposeInMainWorld("mdslide", api);

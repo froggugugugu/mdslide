@@ -37,10 +37,18 @@ export function App() {
   const setConsoleHeight = useTerminalStore((s) => s.setHeight);
   const closeHelp = () => { settings.update((v) => { v.help.seen = true; }); setShowHelp(false); };
 
-  // Global shortcuts: ⌘J console, ⌘I drafts, ⌘/ help, ⌘, settings. The Electron app menu reaches the two sheets by IPC.
+  const mac = isElectron && window.mdslide?.platform === "darwin";
+  // Global shortcuts: ⌘N new deck, ⌘O open a deck, ⌘J console, ⌘I drafts, ⌘/ help, ⌘, settings. The Electron app menu reaches
+  // the decks and the two sheets by IPC.
   useEffect(() => {
+    const newDeck = () => { void useDeckStore.getState().createMarkdown().catch(() => undefined); };
+    const openDeck = () => { void useDeckStore.getState().openWorkspace().catch(() => undefined); };
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
+      // On the Mac only with ⌘: Ctrl-N / Ctrl-O belong to the editor (Vim moves and jumps with them).
+      const cmd = mac ? e.metaKey : e.ctrlKey;
+      if (cmd && (e.key === "n" || e.key === "N")) { e.preventDefault(); newDeck(); }
+      if (cmd && (e.key === "o" || e.key === "O")) { e.preventDefault(); openDeck(); }
       if (e.key === "j" || e.key === "J") { e.preventDefault(); toggleConsole(); }
       if (e.key === "i" || e.key === "I") { e.preventDefault(); toggleInbox(); }
       if (e.key === "/") { e.preventDefault(); setShowHelp((v) => !v); }
@@ -49,8 +57,10 @@ export function App() {
     window.addEventListener("keydown", onKey);
     const offSettings = window.mdslide?.onOpenSettings?.(() => openSettings());
     const offHelp = window.mdslide?.onOpenHelp?.(() => setShowHelp(true));
-    return () => { window.removeEventListener("keydown", onKey); offSettings?.(); offHelp?.(); };
-  }, [toggleConsole, toggleInbox, openSettings]);
+    const offNew = window.mdslide?.onNewDeck?.(newDeck);
+    const offOpen = window.mdslide?.onOpenDeck?.(openDeck);
+    return () => { window.removeEventListener("keydown", onKey); offSettings?.(); offHelp?.(); offNew?.(); offOpen?.(); };
+  }, [toggleConsole, toggleInbox, openSettings, mac]);
 
   const startResize = (e: React.MouseEvent) => {
     const startY = e.clientY, startH = consoleHeight;
@@ -165,7 +175,6 @@ export function App() {
     useDeckStore.getState().setMarkdown(t);
   });
 
-  const mac = isElectron && window.mdslide?.platform === "darwin";
   useEffect(() => { if (isElectron) document.body.classList.add("electron"); }, []);
 
   // Files dropped anywhere but the editor (which handles images itself) go to notes/.
