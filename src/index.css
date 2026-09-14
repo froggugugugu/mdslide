@@ -79,6 +79,9 @@ body.electron { background: transparent; }
 .btn.icon { width: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); background: transparent; }
 .btn.icon:hover { background: var(--control); color: var(--ink); }
 .btn.icon.on { background: var(--accent-tint); color: var(--accent); }
+/* The one primary action in the toolbar (書き出す): an icon button that keeps the accent fill. */
+.btn.icon.primary, .btn.icon.primary:hover { background: var(--accent); color: var(--accent-ink); }
+.btn.icon.primary:hover { filter: brightness(1.08); }
 .btn.with-icon { display: inline-flex; align-items: center; gap: 6px; padding-left: 9px; }
 .btn .icon, .seg .icon { display: block; flex-shrink: 0; }
 .seg.icon { width: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }

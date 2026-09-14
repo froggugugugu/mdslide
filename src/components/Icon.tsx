@@ -18,7 +18,8 @@ const PATHS: Record<string, ReactNode> = {
   help: <><circle cx="10" cy="10" r="7.5" /><path d="M7.8 8a2.2 2.2 0 1 1 3.2 2c-.7.4-1 .8-1 1.5" /><circle cx="10" cy="14" r=".6" fill="currentColor" stroke="none" /></>,
   export: <><path d="M10 2.5v9M6.5 6l3.5-3.5L13.5 6" /><path d="M4.5 9.5v6A1.5 1.5 0 0 0 6 17h8a1.5 1.5 0 0 0 1.5-1.5v-6" /></>,
   // Console bar
-  gear: <><circle cx="10" cy="10" r="2.5" /><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" /></>,
+  // A toothed gear (SF Symbols gearshape): the rayed circle it replaces read as a brightness control.
+  gear: <><path d="M8.37 4.12L8.75 2.10L11.25 2.10L11.63 4.12A6.1 6.1 0 0 1 13.00 4.69L14.70 3.53L16.47 5.30L15.31 7.00A6.1 6.1 0 0 1 15.88 8.37L17.90 8.75L17.90 11.25L15.88 11.63A6.1 6.1 0 0 1 15.31 13.00L16.47 14.70L14.70 16.47L13.00 15.31A6.1 6.1 0 0 1 11.63 15.88L11.25 17.90L8.75 17.90L8.37 15.88A6.1 6.1 0 0 1 7.00 15.31L5.30 16.47L3.53 14.70L4.69 13.00A6.1 6.1 0 0 1 4.12 11.63L2.10 11.25L2.10 8.75L4.12 8.37A6.1 6.1 0 0 1 4.69 7.00L3.53 5.30L5.30 3.53L7.00 4.69A6.1 6.1 0 0 1 8.37 4.12Z" /><circle cx="10" cy="10" r="2.4" /></>,
   play: <path d="M6.5 4.5v11l9-5.5z" />,
   stop: <rect x="5" y="5" width="10" height="10" rx="1.5" />,
   restart: <><path d="M15.5 10a5.5 5.5 0 1 1-1.6-3.9" /><path d="M15.5 3.5v3.3h-3.3" /></>,

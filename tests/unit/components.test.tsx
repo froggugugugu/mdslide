@@ -346,6 +346,12 @@ describe("App", () => {
     expect(iconButtons.length).toBeGreaterThan(4);
     for (const b of iconButtons) expect(b.getAttribute("data-tip"), b.getAttribute("aria-label") ?? "").toBeTruthy();
     expect(screen.getAllByRole("button", { name: "設定" })[0]).toHaveAttribute("data-tip", "設定 (⌘,)");
+    // while working, help lives in the Help menu and ⌘/; export is the accent icon button, named by aria-label and tooltip
+    expect(screen.queryByRole("button", { name: "使い方" })).toBeNull();
+    const exportButton = screen.getByRole("button", { name: "書き出す" });
+    expect(exportButton).toHaveClass("icon", "primary");
+    expect(exportButton.textContent).toBe("");
+    expect(exportButton.getAttribute("data-tip")).toMatch(/^書き出す（/);
     await userEvent.click(screen.getByRole("button", { name: "書き出す" }));
     await waitFor(() => expect(root.text("deck.json")).toContain('"version": 2'));
     expect(await screen.findByText(/deck.json を書き出しました/)).toBeInTheDocument();

@@ -246,12 +246,11 @@ export function App() {
         <span className="toolbar-sep" />
         <button className={`btn icon ${inboxOpen ? "on" : ""}`} onClick={toggleInbox} data-tip="下書き (⌘I)" aria-label="下書き" aria-pressed={inboxOpen}><Icon name="note" /></button>
         <button className={`btn icon ${consoleOpen ? "on" : ""}`} onClick={toggleConsole} data-tip="コンソール (⌘J)" aria-label="コンソール" aria-pressed={consoleOpen}><Icon name="terminal" /></button>
-        <button className="btn icon" onClick={() => setShowHelp(true)} data-tip="使い方 (⌘/)" aria-label="使い方"><Icon name="help" /></button>
         <button className="btn icon" onClick={() => openSettings()} data-tip="設定 (⌘,)" aria-label="設定"><Icon name="gear" /></button>
         <span className="toolbar-sep" />
-        <button className="btn primary with-icon" disabled={exporting} onClick={exportJson}
-          data-tip={isElectron ? "deck.json を書き出し、master.pptx を母体に out/deck.pptx を生成" : "deck.json を書き出し、tools/export_pptx.py で pptx を生成"}>
-          <Icon name="export" />{exporting ? "生成中" : "書き出す"}
+        <button className="btn icon primary" disabled={exporting} onClick={exportJson} aria-label="書き出す" aria-busy={exporting}
+          data-tip={exporting ? "生成中" : isElectron ? "書き出す（deck.json を書き出し、master.pptx を母体に out/deck.pptx を生成）" : "書き出す（deck.json を書き出し、tools/export_pptx.py で pptx を生成）"}>
+          <Icon name="export" />
         </button>
       </header>
       {externalChange && (
