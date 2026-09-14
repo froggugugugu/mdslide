@@ -37,6 +37,7 @@ Markdown を唯一の正とする、報告用スライド専用のパワポエ�
 - システムフォント（-apple-system）、0.5px ヘアライン、システムブルー `#0a84ff`、装飾は影と余白だけ。絵文字・下線リンクは使わない。
 - アイコンは `src/components/Icon.tsx` の単色ラインアイコン（SF Symbols 風、20px グリッド、currentColor）だけを使う。画像やアイコンフォントは入れない。
   アイコンだけのボタンは `.btn.icon`（ペインの開閉状態は `.on`）にし、必ず `aria-label`（テストと E2E が名前で探す）と `data-tip`（ホバーやキーボードで移動したときに出る説明。ショートカット併記。表示は `Tooltips`）を付ける。操作の説明にネイティブの `title` は使わない（表示までが遅い）。切れた長い文字の全文表示だけは `title` でよい。文字ボタンにアイコンを添えるときは `.btn.with-icon`。
+- ツールバーはアイコンボタンに揃える。主操作の書き出しだけは青い `.btn.icon.primary`。使い方は作業中のツールバーに置かず、メニューの「ヘルプ」・⌘/・起動画面から開く（初回は自動で開く）。
 - ペイン幅（サムネイル・エディタ）は区切り線 `.vsplitter` のドラッグで変え、`settings.json` に記憶する（`navigator.width` / `editor.width`）。
 - Electron の macOS ウィンドウは `hiddenInset` + `vibrancy: sidebar`。`body.electron` で背景を透過し、サイドバーとツールバーが透ける。
 - エディタの配色は `EditorPane.tsx` の `HighlightStyle` で CSS 変数に解決する。
