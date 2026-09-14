@@ -275,13 +275,21 @@ body.electron { background: transparent; }
 .start-card h2 { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 20px 0 6px; }
 .start-card code { font-family: var(--font-mono); font-size: 12px; }
 .start-lead { color: var(--ink-2); font-size: 13px; line-height: 1.6; margin: 0 0 16px; }
-.start-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.start-actions { display: grid; gap: 8px; }
+/* A large choice: icon, the title that names the button, and one line on what happens (ADR-0029). */
+.btn.start-action { height: auto; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; text-align: left; white-space: normal; }
+.btn.start-action:active { transform: scale(0.99); }
+.start-action-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.start-action-title { font-size: 13.5px; font-weight: 600; }
+.start-action-detail { font-size: 12px; font-weight: 400; line-height: 1.45; color: var(--ink-2); }
+.btn.primary .start-action-detail { color: inherit; opacity: 0.85; }
 .start-recent ul { list-style: none; margin: 0; padding: 0; }
 .start-recent li { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; border-top: 0.5px solid var(--hairline); min-width: 0; }
 .start-recent li:first-child { border-top: none; }
 .start-recent .link { font-size: 13px; flex-shrink: 0; }
 .start-path { color: var(--ink-3); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
-.start-hint { color: var(--ink-3); font-size: 11.5px; line-height: 1.6; margin: 16px 0 0; }
+.start-foot { margin-top: 16px; padding-top: 10px; border-top: 0.5px solid var(--hairline); }
+.start-foot .btn { margin-left: -12px; } /* the quiet button's label lines up with the text above */
 
 /* Master dialog: where the folder is */
 .master-dir { display: flex; align-items: center; gap: 12px; margin: 10px 0 14px; font-size: 12px; color: var(--ink-2); min-width: 0; }

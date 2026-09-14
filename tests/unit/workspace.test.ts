@@ -63,7 +63,7 @@ describe("workspace (electron backend)", () => {
       initialWorkspace: vi.fn(async () => ({ root: "/Users/me/deck", deckFile: null })),
       settingsPath: async () => "/Users/me/.config/mdslide/settings.json", settingsRead: async () => null, settingsWrite: async () => undefined,
       openFolder: vi.fn(async (): Promise<string | null> => "/Users/me/other"),
-      openMarkdown: vi.fn(async (): Promise<string | null> => "/Users/me/plans/q3.md"),
+      openDeck: vi.fn(async (): Promise<{ root: string; deckFile: string | null } | null> => ({ root: "/Users/me/other", deckFile: null })),
       readText: vi.fn(async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null),
       readFile: vi.fn(async (p: string) => files.has(p) ? { data: new TextEncoder().encode(files.get(p)!), modified: 1 } : null),
       writeText: vi.fn(async (p: string, t: string) => { files.set(p, t); return 2; }),
@@ -97,12 +97,15 @@ describe("workspace (electron backend)", () => {
     expect(api.runExport).toHaveBeenCalledWith("/Users/me/deck", "/Users/me/deck/deck.json", "/Users/me/deck/master.pptx", "/Users/me/deck/out/deck.pptx");
     expect(await ws.backend.pty!.foreground(3)).toEqual({ name: "claude", shell: "zsh" }); // pty:foreground (ADR-0026)
     expect(api.ptyForeground).toHaveBeenCalledWith(3);
+    // one dialog opens a deck (dialog:openDeck, ADR-0029): a folder means its deck.md...
     const picked = (await m.pickWorkspace())!;
-    expect(picked.path).toBe("/Users/me/other");
+    expect(picked).toMatchObject({ path: "/Users/me/other", name: "other", deckFile: "deck.md" });
+    expect(api.openFolder).not.toHaveBeenCalled(); // not the folder-only picker
     const { settings } = await import("../../src/settings/settings");
     expect(settings.get().workspace.lastPath).toBe("/Users/me/other");
-    // a Markdown file is the entry point: its folder becomes the workspace and the file keeps its name
-    const md = (await m.openMarkdownFile())!;
+    // ...and a Markdown file makes its folder the workspace, the file keeping its name
+    api.openDeck.mockResolvedValueOnce({ root: "/Users/me/plans", deckFile: "q3.md" });
+    const md = (await m.pickWorkspace())!;
     expect(md).toMatchObject({ path: "/Users/me/plans", name: "plans", deckFile: "q3.md" });
     // a new deck is a folder (chosen or created in the dialog); its file is the default deck.md
     api.openFolder.mockResolvedValueOnce("/Users/me/new");
@@ -115,8 +118,8 @@ describe("workspace (electron backend)", () => {
       "/Users/me/new/deck.md", "/Users/me/plans/q3.md", "/Users/me/other/deck.md", "/Users/me/deck/deck.md",
     ]);
     // cancelled dialogs open nothing
-    api.openMarkdown.mockResolvedValueOnce(null); api.openFolder.mockResolvedValueOnce(null);
-    expect(await m.openMarkdownFile()).toBeNull();
+    api.openDeck.mockResolvedValueOnce(null); api.openFolder.mockResolvedValueOnce(null);
+    expect(await m.pickWorkspace()).toBeNull();
     expect(await m.createWorkspaceFolder()).toBeNull();
     delete (window as { mdslide?: unknown }).mdslide;
   });
@@ -127,7 +130,7 @@ describe("workspace (electron backend)", () => {
     const api = {
       platform: "darwin", initialWorkspace: initial,
       settingsPath: async () => "", settingsRead: async () => JSON.stringify({ version: 1, workspace: { lastPath: "/Users/me/plans", lastDeckFile: "q3.md" } }), settingsWrite: async () => undefined,
-      openFolder: vi.fn(async () => null), openMarkdown: vi.fn(async () => null), saveMarkdown: vi.fn(async () => null),
+      openFolder: vi.fn(async () => null), openDeck: vi.fn(async () => null), saveMarkdown: vi.fn(async () => null),
       readText: vi.fn(async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null),
       readFile: vi.fn(async () => null), writeText: vi.fn(async () => 1), writeFile: vi.fn(async () => 1),
       modified: vi.fn(async () => null), exists: vi.fn(async (p: string) => files.has(p) || p === "/Users/me/plans" || p === "/Users/me/argv"),

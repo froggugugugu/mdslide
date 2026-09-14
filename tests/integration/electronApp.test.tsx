@@ -17,7 +17,7 @@ const api = vi.hoisted(() => {
     settingsRead: async () => files.get("settings.json") ?? null,
     settingsWrite: async (t: string) => { files.set("settings.json", t); },
     openFolder: vi.fn(async (): Promise<string | null> => "/w/deck"),
-    openMarkdown: vi.fn(async (): Promise<string | null> => "/w/plans/q3.md"),
+    openDeck: vi.fn(async (): Promise<{ root: string; deckFile: string | null } | null> => ({ root: "/w/plans", deckFile: "q3.md" })),
     readText: async (p: string) => files.has(p) ? { text: files.get(p)!, modified: 1 } : null,
     readFile: async (p: string) => files.has(p) ? { data: new TextEncoder().encode(files.get(p)!), modified: 1 } : null,
     writeText: async (p: string, t: string) => { files.set(p, t); return Date.now(); },
@@ -53,7 +53,8 @@ describe("App in Electron", () => {
     render(<App />);
     expect(document.body.classList.contains("electron")).toBe(true);
     await screen.findByRole("button", { name: "deck/deck.md" }, { timeout: 4000 });
-    expect(api.files.get("/w/deck/deck.md")).toContain("title:");
+    expect(api.files.get("/w/deck/deck.md")).toContain("title: deck\n"); // a folder without a deck starts as an empty frame
+    expect(api.files.get("/w/deck/deck.md")).not.toContain("パイプライン改善"); // never the built-in sample (ADR-0029)
     expect(api.files.get("/w/deck/AGENTS.md")).toContain("deck.md");   // conventions for any interactive agent
     expect(api.files.get("/w/deck/CLAUDE.md")).toBe("@AGENTS.md\n");   // Claude Code imports the same file
     expect(api.ptySpawn).toHaveBeenCalledWith({ cwd: "/w/deck", cols: 80, rows: 24 });
@@ -125,19 +126,27 @@ describe("App in Electron", () => {
     expect(await screen.findByText("mdslide の使い方")).toBeInTheDocument();
   });
 
-  it("shows the start screen when nothing is restored, and opens a Markdown file as the workspace", async () => {
+  it("shows the start screen when nothing is restored: create or open, and a Markdown file opens as the workspace", async () => {
     api.files.clear();
     api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true }, workspace: { lastPath: null, recent: [{ path: "/w/old", deckFile: "old.md" }] } }));
     api.files.set("/w/plans/q3.md", "---\ntitle: Q3\n---\n\n## Plan\n");
     api.initialWorkspace.mockResolvedValueOnce(null);
     useDeckStore.setState({ workspace: null, started: false });
     render(<App />);
-    expect(await screen.findByRole("button", { name: "Markdown を開く" }, { timeout: 4000 })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "新しく作る" })).toBeInTheDocument();
+    // two ways in (ADR-0029): creating a deck is the primary action; one "open" takes a folder or a Markdown file
+    const create = await screen.findByRole("button", { name: "新しい資料を作る" }, { timeout: 4000 });
+    const open = screen.getByRole("button", { name: "資料を開く" });
+    expect(create).toHaveClass("primary");
+    expect(open).not.toHaveClass("primary");
+    expect(create).toHaveAccessibleDescription(/フォルダを選ぶと、中に deck.md と images\/ を用意します/);
+    expect(open).toHaveAccessibleDescription(/資料のフォルダか、その中の Markdown ファイルを選びます/);
+    expect(screen.queryByRole("button", { name: "Markdown を開く" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "フォルダを開く" })).toBeNull();
     expect(screen.getByRole("button", { name: "サンプルを見る" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "old.md" })).toBeInTheDocument(); // recent list
+    expect(screen.getByRole("button", { name: "old/old.md" })).toBeInTheDocument(); // recent list: folder/file, as in the toolbar
+    expect(screen.getByText("/w")).toBeInTheDocument(); // and where the folder is
     expect(screen.queryByText("1. 背景と目的")).toBeNull(); // no silent sample
-    await userEvent.click(screen.getByRole("button", { name: "Markdown を開く" }));
+    await userEvent.click(open);
     await screen.findByRole("button", { name: "plans/q3.md" }, { timeout: 4000 });
     expect(useDeckStore.getState().deck.meta.title).toBe("Q3");
     expect(useDeckStore.getState().workspace).toMatchObject({ path: "/w/plans", deckFile: "q3.md" });
@@ -146,14 +155,14 @@ describe("App in Electron", () => {
     expect(settings.get().workspace.recent[0]).toEqual({ path: "/w/plans", deckFile: "q3.md" });
   });
 
-  it("「新しく作る」 picks a folder and scaffolds its deck.md as an empty frame titled after the folder, not the sample", async () => {
+  it("「新しい資料を作る」 picks a folder and scaffolds its deck.md as an empty frame titled after the folder, not the sample", async () => {
     api.files.clear();
     api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
     api.initialWorkspace.mockResolvedValueOnce(null);
     api.openFolder.mockResolvedValueOnce("/w/talk");
     useDeckStore.setState({ workspace: null, started: false });
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "新しく作る" }, { timeout: 4000 }));
+    await userEvent.click(await screen.findByRole("button", { name: "新しい資料を作る" }, { timeout: 4000 }));
     await screen.findByRole("button", { name: "talk/deck.md" }, { timeout: 4000 });
     expect(api.openFolder).toHaveBeenLastCalledWith(expect.objectContaining({ buttonLabel: "ここに作る" }));
     const written = api.files.get("/w/talk/deck.md")!;
@@ -164,5 +173,24 @@ describe("App in Electron", () => {
     expect(useDeckStore.getState().markdown).toBe(written); // the editor shows the new deck, not what was open before
     expect(api.files.get("/w/talk/AGENTS.md")).toContain("deck.md");
     expect(api.files.get("/w/talk/CLAUDE.md")).toBe("@AGENTS.md\n");
+  });
+
+  it("opening a folder without a deck file starts an empty frame, not the sample that is on screen", async () => {
+    api.files.clear();
+    api.files.set("settings.json", JSON.stringify({ version: 1, help: { seen: true } }));
+    api.initialWorkspace.mockResolvedValueOnce(null);
+    api.openDeck.mockResolvedValueOnce({ root: "/w/empty", deckFile: null });
+    useDeckStore.setState({ workspace: null, started: false });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "サンプルを見る" }, { timeout: 4000 }));
+    expect(useDeckStore.getState().deck.meta.title).toBe("CI/CD パイプライン改善 進捗報告");
+    await userEvent.click(screen.getByRole("button", { name: "開く" })); // the toolbar's open is the same dialog as 資料を開く
+    await screen.findByRole("button", { name: "empty/deck.md" }, { timeout: 4000 });
+    expect(api.openDeck).toHaveBeenCalled();
+    const written = api.files.get("/w/empty/deck.md")!;
+    expect(written).toContain("title: empty\n");
+    expect(written).toContain("# 章タイトル");
+    expect(written).not.toContain("パイプライン改善");
+    expect(useDeckStore.getState().markdown).toBe(written);
   });
 });

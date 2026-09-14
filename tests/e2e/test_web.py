@@ -1,5 +1,5 @@
 """Browser build: editing, reordering, master import, folder workspace over OPFS, viewer reload, snippets, export."""
-from conftest import PASTE_JS, ROOT, png_b64
+from conftest import PASTE_JS, ROOT, SAMPLE_MD, png_b64
 
 OPFS_READ = "async(p)=>{const r=await navigator.storage.getDirectory();const parts=p.split('/');let d=r;for(const x of parts.slice(0,-1))d=await d.getDirectoryHandle(x);return await (await (await d.getFileHandle(parts.at(-1))).getFile()).text();}"
 OPFS_WRITE = "async([p,t])=>{const r=await navigator.storage.getDirectory();const h=await r.getFileHandle(p,{create:true});const w=await h.createWritable();await w.write(t);await w.close();}"
@@ -8,7 +8,9 @@ OPFS_RESET = "async()=>{const r=await navigator.storage.getDirectory();for await
 
 
 def open_folder(page):
+    """A folder holding the sample's deck.md: without one the deck would start as an empty frame (ADR-0029)."""
     page.evaluate(OPFS_RESET)
+    page.evaluate(OPFS_WRITE, ["deck.md", SAMPLE_MD])
     page.get_by_role("button", name="フォルダを開く").click()
     page.wait_for_timeout(800)
 

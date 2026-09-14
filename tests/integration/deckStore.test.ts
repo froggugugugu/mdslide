@@ -129,13 +129,15 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
   let root: FakeDirHandle;
   beforeEach(() => { root = new FakeDirHandle("deck"); installFakePicker(root); vi.useFakeTimers(); });
 
-  it("creates deck.md when missing, autosaves edits, exports deck.json", async () => {
-    const { useDeckStore } = await fresh();
+  it("creates deck.md as an empty frame when missing (not the document on screen), autosaves edits, exports deck.json", async () => {
+    const { useDeckStore } = await fresh(); // the store holds MD, as it holds the sample on the start screen
+    const { newDeckTemplate } = await import("../../src/model/template");
     await useDeckStore.getState().openWorkspace();
     expect(useDeckStore.getState().workspace?.name).toBe("deck");
     expect(useDeckStore.getState().workspace?.deckFile).toBe("deck.md");
     expect(useDeckStore.getState().started).toBe(true);
-    expect(root.text("deck.md")).toBe(MD);
+    expect(root.text("deck.md")).toBe(newDeckTemplate("deck.md", new Date(), "deck")); // titled after the folder (ADR-0029)
+    expect(useDeckStore.getState().markdown).toBe(root.text("deck.md"));
     expect(useDeckStore.getState().dirty).toBe(false);
 
     useDeckStore.getState().setMarkdown(MD + "\n## C\n");
@@ -200,6 +202,17 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     expect(s.selectedId).toBe("cover");
     expect(s.dirty).toBe(false);
     expect(s.diskModified).toBe(7);
+  });
+
+  it("a reload after the deck file has gone writes back the document on screen; only entering a folder starts an empty frame", async () => {
+    const { useDeckStore } = await fresh();
+    await useDeckStore.getState().openWorkspace();
+    useDeckStore.getState().setMarkdown(MD);
+    await useDeckStore.getState().save(true);
+    root.entries.delete("deck.md"); // removed from outside while the deck is open
+    await useDeckStore.getState().loadFromDisk();
+    expect(root.text("deck.md")).toBe(MD); // the work is not replaced by a fresh frame
+    expect(useDeckStore.getState().markdown).toBe(MD);
   });
 
   it("resolves the master: frontmatter, then the folder's master.pptx, then the configured default", async () => {

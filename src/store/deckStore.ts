@@ -14,7 +14,7 @@ import { importMaster } from "../master/importMaster";
 import { masterSource } from "../master/masterSource";
 import { settings } from "../settings/settings";
 import {
-  EXPORT_FILE, MASTER_FILE, OUTPUT_FILE, createWorkspaceFolder, imageUrl, modifiedOf, openMarkdownFile, openRecentWorkspace, pickWorkspace,
+  EXPORT_FILE, MASTER_FILE, OUTPUT_FILE, createWorkspaceFolder, imageUrl, modifiedOf, openRecentWorkspace, pickWorkspace,
   readBlob, readText, restoreWorkspace, saveImage, writeText, type RecentEntry, type Workspace,
 } from "../workspace/workspace";
 
@@ -52,11 +52,9 @@ interface DeckState {
   notice: string | null;
   setNotice: (n: string | null) => void;
 
-  /** Open a folder; its deck.md is the document (scaffolded when missing). */
+  /** Open a deck: on the desktop its folder or a Markdown file in it, from one dialog; in the browser a folder. A missing deck file starts as an empty frame. */
   openWorkspace: () => Promise<void>;
-  /** Desktop: pick a Markdown file; its folder becomes the workspace and the file keeps its name. */
-  openMarkdown: () => Promise<void>;
-  /** Desktop: choose (or create) the folder of a new deck; its deck.md is scaffolded as an empty frame (newDeckTemplate). */
+  /** Desktop: choose (or create) the folder of a new deck; its deck.md starts as an empty frame (newDeckTemplate). */
   createMarkdown: () => Promise<void>;
   openRecent: (entry: RecentEntry) => Promise<void>;
   /** Show the built-in sample without a workspace; nothing is saved. */
@@ -278,14 +276,10 @@ export const useDeckStore = create<DeckState>((set, get) => {
     const ws = await pickWorkspace();
     if (ws) await adopt(ws);
   },
-  openMarkdown: async () => {
-    const ws = await openMarkdownFile();
-    if (ws) await adopt(ws);
-  },
   createMarkdown: async () => {
     // A folder is chosen (or created in the dialog); the deck is deck.md inside it, titled after the folder.
     const ws = await createWorkspaceFolder();
-    if (ws) await adopt(ws, newDeckTemplate(ws.deckFile, new Date(), ws.name));
+    if (ws) await adopt(ws);
   },
   openRecent: async (entry) => {
     const ws = await openRecentWorkspace(entry);
@@ -338,8 +332,8 @@ export const useDeckStore = create<DeckState>((set, get) => {
       set({ markdown: deck.text, ...d, diskModified: deck.modified, dirty: false, externalChange: false,
         externalEditVersion: get().externalEditVersion + 1, selectedId: "cover", imageUrls: {} });
     } else {
-      // No deck file yet: the scaffold (an empty frame for a new file; otherwise the current document, i.e. the sample) is written
-      // and becomes the document. The editor must be told too, or it keeps showing whatever it held before (the sample).
+      // No deck file yet: the scaffold (the empty frame when a folder is entered; the document on screen when the open deck's
+      // file has gone) is written and becomes the document. The editor must be told too, or it keeps showing what it held before.
       const modified = await writeText(ws, ws.deckFile, text);
       set({ markdown: text, ...d, diskModified: modified, dirty: false, externalChange: false,
         externalEditVersion: get().externalEditVersion + 1, selectedId: "cover", imageUrls: {} });
@@ -425,10 +419,13 @@ export const useDeckStore = create<DeckState>((set, get) => {
   };
 });
 
-/** Make a workspace the current document: leaves the start screen, then loads its deck file (or writes `scaffold` when it is missing). */
-async function adopt(ws: Workspace, scaffold?: string) {
+/**
+ * Make a workspace the current document: leaves the start screen, then loads its deck file. A missing file starts as the empty
+ * frame titled after the file or folder, never as what is on screen (the sample, or the deck open before). ADR-0029.
+ */
+async function adopt(ws: Workspace) {
   useDeckStore.setState({ workspace: ws, imageUrls: {}, started: true });
-  await useDeckStore.getState().loadFromDisk(scaffold);
+  await useDeckStore.getState().loadFromDisk(newDeckTemplate(ws.deckFile, new Date(), ws.name));
 }
 
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null;

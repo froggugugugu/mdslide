@@ -3,6 +3,7 @@ Electron tests launch the real app with a temp workspace and drive it over CDP."
 import base64
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -15,6 +16,9 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
+# The built-in sample (the template literal in src/sample.ts). The tests edit its chapters, slides and image line, and a folder
+# without a deck starts as an empty frame (ADR-0029), so they put the sample in the folder first.
+SAMPLE_MD = re.search(r"SAMPLE_MARKDOWN = `([\s\S]*?)`;", (ROOT / "src" / "sample.ts").read_text(encoding="utf8")).group(1)
 
 
 def png_b64(w, h, color=(30, 110, 86), noise=False):
@@ -113,6 +117,7 @@ def electron_app(tmp_path, display):
     if not (ROOT / "out" / "main" / "main.js").exists():
         subprocess.run(["npx", "electron-vite", "build"], cwd=ROOT, check=True, capture_output=True)
     ws = tmp_path / "ws"; ws.mkdir()
+    (ws / "deck.md").write_text(SAMPLE_MD, encoding="utf8")
     shutil.copy(ROOT / "examples" / "sample-master.pptx", ws / "master.pptx")
     # A fake `claude` on PATH so the auto-started session is deterministic; the real one needs auth.
     fake_bin = tmp_path / "bin"; fake_bin.mkdir()

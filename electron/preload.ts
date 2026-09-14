@@ -9,7 +9,8 @@ const api = {
   initialWorkspace: (): Promise<{ root: string; deckFile: string | null } | null> => ipcRenderer.invoke("workspace:initial"),
   /** Folder picker (can create a folder in the dialog). The caption tells the person what the folder is for. */
   openFolder: (opts?: { title?: string; buttonLabel?: string; message?: string }): Promise<string | null> => ipcRenderer.invoke("dialog:openFolder", opts),
-  openMarkdown: (): Promise<string | null> => ipcRenderer.invoke("dialog:openMarkdown"),
+  /** 資料を開く: the deck's folder (deckFile null: the default deck.md) or a Markdown file in it, from one dialog. */
+  openDeck: (): Promise<{ root: string; deckFile: string | null } | null> => ipcRenderer.invoke("dialog:openDeck"),
   mastersResolve: (configured: string | null): Promise<string> => ipcRenderer.invoke("masters:resolve", configured),
   importMaster: (dir: string): Promise<string | null> => ipcRenderer.invoke("dialog:importMaster", dir),
   readText: (p: string): Promise<{ text: string; modified: number } | null> => ipcRenderer.invoke("fs:readText", p),

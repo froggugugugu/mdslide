@@ -147,33 +147,21 @@ function electronWorkspace(root: string, deckFile: string): Workspace {
   return { name: root.split("/").pop() ?? root, path: root, deckFile, backend: electronBackend(root) };
 }
 
-/** "/a/b/c.md" -> folder "/a/b" and file "c.md". */
-function splitFile(file: string): { root: string; deckFile: string } {
-  const i = Math.max(file.lastIndexOf("/"), file.lastIndexOf("\\"));
-  return { root: file.slice(0, i), deckFile: file.slice(i + 1) };
-}
-
-/** Open a folder; the deck is deck.md inside it (scaffolded on first load when missing). */
+/**
+ * Open a deck. Desktop: one dialog for its folder (the deck is deck.md) or a Markdown file in it (the file keeps its name).
+ * Browser: a folder. A deck file that does not exist yet is scaffolded on load. ADR-0029.
+ */
 export async function pickWorkspace(): Promise<Workspace | null> {
   if (isElectron) {
-    const root = await window.mdslide!.openFolder({ title: "資料のフォルダを開く", buttonLabel: "開く" });
-    if (!root) return null;
-    remember(root, DECK_FILE);
-    return electronWorkspace(root, DECK_FILE);
+    const picked = await window.mdslide!.openDeck();
+    if (!picked) return null;
+    const deckFile = picked.deckFile ?? DECK_FILE;
+    remember(picked.root, deckFile);
+    return electronWorkspace(picked.root, deckFile);
   }
   const root = await window.showDirectoryPicker({ mode: "readwrite" });
   await set(HANDLE_KEY, root);
   return { name: root.name, deckFile: DECK_FILE, backend: browserBackend(root) };
-}
-
-/** Desktop: choose a Markdown file. Its folder becomes the workspace and the file keeps its name. */
-export async function openMarkdownFile(): Promise<Workspace | null> {
-  if (!isElectron) return null;
-  const file = await window.mdslide!.openMarkdown();
-  if (!file) return null;
-  const { root, deckFile } = splitFile(file);
-  remember(root, deckFile);
-  return electronWorkspace(root, deckFile);
 }
 
 /**

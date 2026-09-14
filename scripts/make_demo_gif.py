@@ -51,14 +51,14 @@ try:
         b = p.chromium.connect_over_cdp(f"http://127.0.0.1:{port}")
         pg = b.contexts[0].pages[0]
         pg.set_viewport_size({"width": 1440, "height": 900})
-        pg.get_by_role("button", name="Markdown を開く").wait_for(timeout=15000)
+        pg.get_by_role("button", name="資料を開く").wait_for(timeout=15000)
         # The window is transparent for macOS vibrancy; a CDP screenshot has nothing behind it, so paint the ground for the demo.
         pg.add_style_tag(content="body.electron{background:#f5f5f7 !important}")
         pg.wait_for_timeout(600)
         snap(pg, 1800)                                                    # 1. start screen
-        pg.get_by_role("button", name="deck.md").hover(); pg.wait_for_timeout(300)
+        pg.get_by_role("button", name="四半期報告/deck.md").hover(); pg.wait_for_timeout(300)
         snap(pg, 700)
-        pg.get_by_role("button", name="deck.md").click()
+        pg.get_by_role("button", name="四半期報告/deck.md").click()
         pg.locator(".nav-item").nth(6).wait_for(timeout=15000); pg.wait_for_timeout(900)
         snap(pg, 2000)                                                    # 2. the deck is open: thumbnails, preview, editor
         pg.locator(".nav-item").nth(3).click(); pg.wait_for_timeout(500)

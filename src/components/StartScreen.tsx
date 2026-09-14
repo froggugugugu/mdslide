@@ -1,15 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { settings } from "../settings/settings";
 import { useDeckStore } from "../store/deckStore";
 import { isElectron, supportsWorkspace, type RecentEntry } from "../workspace/workspace";
-import { Icon } from "./Icon";
+import { Icon, type IconName } from "./Icon";
 
 /**
- * What the app shows until a document is open: the ways in, and the recent list.
- * Nothing is created or shown until the person chooses, so the file being edited is never a mystery.
+ * What the app shows until a document is open: two ways in (create a deck, open one), the recent list, and the sample.
+ * Nothing is created or shown until the person chooses, so the file being edited is never a mystery. ADR-0029.
  */
 export function StartScreen() {
-  const openMarkdown = useDeckStore((s) => s.openMarkdown);
   const createMarkdown = useDeckStore((s) => s.createMarkdown);
   const openWorkspace = useDeckStore((s) => s.openWorkspace);
   const openRecent = useDeckStore((s) => s.openRecent);
@@ -22,28 +21,62 @@ export function StartScreen() {
     <div className="start">
       <div className="start-card">
         <h1>mdslide</h1>
-        <p className="start-lead">Markdown を書くとスライドになります。資料は「Markdown ファイル」と、同じフォルダの <code>images/</code>（貼り付けた画像）、<code>master.pptx</code>（書式）の単位で扱います。</p>
+        <p className="start-lead">Markdown を書くとスライドになります。資料ごとに 1 つのフォルダを使います。</p>
         <div className="start-actions">
-          {isElectron && <button className="btn primary with-icon" onClick={() => run(openMarkdown())}><Icon name="doc" />Markdown を開く</button>}
-          {isElectron && <button className="btn with-icon" onClick={() => run(createMarkdown())}><Icon name="plus" />新しく作る</button>}
-          {supportsWorkspace && <button className="btn with-icon" onClick={() => run(openWorkspace())}><Icon name="folder" />フォルダを開く</button>}
-          <button className="btn quiet" onClick={viewSample}>サンプルを見る</button>
+          {isElectron && (
+            <StartAction primary icon="plus" title="新しい資料を作る" onClick={() => run(createMarkdown())}
+              detail={<>フォルダを選ぶと、中に <code>deck.md</code> と <code>images/</code> を用意します</>} />
+          )}
+          {isElectron && (
+            <StartAction icon="folder" title="資料を開く" onClick={() => run(openWorkspace())}
+              detail="資料のフォルダか、その中の Markdown ファイルを選びます" />
+          )}
+          {!isElectron && supportsWorkspace && (
+            <StartAction primary icon="folder" title="フォルダを開く" onClick={() => run(openWorkspace())}
+              detail={<>資料のフォルダを選びます。<code>deck.md</code> が無ければ空の枠を作ります</>} />
+          )}
         </div>
         {isElectron && recent.length > 0 && (
           <section className="start-recent" aria-label="最近開いたもの">
             <h2>最近開いたもの</h2>
             <ul>
-              {recent.map((r) => (
-                <li key={`${r.path}/${r.deckFile}`}>
-                  <button className="link" onClick={() => run(openRecent(r))}>{r.deckFile}</button>
-                  <span className="start-path" title={r.path}>{r.path}</span>
-                </li>
-              ))}
+              {recent.map((r) => {
+                const { folder, parent } = splitPath(r.path);
+                return (
+                  <li key={`${r.path}/${r.deckFile}`}>
+                    <button className="link" onClick={() => run(openRecent(r))}>{`${folder}/${r.deckFile}`}</button>
+                    {/* bdi keeps the path left-to-right inside the rtl box that shows its end when it is too long. */}
+                    <span className="start-path" title={r.path}><bdi>{parent}</bdi></span>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}
-        <p className="start-hint">{isElectron && <>「新しく作る」は資料のフォルダを選ぶ（その場で作れます）と、その中に <code>deck.md</code> を表紙・章・スライド 1 枚だけの空の枠で作ります。</>}フォルダを開いた場合は、その中の <code>deck.md</code>（無ければ見本から作成）を使います。</p>
+        <div className="start-foot">
+          <button className="btn quiet" onClick={viewSample}>サンプルを見る</button>
+        </div>
       </div>
     </div>
   );
+}
+
+/** A large choice: icon, the title that names the button, and one line on what happens. */
+function StartAction({ icon, title, detail, primary = false, onClick }: { icon: IconName; title: string; detail: ReactNode; primary?: boolean; onClick: () => void }) {
+  const id = useId();
+  return (
+    <button className={`btn start-action${primary ? " primary" : ""}`} onClick={onClick} aria-labelledby={`${id}t`} aria-describedby={`${id}d`}>
+      <Icon name={icon} size={20} />
+      <span className="start-action-text">
+        <span id={`${id}t`} className="start-action-title">{title}</span>
+        <span id={`${id}d`} className="start-action-detail">{detail}</span>
+      </span>
+    </button>
+  );
+}
+
+/** "/Users/me/資料/四半期報告" -> the folder name, as the toolbar shows it, and where the folder is. */
+function splitPath(p: string): { folder: string; parent: string } {
+  const i = p.lastIndexOf("/");
+  return { folder: p.slice(i + 1), parent: p.slice(0, i) || "/" };
 }

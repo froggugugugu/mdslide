@@ -100,7 +100,6 @@ export function App() {
   const saveState = useDeckStore((s) => s.saveState);
   const externalChange = useDeckStore((s) => s.externalChange);
   const openWorkspace = useDeckStore((s) => s.openWorkspace);
-  const openMarkdownFile = useDeckStore((s) => s.openMarkdown);
   const restoreWorkspace = useDeckStore((s) => s.restoreWorkspace);
   const loadFromDisk = useDeckStore((s) => s.loadFromDisk);
   const save = useDeckStore((s) => s.save);
@@ -219,8 +218,8 @@ export function App() {
         <div className="spacer" />
         {supportsWorkspace ? (
           <>
-            <button className="btn with-icon" onClick={() => (isElectron ? openMarkdownFile() : openWorkspace()).catch(() => undefined)}
-              data-tip={isElectron ? "Markdown ファイルを開く" : "フォルダを開く"}>
+            <button className="btn with-icon" onClick={() => openWorkspace().catch(() => undefined)}
+              data-tip={isElectron ? "資料を開く（フォルダか Markdown ファイル）" : "フォルダを開く"}>
               <Icon name={workspace ? "doc" : "folder"} />
               {workspace ? `${workspace.name}/${workspace.deckFile}` : isElectron ? "開く" : "フォルダを開く"}
             </button>

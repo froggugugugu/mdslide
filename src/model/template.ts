@@ -1,7 +1,7 @@
 /**
- * The scaffold for a deck created from the start screen: a frame, not content.
+ * The scaffold for a deck file that does not exist yet (a new deck, or a folder opened without one): a frame, not content.
  * Title from the file name (or the folder name when the file is the default deck.md), today's date, one chapter with one
- * slide. The built-in sample stays behind "サンプルを見る".
+ * slide. The built-in sample stays behind "サンプルを見る" (ADR-0029).
  */
 export function newDeckTemplate(deckFile: string, now = new Date(), folderName?: string): string {
   const stem = deckFile.replace(/\.(md|markdown)$/i, "");

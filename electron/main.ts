@@ -75,17 +75,24 @@ async function guard(...paths: unknown[]): Promise<void> {
   for (const p of paths) if (!(await allowed.allows(p))) throw new Error(`mdslide: 開いたフォルダの外は扱えません: ${String(p)}`);
 }
 
+/** A deck as its folder (deckFile null: the default deck.md) or as a Markdown file in its folder; null for anything else. */
+async function deckEntry(p: string): Promise<{ root: string; deckFile: string | null } | null> {
+  try {
+    const abs = path.resolve(p);
+    const st = await fs.stat(abs);
+    if (st.isDirectory()) return { root: abs, deckFile: null };
+    if (st.isFile() && /\.(md|markdown)$/i.test(abs)) return { root: path.dirname(abs), deckFile: path.basename(abs) };
+  } catch { /* neither a folder nor a file */ }
+  return null;
+}
+
 /** Folder or Markdown file given on the command line (`mdslide ./deck-folder`, `mdslide ./talk.md`) or via MDSLIDE_WORKSPACE. */
 async function initialWorkspace(): Promise<{ root: string; deckFile: string | null } | null> {
   const candidates = [process.env.MDSLIDE_WORKSPACE, ...process.argv.slice(1).filter((a) => !a.startsWith("-"))].filter((x): x is string => !!x);
   for (const c of candidates) {
-    try {
-      const abs = path.resolve(c);
-      if (abs === app.getAppPath()) continue; // "electron ." passes the app dir itself
-      const st = await fs.stat(abs);
-      if (st.isDirectory()) return { root: abs, deckFile: null };
-      if (st.isFile() && /\.(md|markdown)$/i.test(abs)) return { root: path.dirname(abs), deckFile: path.basename(abs) };
-    } catch { /* neither a folder nor a file */ }
+    if (path.resolve(c) === app.getAppPath()) continue; // "electron ." passes the app dir itself
+    const entry = await deckEntry(c);
+    if (entry) return entry;
   }
   return null;
 }
@@ -152,11 +159,19 @@ ipcMain.handle("dialog:importMaster", async (_e, dir: string) => {
 });
 
 const MARKDOWN_FILTER = [{ name: "Markdown", extensions: ["md", "markdown"] }];
-ipcMain.handle("dialog:openMarkdown", async () => {
-  const r = await dialog.showOpenDialog({ properties: ["openFile"], filters: MARKDOWN_FILTER });
+/**
+ * 資料を開く: one panel takes the deck's folder or a Markdown file in it (ADR-0029). Only the macOS panel offers files and
+ * folders together; elsewhere a file panel still reaches every deck through its Markdown file.
+ */
+ipcMain.handle("dialog:openDeck", async () => {
+  const r = await dialog.showOpenDialog({
+    title: "資料を開く", buttonLabel: "開く", message: "資料のフォルダか、その中の Markdown ファイルを選びます。",
+    properties: process.platform === "darwin" ? ["openFile", "openDirectory"] : ["openFile"], filters: MARKDOWN_FILTER,
+  });
   if (r.canceled) return null;
-  allowed.allow(path.dirname(r.filePaths[0]));
-  return r.filePaths[0];
+  const entry = await deckEntry(r.filePaths[0]);
+  allowed.allow(entry?.root);
+  return entry;
 });
 
 ipcMain.handle("fs:readText", async (_e, p: string) => {
