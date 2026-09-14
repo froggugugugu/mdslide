@@ -12,7 +12,8 @@ import { lineHeightPt, paragraphGapPt } from "../model/fit";
 function useImageSrc(src: string): string | null {
   const resolved = useDeckStore((s) => s.imageUrls[src]);
   const resolve = useDeckStore((s) => s.resolveImage);
-  useEffect(() => { if (src) resolve(src); }, [src, resolve]);
+  // Again whenever the cache entry is gone: onFileChanged drops it when the file changes on disk.
+  useEffect(() => { if (src && resolved === undefined) resolve(src); }, [src, resolved, resolve]);
   if (!src) return null;
   if (imageSource(src).kind === "data") return src;
   return resolved ?? null;
@@ -30,6 +31,7 @@ function SlideImage({ alt, src, captionSize }: { alt: string; src: string; capti
   const missing = !src;
   const blocked = src ? blockedCaption(src) : null;
   const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [url]); // a replaced file may load where the old one failed
   return (
     <>
       {url && !failed ? <img src={url} alt={alt} onError={() => setFailed(true)}

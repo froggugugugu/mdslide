@@ -103,6 +103,23 @@ describe("SlideCanvas", () => {
     fireEvent.error(img);
     expect(container.textContent).toContain("見つかりません");
   });
+  it("reloads an image whose file changed on disk instead of dropping it from the preview", async () => {
+    const s = slides();
+    const readBlob = vi.fn(async () => new Blob([new Uint8Array([1])], { type: "image/png" }));
+    const create = vi.fn().mockReturnValueOnce("blob:first").mockReturnValueOnce("blob:second");
+    const original = URL.createObjectURL;
+    Object.defineProperty(URL, "createObjectURL", { value: create, configurable: true, writable: true });
+    try {
+      useDeckStore.setState({ workspace: { name: "w", deckFile: "deck.md", backend: { readBlob } as never }, imageUrls: {} });
+      const { container } = render(<SlideCanvas slide={s.find((x) => x.title === "Img")!} />);
+      await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toBe("blob:first"));
+      useDeckStore.getState().onFileChanged("images/fig.png"); // e.g. a figure redrawn under the same name
+      await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toBe("blob:second"));
+      expect(readBlob).toHaveBeenCalledTimes(2);
+    } finally {
+      Object.defineProperty(URL, "createObjectURL", { value: original, configurable: true, writable: true });
+    }
+  });
   it("warns when a full-width image leaves no room for text", () => {
     const md = `## F {img=1/1}\n\n- text\n\n![a](images/a.png)\n`;
     useDeckStore.setState({ imageDims: { "images/a.png": { w: 100, h: 100 } } });
