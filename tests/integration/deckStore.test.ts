@@ -215,6 +215,21 @@ describe("deckStore: workspace lifecycle (browser backend)", () => {
     expect(useDeckStore.getState().markdown).toBe(MD);
   });
 
+  it("switching to another deck first saves the pending edits of the open one, into its own file", async () => {
+    const { useDeckStore } = await fresh();
+    await useDeckStore.getState().openWorkspace();
+    useDeckStore.getState().setMarkdown(MD + "\n## C\n"); // just typed: the autosave is still pending
+    const other = new FakeDirHandle("other");
+    other.put("deck.md", "---\ntitle: Other\n---\n\n## O\n");
+    installFakePicker(other);
+    await useDeckStore.getState().openWorkspace(); // ⌘O right away
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(root.text("deck.md")).toContain("## C");
+    expect(other.text("deck.md")).not.toContain("## C");
+    expect(useDeckStore.getState().deck.meta.title).toBe("Other");
+    expect(useDeckStore.getState().dirty).toBe(false);
+  });
+
   it("resolves the master: frontmatter, then the folder's master.pptx, then the configured default", async () => {
     vi.useRealTimers(); // JSZip needs real timers
     root.put("master.pptx", readFileSync("examples/sample-master.pptx"));

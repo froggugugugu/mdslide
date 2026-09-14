@@ -422,8 +422,11 @@ export const useDeckStore = create<DeckState>((set, get) => {
 /**
  * Make a workspace the current document: leaves the start screen, then loads its deck file. A missing file starts as the empty
  * frame titled after the file or folder, never as what is on screen (the sample, or the deck open before). ADR-0029.
+ * Edits still waiting for the autosave belong to the deck on screen, so they are written to its file before it is replaced.
  */
 async function adopt(ws: Workspace) {
+  if (autosaveTimer) { clearTimeout(autosaveTimer); autosaveTimer = null; }
+  await useDeckStore.getState().save();
   useDeckStore.setState({ workspace: ws, imageUrls: {}, started: true });
   await useDeckStore.getState().loadFromDisk(newDeckTemplate(ws.deckFile, new Date(), ws.name));
 }
