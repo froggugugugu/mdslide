@@ -232,6 +232,12 @@ function MasterTab() {
         )}
       </div>
       <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>「テンプレートから変換」は、選んだ pptx のテーマ・配色・ロゴ・ヘッダ・フッタをそのまま残したまま、役割のレイアウト名を揃えて本文枠を置き直したマスターを作ります（書き出しと同じ Python を使います）。同じ名前のファイルがあるときは上書きしません。</p>
+      {masterSource.convert && (
+        <>
+          <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>変換しても表紙や中表紙のタイトルが空のままなら、見た目はタイトルでも中身が本文の枠になっているテンプレートです。次をコンソールの AI に貼ると、意匠を保ったまま直せます。</p>
+          <CopyBlock label="AI に渡すプロンプト" text={FIX_PROMPT} />
+        </>
+      )}
       <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>見本は 16:9 で、規約どおりのレイアウトに必要な枠だけを置いた 2 種類です（{BUNDLED_MASTERS.map((b) => `${b.name}: ${b.note}`).join(" / ")}）。取り込んだら「Finder で表示」から PowerPoint で開き、配色やロゴを直して上書き保存すれば、そのまま自分のマスターになります。</p>
       {error && <p className="mt-3" style={{ color: "var(--warn)" }}>{error}</p>}
 
@@ -271,24 +277,40 @@ function MasterTab() {
 }
 
 /** Writing pptx needs Python with python-pptx on this Mac: its status, where the app looks, and how to install it (ADR-0019). */
+/** A block of text with a copy button: the install commands in 書き出し and the prompt in マスター. */
+function CopyBlock({ label, text }: { label: string; text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { void copyText(text).then((ok) => { if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); } }); };
+  return (
+    <div className="cmd">
+      <pre aria-label={label}>{text}</pre>
+      <button className="btn" onClick={copy}>{copied ? "コピーしました" : "コピー"}</button>
+    </div>
+  );
+}
+
+/**
+ * For the templates the converter cannot finish on its own: a template whose title is a body box leaves Cover and
+ * Section without a title placeholder, and only the meaning of the original slides tells which box that was. The
+ * console has an AI next to the deck, so hand it the job rather than guess in code (ADR-0033).
+ */
+const FIX_PROMPT = [
+  "このフォルダのマスター（<マスターの名前>.pptx）を mdslide の規約に合わせて直してください。",
+  "tools/convert_master.py で変換済みですが、表紙・中表紙のタイトルが空のままです。",
+  "元テンプレートは見た目上のタイトルを body 枠で作っているので、その枠を書式ごと title / ctrTitle / subTitle へ昇格させてください。",
+  "テーマ・フォント・配色・背景・ロゴ・ヘッダ・フッタと、本文ページの枠の位置と文字の大きさは変えないでください。",
+  "レイアウト名は Cover / Agenda / Section / Body-Text / Body-2col のままにしてください。",
+  "直したら、各レイアウトの枠の種類と idx を一覧で見せてください。",
+].join("\n");
+
 function ExportTab() {
   const check = usePythonStore((s) => s.check);
   const checking = usePythonStore((s) => s.checking);
   const run = usePythonStore((s) => s.run);
   const configured = useSetting(pickPython);
-  const [copied, setCopied] = useState<string | null>(null);
   useEffect(() => { if (isElectron && !usePythonStore.getState().check) void usePythonStore.getState().run(); }, []);
   const cmds = installCommands(check);
-  const command = (label: string, lines: string[]) => {
-    const text = lines.join("\n");
-    const copy = () => { void copyText(text).then((ok) => { if (ok) { setCopied(text); setTimeout(() => setCopied((c) => (c === text ? null : c)), 1500); } }); };
-    return (
-      <div className="cmd">
-        <pre aria-label={label}>{text}</pre>
-        <button className="btn" onClick={copy}>{copied === text ? "コピーしました" : "コピー"}</button>
-      </div>
-    );
-  };
+  const command = (label: string, lines: string[]) => <CopyBlock label={label} text={lines.join("\n")} />;
   if (!isElectron) {
     return (
       <>
