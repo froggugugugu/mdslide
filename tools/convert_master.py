@@ -25,6 +25,7 @@ from pptx.oxml.ns import qn
 # Fractions of the slide WIDTH, mirroring src/layouts/geometry.ts and src/model/boxes.ts.
 MARGIN, GAP, TITLE_GAP, SAFE_GAP = 0.05, 0.03, 0.02, 0.01
 EDGE_ZONE = 1 / 3  # a shape ending in the top third is a header; one starting in the bottom third is a footer
+TITLE_BAND = 0.147  # of the slide HEIGHT: where a title goes when the source put it somewhere mdslide cannot use
 EMU_PER_CM = 360000
 TITLES = ("title", "ctrTitle")
 BODIES = ("body", "obj")
@@ -108,8 +109,11 @@ def band(layout, slide_w, slide_h):
 
 
 def content_box(layout, slide_w, slide_h):
-    """Where the body goes: full width inside the margins, under the title, clear of the header and the footer."""
-    titles = [r for r in (rect(s) for s in placeholders(layout, TITLES)) if r]
+    """Where the body goes: full width inside the margins, under the title, clear of the header and the footer.
+
+    Only a title in the top third counts. Office's caption layouts put theirs at 70% of the height, and starting the
+    body under such a title leaves a three-line strip above the footer; normalize moves those titles up instead."""
+    titles = [r for r in (rect(s) for s in placeholders(layout, TITLES)) if r and r[1] < slide_h * EDGE_ZONE]
     title_bottom = max((r[1] + r[3] for r in titles), default=int(0.105 * slide_w))  # DEFAULT_TITLE y + h
     header, footer = band(layout, slide_w, slide_h)
     top = max(title_bottom + TITLE_GAP * slide_w, 0 if header is None else header + SAFE_GAP * slide_w)
@@ -168,9 +172,13 @@ def clone_placeholder(layout, source, ph_type, box):
 
 
 def score(role, layout):
-    """How well a source layout suits a role: its name first, then the placeholders it carries."""
+    """How well a source layout suits a role: its name first, then the placeholders it carries.
+
+    A page built around a picture is never a text page, however few candidates are left: Office's "Picture with
+    Caption" carries a title and one caption box, which used to be enough to win the agenda."""
     n = "".join(layout.name.split()).lower()
     bodies, titles = placeholders(layout, BODIES), placeholders(layout, TITLES)
+    slide_h = layout.slide_master.part.package.presentation_part.presentation.slide_height
     pts = 0
     if reads_as_role(layout.name) == role:
         pts += 100
@@ -178,12 +186,16 @@ def score(role, layout):
         pts += 50
     if role == "Cover":
         pts += 20 if placeholders(layout, ("subTitle",)) or any(kind(s) == "ctrTitle" for s in titles) else 0
-    elif role == "Body-2col":
-        pts += 30 if len(bodies) >= 2 else -30
-    elif role == "Section":
-        pts += 15 if len(bodies) <= 1 else 0
     else:
-        pts += 15 if len(bodies) == 1 else 0
+        if placeholders(layout, ("pic",)):
+            pts -= 40                                    # a caption page, not a text page
+        top = min((r[1] for r in (rect(s) for s in titles) if r), default=0)
+        if top >= slide_h * EDGE_ZONE:
+            pts -= 30                                    # the title sits where mdslide would never put one
+        if role == "Body-2col":
+            pts += 30 if len(bodies) >= 2 else -30
+        else:                                            # a spare title-only layout is fine: normalize adds the box
+            pts += 15 if len(bodies) <= 1 else 0
     return pts + (5 if titles else 0)
 
 
@@ -204,6 +216,10 @@ def normalize(layout, role, slide_w, slide_h):
     if not titles and not placeholders(layout, BODIES):
         raise SystemExit(f"レイアウト '{layout.name}' に枠がありません。別のテンプレートを渡してください。")
     keep = [s.shape_id for s in titles[:1]]
+    # A title outside the top band (caption layouts put theirs at 70% of the height) would render at the bottom of the
+    # page and leave no room for the body: bring it back to the band before the body box is measured.
+    if role != "Cover" and titles and (rect(titles[0]) or (0, 0, 0, 0))[1] >= slide_h * EDGE_ZONE:
+        place(titles[0], (int(MARGIN * slide_w), int(MARGIN * slide_w), int(slide_w - 2 * MARGIN * slide_w), int(TITLE_BAND * slide_h)))
     box = content_box(layout, slide_w, slide_h)
     if role == "Cover":  # the cover is the most bespoke page: leave its boxes where the designer put them
         subs = by_area(placeholders(layout, ("subTitle",))) or by_area(placeholders(layout, BODIES))

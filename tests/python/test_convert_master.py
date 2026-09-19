@@ -67,6 +67,32 @@ def corporate(tmp_path):
     return p
 
 
+@pytest.fixture
+def caption_heavy(tmp_path):
+    """The Office names renamed, so the spare layouts left for the agenda are the caption pages: the title of
+    "Picture with Caption" sits at 70% of the height."""
+    prs = Presentation()
+    prs.slide_width, prs.slide_height = W, H
+    for old, new in (("Title Slide", "表紙 2026"), ("Title and Content", "本文（狭い）"), ("Two Content", "比較"),
+                     ("Section Header", "扉"), ("Title Only", "見出しのみ")):
+        prs.slide_layouts.get_by_name(old).name = new
+    p = tmp_path / "caption.pptx"
+    prs.save(str(p))
+    return p
+
+
+def test_a_page_built_around_a_picture_is_never_a_text_role(tmp_path, caption_heavy):
+    """Picture with Caption once won the agenda: its title at 70% left the body a three-line strip above the footer."""
+    prs, _ = convert(caption_heavy, tmp_path / "master.pptx")
+    for role in ("Agenda", "Body-Text", "Body-2col"):
+        layout = prs.slide_layouts.get_by_name(role)
+        assert not [s for s in layout.placeholders if kind(s) == "pic"], role
+        title = [s for s in layout.placeholders if kind(s) in ("title", "ctrTitle")][0]
+        assert title.top < H / 3, (role, title.top / H)
+        for body in bodies(layout):
+            assert body.height / 12700 / (18 * 1.3) >= 8, (role, body.height)   # at least eight 18pt lines
+
+
 def test_cli_entrypoint(tmp_path, office):
     out = tmp_path / "master.pptx"
     r = subprocess.run([sys.executable, str(SCRIPT), str(office), "-o", str(out)], capture_output=True, text=True)
