@@ -231,7 +231,7 @@ v="v$(node -p "require('./package.json').version")" && git tag "$v" && git push 
 
 - 紹介ページ: https://froggugugugu.github.io/mdslide/ (この README は同サイトの [README.html](https://froggugugugu.github.io/mdslide/README.html))
 - [docs/markdown-spec.md](docs/markdown-spec.md): Markdown 規約
-- [docs/master-guide.md](docs/master-guide.md): マスター pptx の作り方（見本、PowerPoint での手順、AI 用プロンプト）
+- [docs/master-guide.md](docs/master-guide.md): マスター pptx の作り方（見本、`tools/convert_master.py` での変換、PowerPoint での手順、AI 用プロンプト）
 - [docs/testing.md](docs/testing.md): テスト方針と環境
 - [docs/adr/](docs/adr/): 設計判断の記録
 - [docs/backlog.md](docs/backlog.md): バックログ
