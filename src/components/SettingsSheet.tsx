@@ -167,6 +167,20 @@ function MasterTab() {
       setError(e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
   };
+  /** 手持ちのテンプレートを変換して取り込む: the script renames the role layouts and re-sizes the body box (ADR-0030). */
+  const convertTemplate = async () => {
+    if (!masterSource.convert) return;
+    setBusy(true); setError(null);
+    try {
+      const r = await masterSource.convert();
+      if (!r) return;                                     // the panel was cancelled
+      if (r.code !== 0) throw new Error((r.stderr || r.stdout || "変換できませんでした。").trim());
+      await refresh();
+      if (!settings.get().masters.default) settings.update((v) => { v.masters.default = r.name; });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally { setBusy(false); }
+  };
   const remove = async (name: string) => {
     await masterSource.remove(name);
     if (defaultName === name) settings.update((v) => { v.masters.default = null; });
@@ -205,7 +219,11 @@ function MasterTab() {
         {BUNDLED_MASTERS.map((b) => (
           <button key={b.name} className="btn with-icon" onClick={() => void addSample(b)} disabled={busy} data-tip={`${b.name} を保管フォルダに置く`}><Icon name="master" />見本（{b.label}）を取り込む</button>
         ))}
+        {masterSource.convert && (
+          <button className="btn with-icon" onClick={() => void convertTemplate()} disabled={busy} data-tip="手持ちの pptx を mdslide のマスターに変換して保管フォルダに置く（Python が必要）"><Icon name="master" />テンプレートから変換</button>
+        )}
       </div>
+      <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>「テンプレートから変換」は、選んだ pptx のテーマ・配色・ロゴ・ヘッダ・フッタをそのまま残したまま、役割のレイアウト名を揃えて本文枠を置き直したマスターを作ります（書き出しと同じ Python を使います）。同じ名前のファイルがあるときは上書きしません。</p>
       <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>見本は 16:9 で、規約どおりのレイアウトに必要な枠だけを置いた 2 種類です（{BUNDLED_MASTERS.map((b) => `${b.name}: ${b.note}`).join(" / ")}）。取り込んだら「Finder で表示」から PowerPoint で開き、配色やロゴを直して上書き保存すれば、そのまま自分のマスターになります。</p>
       {error && <p className="mt-3" style={{ color: "var(--warn)" }}>{error}</p>}
 

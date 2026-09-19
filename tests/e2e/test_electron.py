@@ -168,6 +168,10 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     pg.get_by_role("button", name="自動").click()
     wait_js(pg, "()=>document.documentElement.dataset.theme===undefined", 5000)
     wait_until(pg, lambda: json.loads(cfg.read_text(encoding="utf8")).get("appearance", {}).get("theme") == "auto")
+    # the master tab: the two bundled samples and 手持ちのテンプレートの変換 (ADR-0032, ADR-0033)
+    pg.get_by_role("button", name="マスター").last.click()
+    for label in ("pptx を取り込む", "見本（発表用）を取り込む", "見本（報告用）を取り込む", "テンプレートから変換"):
+        assert pg.get_by_role("button", name=label).count() == 1, label
     pg.get_by_role("button", name="閉じる").click()
     assert pg.get_by_role("dialog", name="設定").count() == 0
     assert pg.errors == []

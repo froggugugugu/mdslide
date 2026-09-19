@@ -49,7 +49,7 @@ src/model/      imageSrc.ts (画像参照の判定。フォルダの中の相対
 src/master/     importMaster.ts (pptx zip → layouts/placeholders、本文の枠の選び方 bodyPlaceholders、マスターとレイアウトの装飾 decor・背景・プレースホルダーの見た目 style、テーマ色の解決 parseColor)  masterSource.ts (保管フォルダ / メモリのマスター一覧・取り込み)  sampleMaster.ts (examples/sample-master.pptx をバンドルし、設定の「見本を取り込む」で保管フォルダへ)
 src/store/      deckStore.ts (zustand。markdown 以外はすべて派生値)
 src/sample.ts   「サンプルを見る」の組み込みサンプル（E2E が章・スライド名を前提にする）
-src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: 新しい資料を作る・資料を開く・最近・サンプル。ADR-0029) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・書き出し・ツール。開くのは useSettingsSheet。ADR-0014 / ADR-0019) / Icon (単色ラインアイコン) / Tooltips (data-tip のホバー説明)
+src/components/ App (ツールバー・ペイン幅) / StartScreen (起動画面: 新しい資料を作る・資料を開く・最近・サンプル。ADR-0029) / ThumbnailPane (DnD、↑↓ で選択、⌥↑↓ で並べ替え) / PreviewPane (レイアウト選択) / SlideCanvas (スライド描画) / EditorPane (CodeMirror + Vim) / SettingsSheet (設定シート: 一般・エディタ・マスター・書き出し・ツール。開くのは useSettingsSheet。マスターでは見本 2 種の取り込みと「テンプレートから変換」ができる。ADR-0014 / ADR-0019 / ADR-0033) / Icon (単色ラインアイコン) / Tooltips (data-tip のホバー説明)
 src/export/     exportJson.ts (deck.json 契約 v2: slideSize, geometry 付き)  python.ts (起動時の Python 確認の状態と、入れ方のコマンド)
 src/layouts/    geometry.ts (画像/本文の配置計算)  presets.ts (マスター無し時の既定枠)
 src/settings/   settings.ts (settings.json の読み書き。設定は必ずここを通す。ADR-0010)

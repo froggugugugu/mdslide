@@ -15,6 +15,7 @@ describe("master source (memory: browser build and tests)", () => {
     expect((await masterSource.list()).map((e) => e.name)).toEqual(["b.pptx"]);
     expect(await masterSource.read("a.pptx")).toBeNull();
     expect(await masterSource.add()).toBeNull(); // nothing to add without a file
+    expect(masterSource.convert).toBeUndefined(); // converting needs Python: desktop only
     expect(await masterSource.addBlob("sample-master.pptx", new Blob(["sss"]))).toBe("sample-master.pptx"); // the bundled sample
     expect((await masterSource.read("sample-master.pptx"))!.size).toBe(3);
   });
@@ -33,6 +34,7 @@ describe("master source (electron: a folder of pptx files)", () => {
       readFile: vi.fn(async (p: string) => files.has(p) ? { data: new TextEncoder().encode(files.get(p)!), modified: 7 } : null),
       writeFile: vi.fn(async (p: string, d: Uint8Array) => { files.set(p, new TextDecoder().decode(d)); return 8; }),
       remove: vi.fn(async (p: string) => { files.delete(p); }),
+      convertMaster: vi.fn(async (dir: string) => ({ name: "corp.pptx", code: 0, stdout: `${dir}/corp.pptx を書き出しました`, stderr: "" })),
       openFolder: vi.fn(async () => "/other/masters"),
       showItem: vi.fn(async () => undefined),
       settingsPath: async () => "", settingsRead: async () => null, settingsWrite: async () => undefined,
@@ -49,6 +51,8 @@ describe("master source (electron: a folder of pptx files)", () => {
     expect(await masterSource.addBlob("sample-master.pptx", new Blob(["SAMPLE"]))).toBe("sample-master.pptx"); // bytes go straight into the folder
     expect(api.writeFile).toHaveBeenCalledWith("/cfg/masters/sample-master.pptx", expect.any(Uint8Array));
     expect(files.get("/cfg/masters/sample-master.pptx")).toBe("SAMPLE");
+    expect(await masterSource.convert!()).toMatchObject({ name: "corp.pptx", code: 0 }); // 手持ちのテンプレートから変換 (ADR-0033)
+    expect(api.convertMaster).toHaveBeenCalledWith("/cfg/masters");
     await masterSource.remove("corp.pptx");
     expect(api.remove).toHaveBeenCalledWith("/cfg/masters/corp.pptx");
     expect(await masterSource.chooseDir!()).toBe("/other/masters");

@@ -167,6 +167,37 @@ ipcMain.handle("dialog:importMaster", async (_e, dir: string) => {
   await fs.copyFile(r.filePaths[0], path.join(dir, name));
   return name;
 });
+/**
+ * Convert a template the person picks into a master and put it in the folder: tools/convert_master.py with the Python
+ * the export check found (ADR-0030). The source is whatever they chose in the panel, like importing one; only the
+ * destination is guarded. An existing name is never overwritten, so an edited master cannot be lost.
+ */
+ipcMain.handle("master:convert", async (_e, dir: string) => {
+  await guard(dir);
+  const r = await dialog.showOpenDialog({
+    title: "変換するテンプレートを選ぶ", buttonLabel: "変換", message: "手持ちの pptx を mdslide のマスターに変換して保管フォルダに入れます。",
+    properties: ["openFile"], filters: [{ name: "PowerPoint", extensions: ["pptx", "potx"] }],
+  });
+  if (r.canceled) return null;
+  const source = r.filePaths[0];
+  const name = `${path.basename(source, path.extname(source))}.pptx`;
+  const out = path.join(dir, name);
+  if (await fs.access(out).then(() => true, () => false)) {
+    return { name, code: -1, stdout: "", stderr: `${name} はすでに保管フォルダにあります。消してから変換し直してください。` };
+  }
+  const script = app.isPackaged
+    ? path.join(process.resourcesPath, "tools", "convert_master.py")
+    : path.join(app.getAppPath(), "tools", "convert_master.py");
+  const python = (lastPythonCheck?.ok ? lastPythonCheck : await runPythonCheck()).python ?? "python3";
+  return new Promise<{ name: string; code: number; stdout: string; stderr: string }>((resolve) => {
+    const child = spawn(python, [script, source, "-o", out], { cwd: dir });
+    let stdout = "", stderr = "";
+    child.stdout.on("data", (d) => (stdout += d));
+    child.stderr.on("data", (d) => (stderr += d));
+    child.on("error", (err) => resolve({ name, code: -1, stdout, stderr: `${err.message}\n${stderr}` }));
+    child.on("close", (code) => resolve({ name, code: code ?? -1, stdout, stderr }));
+  });
+});
 
 const MARKDOWN_FILTER = [{ name: "Markdown", extensions: ["md", "markdown"] }];
 /**
