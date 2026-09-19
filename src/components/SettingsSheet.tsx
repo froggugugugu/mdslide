@@ -168,11 +168,12 @@ function MasterTab() {
     } finally { setBusy(false); }
   };
   /** 手持ちのテンプレートを変換して取り込む: the script renames the role layouts and re-sizes the body box (ADR-0030). */
+  const [profile, setProfile] = useState<"report" | "presentation">("report");
   const convertTemplate = async () => {
     if (!masterSource.convert) return;
     setBusy(true); setError(null);
     try {
-      const r = await masterSource.convert();
+      const r = await masterSource.convert(profile);
       if (!r) return;                                     // the panel was cancelled
       if (r.code !== 0) throw new Error((r.stderr || r.stdout || "変換できませんでした。").trim());
       await refresh();
@@ -220,7 +221,14 @@ function MasterTab() {
           <button key={b.name} className="btn with-icon" onClick={() => void addSample(b)} disabled={busy} data-tip={`${b.name} を保管フォルダに置く`}><Icon name="master" />見本（{b.label}）を取り込む</button>
         ))}
         {masterSource.convert && (
-          <button className="btn with-icon" onClick={() => void convertTemplate()} disabled={busy} data-tip="手持ちの pptx を mdslide のマスターに変換して保管フォルダに置く（Python が必要）"><Icon name="master" />テンプレートから変換</button>
+          <>
+            <button className="btn with-icon" onClick={() => void convertTemplate()} disabled={busy} data-tip="手持ちの pptx を mdslide のマスターに変換して保管フォルダに置く（Python が必要）"><Icon name="master" />テンプレートから変換</button>
+            <select className="select" aria-label="変換の基準" value={profile} disabled={busy} data-tip="本文ページの余白と文字の大きさを、どちらの見本に合わせるか"
+              onChange={(e) => setProfile(e.target.value as "report" | "presentation")}>
+              <option value="report">報告用の版面（本文 11pt）</option>
+              <option value="presentation">発表用の版面（本文 18pt）</option>
+            </select>
+          </>
         )}
       </div>
       <p className="mt-2 text-[11.5px]" style={{ color: "var(--ink-3)" }}>「テンプレートから変換」は、選んだ pptx のテーマ・配色・ロゴ・ヘッダ・フッタをそのまま残したまま、役割のレイアウト名を揃えて本文枠を置き直したマスターを作ります（書き出しと同じ Python を使います）。同じ名前のファイルがあるときは上書きしません。</p>

@@ -73,8 +73,10 @@ AI に任せる場合は、後述の「AI に頼む（プロンプト）」の 1
 端末から実行するときは `tools/convert_master.py` を直接呼びます。
 
 ```
-python3 tools/convert_master.py 手持ちのテンプレート.pptx -o master.pptx
+python3 tools/convert_master.py 手持ちのテンプレート.pptx -o master.pptx --profile report
 ```
+
+`--profile` は、本文ページの余白と文字の大きさをどちらの見本に合わせるかです（`report` = 本文 11pt、`presentation` = 本文 18pt。既定は `report`）。アプリからはボタンの隣の選択で切り替えます。
 
 - 元のファイルを土台にします。テーマ・フォント・配色・ロゴ・ヘッダ・フッタには触りません（パッケージをまたいだコピーをしないので、書式が欠けたり崩れたりしません）。
 - 変えるのは mdslide が読む所だけです。役割の近いレイアウトを選んで `Cover / Agenda / Section / Body-Text / Body-2col` に改名し（足りない役割は本文レイアウトを複製）、役割として読まれてしまう残りの名前には `Unused-` を付け、本文の枠をスライドの幅いっぱい・タイトルの下からヘッダとフッタの手前までに置き直し、本文に使わない枠（説明用・小見出し・画像）を外し、元のページを削除します。日付・フッター・スライド番号の枠は残します。

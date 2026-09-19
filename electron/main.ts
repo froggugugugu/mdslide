@@ -172,7 +172,7 @@ ipcMain.handle("dialog:importMaster", async (_e, dir: string) => {
  * the export check found (ADR-0030). The source is whatever they chose in the panel, like importing one; only the
  * destination is guarded. An existing name is never overwritten, so an edited master cannot be lost.
  */
-ipcMain.handle("master:convert", async (_e, dir: string) => {
+ipcMain.handle("master:convert", async (_e, dir: string, profile: string) => {
   await guard(dir);
   const r = await dialog.showOpenDialog({
     title: "変換するテンプレートを選ぶ", buttonLabel: "変換", message: "手持ちの pptx を mdslide のマスターに変換して保管フォルダに入れます。",
@@ -190,7 +190,9 @@ ipcMain.handle("master:convert", async (_e, dir: string) => {
     : path.join(app.getAppPath(), "tools", "convert_master.py");
   const python = (lastPythonCheck?.ok ? lastPythonCheck : await runPythonCheck()).python ?? "python3";
   return new Promise<{ name: string; code: number; stdout: string; stderr: string }>((resolve) => {
-    const child = spawn(python, [script, source, "-o", out], { cwd: dir });
+    // The profile decides the body pages' measure and type, so a deck keeps mdslide's line budget (ADR-0033).
+    const chosen = profile === "presentation" ? "presentation" : "report";
+    const child = spawn(python, [script, source, "-o", out, "--profile", chosen], { cwd: dir });
     let stdout = "", stderr = "";
     child.stdout.on("data", (d) => (stdout += d));
     child.stderr.on("data", (d) => (stderr += d));

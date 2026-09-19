@@ -13,8 +13,8 @@ const api = {
   openDeck: (): Promise<{ root: string; deckFile: string | null } | null> => ipcRenderer.invoke("dialog:openDeck"),
   mastersResolve: (configured: string | null): Promise<string> => ipcRenderer.invoke("masters:resolve", configured),
   importMaster: (dir: string): Promise<string | null> => ipcRenderer.invoke("dialog:importMaster", dir),
-  convertMaster: (dir: string): Promise<{ name: string; code: number; stdout: string; stderr: string } | null> =>
-    ipcRenderer.invoke("master:convert", dir),
+  convertMaster: (dir: string, profile: string): Promise<{ name: string; code: number; stdout: string; stderr: string } | null> =>
+    ipcRenderer.invoke("master:convert", dir, profile),
   readText: (p: string): Promise<{ text: string; modified: number } | null> => ipcRenderer.invoke("fs:readText", p),
   readFile: (p: string): Promise<{ data: Uint8Array; modified: number } | null> => ipcRenderer.invoke("fs:readFile", p),
   writeText: (p: string, text: string): Promise<number> => ipcRenderer.invoke("fs:writeText", p, text),

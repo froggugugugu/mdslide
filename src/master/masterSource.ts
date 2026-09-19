@@ -11,6 +11,9 @@ export interface MasterEntry { name: string; modified: number }
 /** What tools/convert_master.py reported: code 0 means the converted master is in the folder, stdout is its summary. */
 export interface MasterConvert { name: string; code: number; stdout: string; stderr: string }
 
+/** Which bundled sample the converted body pages take their measure and type from (tools/master_profiles.py). */
+export type MasterProfile = "report" | "presentation";
+
 export interface MasterSource {
   kind: "dir" | "memory";
   /** Absolute folder shown to the person; null when there is no folder (memory). */
@@ -30,7 +33,7 @@ export interface MasterSource {
    * Desktop only: pick a template and convert it into a master with tools/convert_master.py (ADR-0030, ADR-0033).
    * null when the panel was cancelled. Needs the Python the export check found, so the browser build leaves it out.
    */
-  convert?(): Promise<MasterConvert | null>;
+  convert?(profile: MasterProfile): Promise<MasterConvert | null>;
 }
 
 const isMaster = (name: string) => /\.(pptx|potx)$/i.test(name);
@@ -58,7 +61,7 @@ export function electronMasterSource(): MasterSource {
       return dir;
     },
     reveal: async () => api.showItem(await resolve()),
-    convert: async () => api.convertMaster(await resolve()),
+    convert: async (profile) => api.convertMaster(await resolve(), profile),
   };
 }
 

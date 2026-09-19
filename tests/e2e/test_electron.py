@@ -172,6 +172,8 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     pg.get_by_role("button", name="マスター").last.click()
     for label in ("pptx を取り込む", "見本（発表用）を取り込む", "見本（報告用）を取り込む", "テンプレートから変換"):
         assert pg.get_by_role("button", name=label).count() == 1, label
+    basis = pg.get_by_role("combobox", name="変換の基準")
+    assert basis.count() == 1 and basis.input_value() == "report"   # 本文ページの版面は既定で報告用 (ADR-0033)
     pg.get_by_role("button", name="閉じる").click()
     assert pg.get_by_role("dialog", name="設定").count() == 0
     assert pg.errors == []

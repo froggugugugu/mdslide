@@ -25,8 +25,8 @@ to be built and what tests/unit/importMaster.test.ts reads.
 
     python3 scripts/make_sample_master.py
 """
+import sys
 from copy import deepcopy
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from lxml import etree
@@ -38,47 +38,16 @@ from pptx.oxml import parse_xml
 from pptx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parents[1]
-W, H = 12192000, 6858000
+sys.path.insert(0, str(ROOT / "tools"))
+from master_profiles import HANG_EM, PRESENTATION, REPORT, REF_H, REF_W, Profile  # noqa: E402
+
+W, H = REF_W, REF_H
 PHI = 1.618033988749895
 FOOTER_Y, FOOTER_H = 6356350, 365125  # the footer row stays where PowerPoint puts it (the decorated sample builds on it)
 GOLDEN_Y = round(H * (1 - 1 / PHI))   # the upper golden line: where the eye lands first
 SECTION_Y = round(H * 0.30)           # higher than the cover: a chapter page must not read like the title page
 ROLES = {"Title Slide": "Cover", "Title Only": "Agenda", "Section Header": "Section", "Title and Content": "Body-Text", "Two Content": "Body-2col"}
 FONT_LATIN, FONT_JA = "Helvetica Neue", "Hiragino Sans"
-
-
-@dataclass
-class Profile:
-    """One master: the grid (fractions of the slide WIDTH, so margins are optically equal on all sides) and the type."""
-    out: str
-    margin: float
-    title_gap: float
-    gutter: float
-    title_h: int
-    lead: float                       # title to the line under it, on the cover and the section
-    title_pt: int
-    cover_pt: int
-    section_pt: int
-    subtitle_pt: int
-    body_pts: tuple
-    cover_h: int
-    section_h: int
-    colors: dict = field(default_factory=dict)   # empty: keep the Office theme (tests/unit/theme.test.ts fixes it)
-
-
-PRESENTATION = Profile(
-    out="sample-master.pptx", margin=0.06, title_gap=0.02, gutter=0.04, title_h=1005840, lead=0.015,
-    title_pt=32, cover_pt=40, section_pt=36, subtitle_pt=18, body_pts=(18, 16, 14, 12, 12),
-    cover_h=1600200, section_h=1200000,
-)
-# Read at a desk: more lines per page, the title and the body close enough to read as one block, and three colours.
-REPORT = Profile(
-    out="report-master.pptx", margin=0.05, title_gap=0.012, gutter=0.03, title_h=640080, lead=0.012,
-    title_pt=20, cover_pt=28, section_pt=20, subtitle_pt=12, body_pts=(11, 10, 9, 9, 9),
-    cover_h=1000000, section_h=800000,
-    colors={"dk1": "1A1A1A", "lt1": "FFFFFF", "dk2": "1A1A1A", "lt2": "F2F4F7", "accent1": "0B5FA5",
-            "accent2": "4A7FB5", "accent3": "7FA3C4", "accent4": "6B7280", "accent5": "9CA3AF", "accent6": "D1D5DB"},
-)
 
 
 def boxes(p: Profile):
@@ -135,7 +104,7 @@ def set_style_sizes(master, style_tag, sizes, hang=False):
         if lvl is None:
             continue
         if hang:
-            step = round(size * 1.6 * 12700)   # 1.6 em: the bullet and its text read as one line
+            step = round(size * HANG_EM * 12700)   # the bullet and its text read as one line
             lvl.set("marL", str(step * level))
             lvl.set("indent", str(-step))
         rpr = lvl.find(qn("a:defRPr"))

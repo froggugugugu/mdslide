@@ -24,7 +24,19 @@ def bodies(layout):
     return [s for s in layout.placeholders if kind(s) in ("body", "obj")]
 
 
-def convert(src, out):
+def lvl1_size(shape):
+    """The placeholder's own first-level size in hundredths of a point, or None when it carries no list style."""
+    lst = shape._element.txBody.find(qn("a:lstStyle"))
+    lvl = None if lst is None else lst.find(qn("a:lvl1pPr"))
+    rpr = None if lvl is None else lvl.find(qn("a:defRPr"))
+    return int(rpr.get("sz")) if rpr is not None and rpr.get("sz") else None
+
+
+def title_of(layout):
+    return [s for s in layout.placeholders if kind(s) in ("title", "ctrTitle")][0]
+
+
+def convert(src, out, profile=None):
     """Run the converter in-process (so coverage sees it), mimicking the CLI contract."""
     import contextlib
     import io
@@ -32,7 +44,7 @@ def convert(src, out):
     import convert_master as m
 
     argv = sys.argv
-    sys.argv = ["convert_master.py", str(src), "-o", str(out)]
+    sys.argv = ["convert_master.py", str(src), "-o", str(out)] + (["--profile", profile] if profile else [])
     try:
         with contextlib.redirect_stdout(io.StringIO()) as so:
             m.main()
@@ -91,6 +103,25 @@ def test_a_page_built_around_a_picture_is_never_a_text_role(tmp_path, caption_he
         assert title.top < H / 3, (role, title.top / H)
         for body in bodies(layout):
             assert body.height / 12700 / (18 * 1.3) >= 8, (role, body.height)   # at least eight 18pt lines
+
+
+@pytest.mark.parametrize("profile, body_pt, title_pt", [("report", 1100, 2000), ("presentation", 1800, 3200)])
+def test_body_pages_take_the_sample_type_and_the_cover_keeps_its_own(tmp_path, office, profile, body_pt, title_pt):
+    """意匠は元テンプレート、本文ページの字と版面は見本（ADR-0033）。1 ページに入る行数を mdslide 側で決めるための要。"""
+    source_cover = Presentation(str(office)).slide_layouts.get_by_name("Title Slide")
+    cover_before = lvl1_size(title_of(source_cover))
+    prs, report = convert(office, tmp_path / f"{profile}.pptx", profile=profile)
+
+    for role in ("Body-Text", "Agenda", "Body-2col"):
+        layout = prs.slide_layouts.get_by_name(role)
+        assert lvl1_size(title_of(layout)) == title_pt, role
+        for body in bodies(layout):
+            assert lvl1_size(body) == body_pt, role
+            lvl = body._element.txBody.find(qn("a:lstStyle")).find(qn("a:lvl1pPr"))
+            assert int(lvl.get("marL")) == round(body_pt / 100 * 1.6 * 12700), role   # ぶら下げは文字サイズ比例
+    # 表紙と中表紙は意匠優先: 文字サイズに触れない
+    assert lvl1_size(title_of(prs.slide_layouts.get_by_name("Cover"))) == cover_before
+    assert profile in report
 
 
 def test_cli_entrypoint(tmp_path, office):
