@@ -26,7 +26,7 @@ Markdown を書くと、報告用の PowerPoint 資料になる。macOS のデ�
 
 1. ターミナルで `curl -fsSL https://froggugugugu.github.io/mdslide/install.sh | bash` を実行する(Apple silicon 向け)。mdslide が「アプリケーション」に入り、pptx の書き出しに使う python-pptx も専用の環境に入る。dmg から手で入れる方法は下の「インストール」
 2. 起動画面で「新しい資料を作る」を押し、資料のフォルダを選ぶ(ダイアログで新しく作ってもよい)。その中に `deck.md` が表紙・章・スライド 1 枚だけの空の枠でできる。題はフォルダ名(見本を触りたければ「サンプルを見る」)
-3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本でよければ、同じ画面の「見本を取り込む」で `sample-master.pptx`(リポジトリの `examples/sample-master.pptx` と同じもの)が保管フォルダに入る。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
+3. 設定(⌘,)の「マスター」で、レイアウト名を規約どおりに付けた pptx を保管フォルダに取り込む(最初の 1 つは既定のマスターになる)。資料ごとに変えるならツールバーのマスター選択で、その選択は Markdown の frontmatter に `master: 名前.pptx` として書かれる。見本でよければ、同じ画面の「見本(発表用)を取り込む」「見本(報告用)を取り込む」で `sample-master.pptx`(本文 18pt)か `report-master.pptx`(本文 11pt、色は 3 色、タイトルは結論の 1 文)が保管フォルダに入る(リポジトリの `examples/` と同じもの)。手持ちのテンプレートから作る手順と AI 用のプロンプトは [docs/master-guide.md](docs/master-guide.md)
 4. 右ペインで書く(既定は Vim キーバインド。設定の「エディタ」で通常のテキスト編集に切り替えられる)。左ペインでドラッグか ⌥↑↓ で並べ替える。番号は自動で振り直される
 5. ツールバー右端の青い書き出しボタンで `out/deck.pptx` ができる。PowerPoint で開いて仕上げる
 

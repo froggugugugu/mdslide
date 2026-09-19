@@ -353,11 +353,17 @@ npm run dev</code></pre>
                 <i data-lucide="file-down" class="h-4 w-4 text-muted-foreground"></i>
                 まずは見本で試す
               </div>
-              <p class="mt-2 text-sm leading-6 text-muted-foreground">python-pptx に同梱された Office の既定テンプレート（MIT License）から作った 16:9 の見本で、5 つのレイアウトに必要な枠だけを置いています。アプリにも同梱されていて、設定（⌘,）のマスターで「見本を取り込む」を押せば保管フォルダに入り、既定のマスターがまだ無ければ既定になります。PowerPoint で開いて配色やロゴを直し、上書き保存すれば自分のマスターになります。ダウンロードした場合は、資料フォルダに <code class="font-mono text-foreground">master.pptx</code> という名前で置いても使えます。</p>
-              <a href="examples/sample-master.pptx" download class="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-                <i data-lucide="download" class="h-4 w-4"></i>
-                sample-master.pptx
-              </a>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground">python-pptx に同梱された Office の既定テンプレート（MIT License）から作った 16:9 の見本で、5 つのレイアウトに必要な枠だけを置いています。枠は一つのグリッドから決めてあり、どのレイアウトも同じ左余白に揃い、タイトルは下端そろえ、2 段組みには読める幅の溝があります。見本は用途別に 2 つあり、離れて読む発表用（本文 18pt）と、手元で読む報告用（本文 11pt・色は 3 色・タイトルは結論の 1 文）から選べます。アプリにも同梱されていて、設定（⌘,）のマスターで「見本（発表用）を取り込む」「見本（報告用）を取り込む」を押せば保管フォルダに入り、既定のマスターがまだ無ければ既定になります。PowerPoint で開いて配色やロゴを直し、上書き保存すれば自分のマスターになります。ダウンロードした場合は、資料フォルダに <code class="font-mono text-foreground">master.pptx</code> という名前で置いても使えます。</p>
+              <div class="mt-4 flex flex-wrap items-center gap-3">
+                <a href="examples/report-master.pptx" download class="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+                  <i data-lucide="download" class="h-4 w-4"></i>
+                  report-master.pptx（報告用）
+                </a>
+                <a href="examples/sample-master.pptx" download class="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted">
+                  <i data-lucide="download" class="h-4 w-4"></i>
+                  sample-master.pptx（発表用）
+                </a>
+              </div>
               <table class="mt-5 w-full text-sm">
                 <thead>
                   <tr class="border-b border-border text-left text-xs text-muted-foreground">

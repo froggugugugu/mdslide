@@ -1,41 +1,115 @@
 #!/usr/bin/env python3
-"""Build examples/sample-master.pptx, the master that shows the layout naming convention.
+"""Build the two example masters from one grid: examples/sample-master.pptx and examples/report-master.pptx.
 
-It starts from python-pptx's default template (the Office theme), makes the slide 16:9 and puts the placeholders at
-PowerPoint's own 16:9 positions. One layout per role, each with exactly the boxes mdslide fills:
-  Cover      Title Slide: centered title and subtitle
+Both start from python-pptx's default template (the Office theme) and are 16:9 with the five convention layouts.
+They differ in density, not in structure (ADR-0031, ADR-0032):
+
+  sample-master.pptx  発表用 - read from a distance: 18pt body, 32pt titles, room around the text.
+  report-master.pptx  報告用 - read at a desk: 11pt body, a title band that holds a one-sentence conclusion,
+                      a tighter gap between title and body so they read as one block, and a palette cut down to
+                      base / main / one accent so figures and tables cannot turn into a rainbow.
+
+The placeholders sit on one grid instead of PowerPoint's own defaults: a single margin shared by every layout, a
+title band anchored to its baseline, a body that runs down to the footer row, two columns with a real gutter, and
+the cover and section text on the golden line.
+  Cover      Title Slide: title and subtitle, left aligned on the shared margin
   Agenda     Title Only plus the content box of Title and Content (one body box)
   Section    Section Header: the title and a line of text under it
   Body-Text  Title and Content: title and body follow the slide master
   Body-2col  Two Content: two equal columns
 Blank stays as an unused layout (the settings sheet lists it under 未使用); the other Office layouts are removed.
-The app bundles the result (src/master/sampleMaster.ts) and scripts/make_decorated_master.py decorates it.
+The app bundles both (src/master/sampleMaster.ts) and scripts/make_decorated_master.py decorates the 発表用 one.
+
+Body-Text keeps its boxes inherited from the slide master (no xfrm of its own), which is both how a master is meant
+to be built and what tests/unit/importMaster.test.ts reads.
 
     python3 scripts/make_sample_master.py
 """
 from copy import deepcopy
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from lxml import etree
 from pptx import Presentation
 from pptx.enum.shapes import PP_PLACEHOLDER
+from pptx.enum.text import MSO_ANCHOR
+from pptx.opc.constants import RELATIONSHIP_TYPE as RT
+from pptx.oxml import parse_xml
 from pptx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "examples" / "sample-master.pptx"
 W, H = 12192000, 6858000
-
-# PowerPoint's 16:9 positions: left, top, width, height in EMU.
-MASTER = {
-    PP_PLACEHOLDER.TITLE: (838200, 365125, 10515600, 1325563),
-    PP_PLACEHOLDER.BODY: (838200, 1825625, 10515600, 4351338),
-    PP_PLACEHOLDER.DATE: (838200, 6356350, 2743200, 365125),
-    PP_PLACEHOLDER.FOOTER: (4038600, 6356350, 4114800, 365125),
-    PP_PLACEHOLDER.SLIDE_NUMBER: (8610600, 6356350, 2743200, 365125),
-}
-COVER = {PP_PLACEHOLDER.CENTER_TITLE: (1524000, 1122363, 9144000, 2387600), PP_PLACEHOLDER.SUBTITLE: (1524000, 3602038, 9144000, 1655762)}
-SECTION = {PP_PLACEHOLDER.TITLE: (831850, 1709738, 10515600, 2852737), PP_PLACEHOLDER.BODY: (831850, 4589463, 10515600, 1500187)}
-COLUMNS = {1: (838200, 1825625, 5181600, 4351338), 2: (6172200, 1825625, 5181600, 4351338)}
+PHI = 1.618033988749895
+FOOTER_Y, FOOTER_H = 6356350, 365125  # the footer row stays where PowerPoint puts it (the decorated sample builds on it)
+GOLDEN_Y = round(H * (1 - 1 / PHI))   # the upper golden line: where the eye lands first
+SECTION_Y = round(H * 0.30)           # higher than the cover: a chapter page must not read like the title page
 ROLES = {"Title Slide": "Cover", "Title Only": "Agenda", "Section Header": "Section", "Title and Content": "Body-Text", "Two Content": "Body-2col"}
+FONT_LATIN, FONT_JA = "Helvetica Neue", "Hiragino Sans"
+
+
+@dataclass
+class Profile:
+    """One master: the grid (fractions of the slide WIDTH, so margins are optically equal on all sides) and the type."""
+    out: str
+    margin: float
+    title_gap: float
+    gutter: float
+    title_h: int
+    lead: float                       # title to the line under it, on the cover and the section
+    title_pt: int
+    cover_pt: int
+    section_pt: int
+    subtitle_pt: int
+    body_pts: tuple
+    cover_h: int
+    section_h: int
+    colors: dict = field(default_factory=dict)   # empty: keep the Office theme (tests/unit/theme.test.ts fixes it)
+
+
+PRESENTATION = Profile(
+    out="sample-master.pptx", margin=0.06, title_gap=0.02, gutter=0.04, title_h=1005840, lead=0.015,
+    title_pt=32, cover_pt=40, section_pt=36, subtitle_pt=18, body_pts=(18, 16, 14, 12, 12),
+    cover_h=1600200, section_h=1200000,
+)
+# Read at a desk: more lines per page, the title and the body close enough to read as one block, and three colours.
+REPORT = Profile(
+    out="report-master.pptx", margin=0.05, title_gap=0.012, gutter=0.03, title_h=640080, lead=0.012,
+    title_pt=20, cover_pt=28, section_pt=20, subtitle_pt=12, body_pts=(11, 10, 9, 9, 9),
+    cover_h=1000000, section_h=800000,
+    colors={"dk1": "1A1A1A", "lt1": "FFFFFF", "dk2": "1A1A1A", "lt2": "F2F4F7", "accent1": "0B5FA5",
+            "accent2": "4A7FB5", "accent3": "7FA3C4", "accent4": "6B7280", "accent5": "9CA3AF", "accent6": "D1D5DB"},
+)
+
+
+def boxes(p: Profile):
+    """Every rectangle of one profile, in EMU."""
+    margin = round(p.margin * W)
+    gap = round(p.title_gap * W)
+    gutter = round(p.gutter * W)
+    lead = round(p.lead * W)
+    content_w = W - 2 * margin
+    body_y = margin + p.title_h + gap
+    body_h = FOOTER_Y - gap - body_y
+    column_w = (content_w - gutter) // 2
+    return {
+        "master": {
+            PP_PLACEHOLDER.TITLE: (margin, margin, content_w, p.title_h),
+            PP_PLACEHOLDER.BODY: (margin, body_y, content_w, body_h),
+            PP_PLACEHOLDER.DATE: (margin, FOOTER_Y, 2743200, FOOTER_H),
+            PP_PLACEHOLDER.FOOTER: ((W - 4114800) // 2, FOOTER_Y, 4114800, FOOTER_H),
+            PP_PLACEHOLDER.SLIDE_NUMBER: (W - margin - 2743200, FOOTER_Y, 2743200, FOOTER_H),
+        },
+        # The cover and the section keep the body's measure: a narrower column would break a Japanese title mid-word.
+        "cover": {
+            PP_PLACEHOLDER.CENTER_TITLE: (margin, GOLDEN_Y, content_w, p.cover_h),
+            PP_PLACEHOLDER.SUBTITLE: (margin, GOLDEN_Y + p.cover_h + lead, content_w, 900000),
+        },
+        "section": {
+            PP_PLACEHOLDER.TITLE: (margin, SECTION_Y, content_w, p.section_h),
+            PP_PLACEHOLDER.BODY: (margin, SECTION_Y + p.section_h + lead, content_w, 800000),
+        },
+        "columns": {1: (margin, body_y, column_w, body_h), 2: (margin + column_w + gutter, body_y, column_w, body_h)},
+    }
 
 
 def place(ph, rect):
@@ -50,11 +124,90 @@ def follow_master(sp):
         sp_pr.remove(xfrm)
 
 
-def main():
+def set_style_sizes(master, style_tag, sizes, hang=False):
+    """Default text sizes of the master's title / body style: what the preview and the exporter read as the default.
+
+    With `hang`, the bullet indent scales with the size too. Office hangs every bullet at 0.375in, which was set for
+    32pt text: at 11pt it leaves a gap two and a half characters wide between the bullet and its line."""
+    style = master.element.find(qn("p:txStyles")).find(qn(f"p:{style_tag}"))
+    for level, size in enumerate(sizes, start=1):
+        lvl = style.find(qn(f"a:lvl{level}pPr"))
+        if lvl is None:
+            continue
+        if hang:
+            step = round(size * 1.6 * 12700)   # 1.6 em: the bullet and its text read as one line
+            lvl.set("marL", str(step * level))
+            lvl.set("indent", str(-step))
+        rpr = lvl.find(qn("a:defRPr"))
+        if rpr is None:
+            rpr = etree.SubElement(lvl, qn("a:defRPr"))
+        rpr.set("sz", str(round(size * 100)))
+
+
+def set_lvl1(ph, size_pt=None, align=None):
+    """One placeholder's own first-level size and alignment. The cover needs a larger title than the shared style,
+    and Office centres the subtitle, which would leave it off the left axis every other layout sits on."""
+    body = ph._element.txBody
+    lst = body.find(qn("a:lstStyle"))
+    if lst is None:
+        lst = etree.SubElement(body, qn("a:lstStyle"))
+    lvl = lst.find(qn("a:lvl1pPr"))
+    if lvl is None:
+        lvl = etree.SubElement(lst, qn("a:lvl1pPr"))
+    if align:
+        lvl.set("algn", align)
+    if size_pt:
+        rpr = lvl.find(qn("a:defRPr"))
+        if rpr is None:
+            rpr = etree.SubElement(lvl, qn("a:defRPr"))
+        rpr.set("sz", str(round(size_pt * 100)))
+
+
+def theme_root(master):
+    part = master.part.part_related_by(RT.THEME)
+    root = getattr(part, "_element", None)
+    return part, (root if root is not None else parse_xml(part.blob)), root is None
+
+
+def set_theme(master, latin, japanese, colors):
+    """The theme's fonts and, for the report master, a palette of base / main / one accent (plus greys of it).
+
+    Calibri is not on a stock Mac, so the sample would fall back to something arbitrary. The colours also reach
+    theme.json, which the figure tool uses, so a cut-down palette keeps generated figures in the same three colours."""
+    part, xml, detached = theme_root(master)
+    for scheme in ("majorFont", "minorFont"):
+        node = xml.find(f'.//{qn("a:" + scheme)}')
+        node.find(qn("a:latin")).set("typeface", latin)
+        jp = node.find(f'{qn("a:font")}[@script="Jpan"]')
+        if jp is None:
+            jp = etree.SubElement(node, qn("a:font"))
+            jp.set("script", "Jpan")
+        jp.set("typeface", japanese)
+    if colors:
+        scheme = xml.find(f'.//{qn("a:clrScheme")}')
+        for key, rgb in colors.items():
+            slot = scheme.find(qn(f"a:{key}"))
+            if slot is None:
+                continue
+            for child in list(slot):
+                slot.remove(child)
+            slot.append(parse_xml(f'<a:srgbClr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" val="{rgb}"/>'))
+    if detached:
+        part._blob = etree.tostring(xml, xml_declaration=True, encoding="UTF-8", standalone=True)
+
+
+def build(p: Profile):
+    rects = boxes(p)
     prs = Presentation()
     prs.slide_width, prs.slide_height = W, H
-    for ph in prs.slide_master.placeholders:
-        place(ph, MASTER[ph.placeholder_format.type])
+    master = prs.slide_master
+    for ph in master.placeholders:
+        place(ph, rects["master"][ph.placeholder_format.type])
+        if ph.placeholder_format.type == PP_PLACEHOLDER.TITLE:
+            ph.text_frame.vertical_anchor = MSO_ANCHOR.BOTTOM  # a one-line and a two-line title share a baseline
+    set_style_sizes(master, "titleStyle", (p.title_pt,))
+    set_style_sizes(master, "bodyStyle", p.body_pts, hang=True)
+    set_theme(master, FONT_LATIN, FONT_JA, p.colors)
 
     layouts = {layout.name: layout for layout in prs.slide_layouts}
     content_box = next(ph for ph in layouts["Title and Content"].placeholders if ph.placeholder_format.idx == 1)
@@ -64,12 +217,14 @@ def main():
             continue
         for ph in layout.placeholders:
             t, idx = ph.placeholder_format.type, ph.placeholder_format.idx
-            if name == "Title Slide" and t in COVER:
-                place(ph, COVER[t])
-            elif name == "Section Header" and t in SECTION:
-                place(ph, SECTION[t])
-            elif name == "Two Content" and idx in COLUMNS:
-                place(ph, COLUMNS[idx])
+            if name == "Title Slide" and t in rects["cover"]:
+                place(ph, rects["cover"][t])
+                set_lvl1(ph, p.cover_pt if t == PP_PLACEHOLDER.CENTER_TITLE else p.subtitle_pt, align="l")
+            elif name == "Section Header" and t in rects["section"]:
+                place(ph, rects["section"][t])
+                set_lvl1(ph, p.section_pt if t == PP_PLACEHOLDER.TITLE else p.body_pts[0], align="l")
+            elif name == "Two Content" and idx in rects["columns"]:
+                place(ph, rects["columns"][idx])
             else:
                 follow_master(ph._element)  # titles, bodies, date / footer / slide number
         if name == "Title Only":  # Agenda: the title plus one content box
@@ -81,9 +236,15 @@ def main():
             title._element.addnext(box)
         layout.name = ROLES.get(name, name)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    prs.save(str(OUT))
-    print(f"wrote {OUT} ({OUT.stat().st_size // 1024} KB)")
+    out = ROOT / "examples" / p.out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    prs.save(str(out))
+    print(f"wrote {out} ({out.stat().st_size // 1024} KB, 本文 {p.body_pts[0]}pt)")
+
+
+def main():
+    for profile in (PRESENTATION, REPORT):
+        build(profile)
 
 
 if __name__ == "__main__":

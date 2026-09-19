@@ -188,17 +188,24 @@ def set_lvl1(placeholder, rgb=None, size_pt=None, align=None, bold=None):
     lst = placeholder._element.txBody.find(qn("a:lstStyle"))
     if lst is None:
         lst = etree.SubElement(placeholder._element.txBody, qn("a:lstStyle"))
-    lvl = parse_xml(f'<a:lvl1pPr {nsdecls("a")}><a:defRPr/></a:lvl1pPr>')
+    lvl = lst.find(qn("a:lvl1pPr"))  # the sample master already sets one on the cover: a second one is invalid OOXML
+    if lvl is None:
+        lvl = parse_xml(f'<a:lvl1pPr {nsdecls("a")}><a:defRPr/></a:lvl1pPr>')
+        lst.insert(0, lvl)
     if align:
         lvl.set("algn", align)
     rpr = lvl.find(qn("a:defRPr"))
+    if rpr is None:
+        rpr = parse_xml(f'<a:defRPr {nsdecls("a")}/>')
+        lvl.append(rpr)
     if size_pt:
         rpr.set("sz", str(int(size_pt * 100)))
     if bold is not None:
         rpr.set("b", "1" if bold else "0")
     if rgb:
+        for old in rpr.findall(qn("a:solidFill")):
+            rpr.remove(old)
         rpr.append(parse_xml(f'<a:solidFill {nsdecls("a")}><a:srgbClr val="{"%02X%02X%02X" % rgb}"/></a:solidFill>'))
-    lst.insert(0, lvl)
 
 
 def set_theme(master):

@@ -326,17 +326,26 @@ describe("Settings: master tab", () => {
     await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
     expect(onClose).toHaveBeenCalled();
   });
-  it("drops the bundled sample master into the folder as a starting point, once", async () => {
+  it("drops either bundled master into the folder as a starting point, once each", async () => {
     settings.update((v) => { v.masters.default = null; });
     render(<SettingsSheet tab="master" onTab={() => undefined} onClose={() => undefined} />);
-    await userEvent.click(screen.getByRole("button", { name: "見本を取り込む" }));
+    await userEvent.click(screen.getByRole("button", { name: "見本（発表用）を取り込む" }));
     await waitFor(() => expect(screen.getByText("sample-master.pptx")).toBeInTheDocument());
     const m = useDeckStore.getState().masters.find((x) => x.name === "sample-master.pptx")!;
     expect(m.missing).toEqual([]);                                             // Cover / Agenda / Section / Body-Text all present
     expect(m.layouts.filter((l) => l.role).map((l) => l.name).sort()).toEqual(["Agenda", "Body-2col", "Body-Text", "Cover", "Section"]);
     expect(settings.get().masters.default).toBe("sample-master.pptx");
-    await userEvent.click(screen.getByRole("button", { name: "見本を取り込む" }));
+    expect(findLayout(m, "body", "text")!.bodyFontPt).toBe(18);                 // 発表用: read from a distance
+    await userEvent.click(screen.getByRole("button", { name: "見本（発表用）を取り込む" }));
     expect(await screen.findByText(/すでに保管フォルダにあります/)).toBeInTheDocument(); // never overwrites an edited copy
+    // the report master is the second starting point: same layouts, denser type (ADR-0032)
+    await userEvent.click(screen.getByRole("button", { name: "見本（報告用）を取り込む" }));
+    await waitFor(() => expect(screen.getByText("report-master.pptx")).toBeInTheDocument());
+    const r = useDeckStore.getState().masters.find((x) => x.name === "report-master.pptx")!;
+    expect(r.missing).toEqual([]);
+    expect(findLayout(r, "body", "text")!.bodyFontPt).toBe(11);
+    await userEvent.click(screen.getAllByText("削除")[0]);
+    await waitFor(() => expect(useDeckStore.getState().masters).toHaveLength(1));
     await userEvent.click(screen.getByText("削除"));
     await waitFor(() => expect(useDeckStore.getState().masters).toHaveLength(0));
   });

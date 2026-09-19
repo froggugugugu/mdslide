@@ -36,9 +36,9 @@ ws.mkdir(parents=True)
 DRAW = [sys.executable, str(ROOT / "tools" / "mdslide_draw.py")]
 # The sample references images/overview.png; draw it with the deck's own figure tool so the slides are complete.
 subprocess.run(DRAW + ["cycle", str(ws / "images" / "overview.png"), "計画", "実行", "計測", "改善"], cwd=ws, check=True, capture_output=True)
-# A 24pt body keeps each sample slide on one page, and drawn figures replace the TODO placeholders, so the tour shows
-# layouts rather than auto-split continuations and the export finishes without warnings.
-deck = SAMPLE.replace("\n---\n", "\nfontSize: 24\n---\n", 1)
+# The report master's own 11pt body keeps each sample slide on one page, so the deck needs no fontSize of its own;
+# drawn figures replace the TODO placeholders, so the tour shows layouts rather than auto-split continuations.
+deck = SAMPLE
 for i, label in enumerate(re.findall(r"!\[TODO ([^\]]*)\]\(\)", deck), 1):
     subprocess.run(DRAW + ["flow", str(ws / "images" / f"figure-{i}.png"), "コミット", "ビルド", "テスト", "デプロイ"], cwd=ws, check=True, capture_output=True)
     deck = deck.replace(f"![TODO {label}]()", f"![{label}](images/figure-{i}.png)", 1)
@@ -53,7 +53,7 @@ for i in range(background + 1, len(lines)):
         last_bullet = i
 masters = tmp / "masters"
 masters.mkdir()
-for name in ("decorated-master.pptx", "sample-master.pptx"):
+for name in ("report-master.pptx", "decorated-master.pptx", "sample-master.pptx"):
     shutil.copy(ROOT / "examples" / name, masters / name)
 cfg = tmp / "config" / "settings.json"
 cfg.parent.mkdir()
@@ -61,7 +61,7 @@ cfg.write_text(json.dumps({
     "version": 1, "help": {"seen": True},
     "console": {"open": False, "autoStart": False, "height": 260},
     "workspace": {"lastPath": None, "lastDeckFile": None, "recent": [{"path": str(ws), "deckFile": "deck.md"}]},
-    "masters": {"dir": str(masters), "default": "decorated-master.pptx"},
+    "masters": {"dir": str(masters), "default": "report-master.pptx"},
     "editor": {"vim": True, "width": None},
     "appearance": {"theme": "light"},  # the tour is always the light look, whatever the machine's appearance
 }, ensure_ascii=False), encoding="utf8")
