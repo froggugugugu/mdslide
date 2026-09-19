@@ -28,6 +28,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib import font_manager  # noqa: E402
+from matplotlib.ft2font import FT2Font  # noqa: E402
 from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent  # the deck folder
@@ -48,14 +49,28 @@ def theme() -> dict:
     return DEFAULT_THEME
 
 
+def _draws_kanji(name: str) -> bool:
+    """Whether the face matplotlib resolves for this family really has 計 (U+8A08)."""
+    try:
+        path = font_manager.findfont(font_manager.FontProperties(family=name), fallback_to_default=False)
+        return FT2Font(path).get_char_index(0x8A08) != 0
+    except Exception:
+        return False
+
+
 def _font() -> str:
-    """Prefer the theme's Japanese font, then common CJK fonts, then whatever matplotlib has."""
+    """Prefer the theme's Japanese font, then common CJK fonts, then whatever matplotlib has.
+
+    A name only counts when the face behind it can draw kanji. The theme's Latin font is on every Mac (the default
+    theme names Helvetica), so without this check it wins before any CJK font is tried and every label comes out as
+    tofu — with no error, because matplotlib only warns about the missing glyphs."""
     t = theme()
     wanted = [t.get("fonts", {}).get("minorJa"), t.get("fonts", {}).get("minor"),
-              "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans CJK JP", "Noto Sans JP", "IPAexGothic", "Meiryo", "Noto Sans CJK SC"]
+              "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Noto Sans CJK JP",
+              "Noto Sans JP", "IPAexGothic", "Meiryo", "Noto Sans CJK SC", "Arial Unicode MS"]
     available = {f.name for f in font_manager.fontManager.ttflist}
     for w in wanted:
-        if w and w in available:
+        if w and w in available and _draws_kanji(w):
             return w
     return plt.rcParams["font.family"][0]
 

@@ -52,6 +52,25 @@ def test_falls_back_to_defaults_without_theme_json(tmp_path):
     assert r.returncode == 0 and (tmp_path / "images" / "x.png").exists()
 
 
+def test_a_font_that_cannot_draw_kanji_is_never_chosen(tmp_path, monkeypatch):
+    """The theme's Latin font is on every Mac, so choosing by name alone took Helvetica and drew every label as
+    tofu — matplotlib only warns about the missing glyphs, so the figure looked fine to every test we had."""
+    monkeypatch.syspath_prepend(str(ROOT / "tools"))
+    import mdslide_draw as m
+    from matplotlib import font_manager
+
+    monkeypatch.setattr(m, "ROOT", tmp_path)
+    (tmp_path / "theme.json").write_text(json.dumps(  # minorJa is the font a master names; it is often not installed
+        {"fonts": {"minorJa": "Noto Sans CJK JP", "minor": "Helvetica"}}), encoding="utf8")
+    installed = {f.name for f in font_manager.fontManager.ttflist}
+    capable = [n for n in ("Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic",
+                           "Noto Sans CJK JP", "Noto Sans JP", "IPAexGothic", "Meiryo", "Arial Unicode MS")
+               if n in installed and m._draws_kanji(n)]
+    assert not m._draws_kanji("Helvetica")                 # the face that used to win
+    if capable:                                            # a CJK face exists here, so one of them must be chosen
+        assert m._draws_kanji(m._font()), m._font()
+
+
 def test_help_lists_all_kinds(tmp_path):
     setup_folder(tmp_path)
     r = run(tmp_path, "--help")
