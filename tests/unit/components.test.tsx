@@ -295,6 +295,12 @@ describe("PreviewPane", () => {
     render(<PreviewPane />);
     expect(screen.getByText(/ノート · hi/)).toBeInTheDocument();
   });
+  it("hands the slide's aspect to the box that sizes it, so height can limit the preview", () => {
+    const { container } = render(<PreviewPane />);
+    const fit = container.querySelector(".slide-fit") as HTMLElement;
+    expect(fit.style.getPropertyValue("--slide-aspect")).toBe(String(16 / 9)); // no master: 16:9
+    expect(fit.querySelector(".slide-frame .slide-canvas")).toBeTruthy(); // width comes from the CSS, not from utility classes
+  });
 });
 
 describe("Settings: master tab", () => {

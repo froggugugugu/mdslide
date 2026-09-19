@@ -134,7 +134,9 @@ body.electron { background: transparent; }
 
 /* ---- Stage (center) ---- */
 .stage { background: var(--bg); }
-.stage .slide-frame { border-radius: 4px; overflow: hidden; box-shadow: var(--slide-shadow); background: #fff; }
+/* The slide fits the pane by height as well as width: with a tall console the height is what limits it. */
+.stage .slide-fit { container-type: size; }
+.stage .slide-frame { width: min(100%, 1000px, calc(100cqh * var(--slide-aspect, 1.7778))); border-radius: 4px; overflow: hidden; box-shadow: var(--slide-shadow); background: #fff; }
 .stage .footer { color: var(--ink-2); font-size: 12px; }
 
 /* ---- Editor (right) ---- */

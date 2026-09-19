@@ -149,6 +149,13 @@ def test_console_is_a_real_terminal_that_starts_claude(electron_app):
     assert pg.get_by_test_id("console").count() == 0
     pg.keyboard.press("Meta+J"); pg.wait_for_timeout(200)
     assert pg.get_by_test_id("console").count() == 1
+    # dragging the console taller shrinks the slide; it must not spill out of the preview pane
+    sep = pg.get_by_role("separator", name="コンソールの高さ").bounding_box()
+    pg.mouse.move(sep["x"] + sep["width"] / 2, sep["y"] + 2); pg.mouse.down()
+    pg.mouse.move(sep["x"] + sep["width"] / 2, sep["y"] - 260, steps=5); pg.mouse.up()
+    pg.wait_for_timeout(300)
+    fit = pg.evaluate("()=>{const f=document.querySelector('.slide-frame').getBoundingClientRect(),p=document.querySelector('.slide-fit').getBoundingClientRect();return {ok:f.top>=p.top-1&&f.bottom<=p.bottom+1,w:f.width}}")
+    assert fit["ok"] and fit["w"] > 100, fit
     # ⌘, opens the settings sheet; the appearance choice reaches nativeTheme, so prefers-color-scheme follows it (theme:set IPC).
     # Playwright emulates a light scheme on every page it attaches to; drop that so the query reports what Electron decides.
     pg.emulate_media(color_scheme="no-override")

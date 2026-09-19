@@ -125,6 +125,8 @@ const alignCss = (a?: PlaceholderStyle["align"]): CSSProperties["textAlign"] => 
 const anchorCss = (a?: PlaceholderStyle["anchor"]): CSSProperties["justifyContent"] => (a === "ctr" ? "center" : a === "b" ? "flex-end" : "flex-start");
 /** A theme font pair as a CSS stack (Japanese face first when the theme names one). */
 const fontStack = (latin?: string, ja?: string) => (latin || ja ? [ja, latin].filter(Boolean).map((f) => `"${f}"`).concat("var(--font-ui)").join(", ") : undefined);
+/** Slide width ÷ height, from the master (16:9 without one). The canvas and the box that sizes it share it. */
+export const slideAspect = (master?: MasterProfile) => (master ? master.slideSize.w / master.slideSize.h : 16 / 9);
 
 export function SlideCanvas({ slide, master, className = "" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -136,7 +138,7 @@ export function SlideCanvas({ slide, master, className = "" }: Props) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const aspect = master ? master.slideSize.w / master.slideSize.h : 16 / 9;
+  const aspect = slideAspect(master);
   const regions = regionsFor(slide, master);
   const layout = master ? findLayout(master, slide.kind, slide.layout.kind === "2col" ? "2col" : "text") : undefined;
   const unit = width / 100; // 1 unit = 1% of slide width

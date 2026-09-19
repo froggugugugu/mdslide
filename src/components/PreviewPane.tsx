@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { copyText, slideRefs } from "../model/refs";
 import { useTerminalStore } from "../console/terminalStore";
 import { useCurrentMaster, useDeckStore } from "../store/deckStore";
-import { SlideCanvas } from "./SlideCanvas";
+import { SlideCanvas, slideAspect } from "./SlideCanvas";
 import { Icon } from "./Icon";
 import { findLayout } from "../master/importMaster";
 import { layoutLabel, type ImageWidth, type Side } from "../layouts/geometry";
@@ -45,8 +45,9 @@ export function PreviewPane() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-10 min-h-0">
-        <div className="slide-frame w-full max-w-[1000px]">
+      {/* The slide is bounded by this box in both directions (CSS: .slide-fit), so a tall console shrinks it instead of pushing it out. */}
+      <div className="slide-fit flex-1 flex items-center justify-center px-10 py-6 min-h-0" style={{ "--slide-aspect": slideAspect(master) } as React.CSSProperties}>
+        <div className="slide-frame">
           <SlideCanvas slide={slide} master={master} />
         </div>
       </div>

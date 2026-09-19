@@ -34,6 +34,14 @@ def test_renders_sample_and_reorders_with_renumbering(web_page):
     assert labels[3] == "1.1. 目的とゴール" and labels[4] == "1.2. 取り組みの背景"
     # markdown followed the move
     assert "## 目的とゴール" in pg.locator(".cm-content").inner_text().split("## 取り組みの背景")[0]
+    # the slide is bounded by height too: a short window shrinks it instead of pushing it out of the pane
+    fits = "()=>{const f=document.querySelector('.slide-frame').getBoundingClientRect(),p=document.querySelector('.slide-fit').getBoundingClientRect();return {ok:f.top>=p.top-1&&f.bottom<=p.bottom+1,w:f.width}}"
+    pg.set_viewport_size({"width": 1500, "height": 520}); pg.wait_for_timeout(300)
+    short = pg.evaluate(fits)
+    assert short["ok"], short
+    pg.set_viewport_size({"width": 1500, "height": 900}); pg.wait_for_timeout(300)
+    tall = pg.evaluate(fits)
+    assert tall["ok"] and tall["w"] > short["w"], (tall, short)  # and it grows back with the room
     assert pg.errors == []
 
 
